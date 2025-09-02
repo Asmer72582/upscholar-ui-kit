@@ -55,29 +55,24 @@ export const Landing: React.FC = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="relative py-20 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-secondary" />
-        <div className="relative container mx-auto px-4">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 animate-fade-in">
-              Learn from the Best{' '}
-              <span className="bg-gradient-primary bg-clip-text text-transparent">
-                Trainers
-              </span>
+      <section className="py-32">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto">
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">
+              Learn from Expert{' '}
+              <span className="text-primary">Trainers</span>
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 animate-slide-up">
-              Join thousands of learners on Upscholer. Access live lectures, interactive courses, 
-              and expert-led sessions. Pay with Upcoins for seamless learning experience.
+            <p className="text-lg text-muted-foreground mb-8">
+              Join live lectures and interactive courses. Pay with Upcoins for seamless learning.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
-              <Button asChild size="lg" className="btn-primary text-lg px-8 py-3">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button asChild size="lg">
                 <Link to="/auth">
-                  Start Learning
-                  <ArrowRight className="ml-2 w-5 h-5" />
+                  Get Started
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="text-lg px-8 py-3 hover-scale">
-                <Link to="/browse">
+              <Button asChild variant="outline" size="lg">
+                <Link to="/auth">
                   Browse Lectures
                 </Link>
               </Button>
@@ -87,113 +82,79 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-background">
+      <section className="py-20 bg-secondary/20">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose Upscholer?
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Experience the future of online learning with our innovative platform
-            </p>
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold mb-4">Why Upscholer?</h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="card-elevated text-center p-6">
-              <CardHeader>
-                <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Video className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle>Live Interactive Sessions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base">
-                  Join real-time lectures with expert trainers. Ask questions, participate in discussions, 
-                  and learn alongside peers.
-                </CardDescription>
-              </CardContent>
-            </Card>
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Video className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-semibold mb-2">Live Sessions</h3>
+              <p className="text-sm text-muted-foreground">
+                Interactive lectures with expert trainers
+              </p>
+            </div>
 
-            <Card className="card-elevated text-center p-6">
-              <CardHeader>
-                <div className="w-16 h-16 bg-gradient-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Coins className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle>Upcoin Rewards</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base">
-                  Earn and spend Upcoins - our native currency. Get rewarded for engagement 
-                  and use coins for premium content.
-                </CardDescription>
-              </CardContent>
-            </Card>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
+                <Coins className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-semibold mb-2">Upcoin Rewards</h3>
+              <p className="text-sm text-muted-foreground">
+                Earn and spend our native currency
+              </p>
+            </div>
 
-            <Card className="card-elevated text-center p-6">
-              <CardHeader>
-                <div className="w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <GraduationCap className="w-8 h-8 text-white" />
-                </div>
-                <CardTitle>Expert Trainers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-base">
-                  Learn from industry professionals and certified experts. 
-                  Access personalized guidance and mentorship.
-                </CardDescription>
-              </CardContent>
-            </Card>
+            <div className="text-center">
+              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center mx-auto mb-4">
+                <GraduationCap className="w-6 h-6 text-white" />
+              </div>
+              <h3 className="font-semibold mb-2">Expert Trainers</h3>
+              <p className="text-sm text-muted-foreground">
+                Learn from industry professionals
+              </p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Featured Lectures */}
-      <section className="py-20 bg-secondary/30">
+      <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Featured Lectures
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Join these popular sessions and start your learning journey
-            </p>
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold mb-2">Popular Lectures</h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {featuredLectures.map((lecture) => (
-              <Card key={lecture.id} className="card-elevated overflow-hidden">
+              <Card key={lecture.id} className="overflow-hidden">
                 <div className="relative">
                   <img 
                     src={lecture.thumbnail} 
                     alt={lecture.title}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-40 object-cover"
                   />
-                  <Badge className="absolute top-3 right-3 bg-accent text-accent-foreground">
+                  <Badge className="absolute top-2 right-2 text-xs">
                     {lecture.price} Upcoins
                   </Badge>
                 </div>
-                <CardHeader>
-                  <CardTitle className="text-lg">{lecture.title}</CardTitle>
-                  <CardDescription>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">{lecture.title}</CardTitle>
+                  <CardDescription className="text-xs">
                     by {lecture.trainer}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-                    <div className="flex items-center">
-                      <Clock className="w-4 h-4 mr-1" />
-                      {lecture.duration} min
-                    </div>
-                    <div className="flex items-center">
-                      <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
-                      {lecture.rating}
-                    </div>
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-1" />
-                      {lecture.enrolled}
-                    </div>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
+                    <span>{lecture.duration}min</span>
+                    <span>★ {lecture.rating}</span>
+                    <span>{lecture.enrolled} enrolled</span>
                   </div>
-                  <Button className="w-full btn-primary">
+                  <Button size="sm" className="w-full">
                     View Details
                   </Button>
                 </CardContent>
@@ -204,21 +165,18 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-primary text-white">
+      <section className="py-16 bg-primary text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Ready to Start Your Learning Journey?
+          <h2 className="text-2xl font-bold mb-4">
+            Ready to Start Learning?
           </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join thousands of learners and trainers on Upscholer today
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-3 hover-scale">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button asChild variant="secondary">
               <Link to="/auth">
                 Join as Student
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="text-lg px-8 py-3 text-white border-white hover:bg-white hover:text-primary">
+            <Button asChild variant="outline" className="border-white text-white hover:bg-white hover:text-primary">
               <Link to="/auth">
                 Become a Trainer
               </Link>
@@ -228,19 +186,17 @@ export const Landing: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 bg-background border-t">
+      <footer className="py-8 border-t">
         <div className="container mx-auto px-4">
           <div className="text-center">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <GraduationCap className="w-5 h-5 text-white" />
+            <div className="flex items-center justify-center space-x-2 mb-2">
+              <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
+                <GraduationCap className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                Upscholer
-              </span>
+              <span className="font-semibold text-primary">Upscholer</span>
             </div>
-            <p className="text-muted-foreground">
-              © 2024 Upscholer. All rights reserved. Empowering learners worldwide.
+            <p className="text-sm text-muted-foreground">
+              © 2024 Upscholer. All rights reserved.
             </p>
           </div>
         </div>

@@ -92,6 +92,18 @@ export const CreateCourse: React.FC = () => {
     ));
   };
 
+  const updateLectureTitle = (moduleId: string, lectureId: string, title: string) => {
+    updateLecture(moduleId, lectureId, 'title', title);
+  };
+
+  const updateLectureDuration = (moduleId: string, lectureId: string, duration: string) => {
+    updateLecture(moduleId, lectureId, 'duration', parseInt(duration) || 60);
+  };
+
+  const updateLectureType = (moduleId: string, lectureId: string, type: string) => {
+    updateLecture(moduleId, lectureId, 'type', type as 'live' | 'recorded');
+  };
+
   const removeLecture = (moduleId: string, lectureId: string) => {
     setModules(modules.map(module => 
       module.id === moduleId 
@@ -283,24 +295,22 @@ export const CreateCourse: React.FC = () => {
                                   <div className="col-span-4">
                                     <Input 
                                       value={lecture.title}
-                                      onChange={(e) => updateLecture(module.id, lecture.id, 'title', e.target.value)}
+                                      onChange={(e) => updateLectureTitle(module.id, lecture.id, e.target.value)}
                                       placeholder={`Lecture ${lectureIndex + 1}`}
-                                      size="sm"
                                     />
                                   </div>
                                   <div className="col-span-2">
                                     <Input 
                                       type="number"
                                       value={lecture.duration}
-                                      onChange={(e) => updateLecture(module.id, lecture.id, 'duration', parseInt(e.target.value) || 0)}
+                                      onChange={(e) => updateLectureDuration(module.id, lecture.id, e.target.value)}
                                       placeholder="Duration"
-                                      size="sm"
                                     />
                                   </div>
                                   <div className="col-span-3">
                                     <Select 
                                       value={lecture.type} 
-                                      onValueChange={(value) => updateLecture(module.id, lecture.id, 'type', value)}
+                                      onValueChange={(value) => updateLectureType(module.id, lecture.id, value)}
                                     >
                                       <SelectTrigger className="h-8">
                                         <SelectValue />

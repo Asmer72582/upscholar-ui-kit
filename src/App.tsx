@@ -14,10 +14,22 @@ import { StudentDashboard } from "./pages/student/StudentDashboard";
 import { BrowseLectures } from "./pages/student/BrowseLectures";
 import { MyLectures } from "./pages/student/MyLectures";
 import { StudentWallet } from "./pages/student/StudentWallet";
+import { LectureDetails } from "./pages/student/LectureDetails";
+import { Support } from "./pages/student/Support";
 import { TrainerDashboard } from "./pages/trainer/TrainerDashboard";
 import { ScheduleLecture } from "./pages/trainer/ScheduleLecture";
 import { ManageLectures } from "./pages/trainer/ManageLectures";
+import { CreateCourse } from "./pages/trainer/CreateCourse";
+import { ManageCourses } from "./pages/trainer/ManageCourses";
+import { Earnings } from "./pages/trainer/Earnings";
+import { Students } from "./pages/trainer/Students";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { ManageUsers } from "./pages/admin/ManageUsers";
+import { ManageLectures as ManageLecturesAdmin } from "./pages/admin/ManageLectures";
+import { ManageCourses as ManageCoursesAdmin } from "./pages/admin/ManageCourses";
+import { Analytics } from "./pages/admin/Analytics";
+import { AdminSupport } from "./pages/admin/AdminSupport";
+import { LiveLecture } from "./pages/LiveLecture";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,8 +55,10 @@ const App = () => (
               <Route path="dashboard" element={<StudentDashboard />} />
               <Route path="browse-lectures" element={<BrowseLectures />} />
               <Route path="my-lectures" element={<MyLectures />} />
+              <Route path="lecture/:id" element={<LectureDetails />} />
+              <Route path="lecture/:id/details" element={<LectureDetails />} />
               <Route path="wallet" element={<StudentWallet />} />
-              <Route path="support" element={<div className="p-8 text-center">Support - Coming Soon</div>} />
+              <Route path="support" element={<Support />} />
             </Route>
 
             {/* Trainer Routes */}
@@ -56,10 +70,10 @@ const App = () => (
               <Route path="dashboard" element={<TrainerDashboard />} />
               <Route path="schedule-lecture" element={<ScheduleLecture />} />
               <Route path="manage-lectures" element={<ManageLectures />} />
-              <Route path="create-course" element={<div className="p-8 text-center">Create Course - Coming Soon</div>} />
-              <Route path="manage-courses" element={<div className="p-8 text-center">Manage Courses - Coming Soon</div>} />
-              <Route path="students" element={<div className="p-8 text-center">Students - Coming Soon</div>} />
-              <Route path="earnings" element={<div className="p-8 text-center">Earnings - Coming Soon</div>} />
+              <Route path="create-course" element={<CreateCourse />} />
+              <Route path="manage-courses" element={<ManageCourses />} />
+              <Route path="students" element={<Students />} />
+              <Route path="earnings" element={<Earnings />} />
             </Route>
 
             {/* Admin Routes */}
@@ -69,16 +83,19 @@ const App = () => (
               </RoleGuard>
             }>
               <Route path="dashboard" element={<AdminDashboard />} />
-              <Route path="manage-users" element={<div className="p-8 text-center">Manage Users - Coming Soon</div>} />
-              <Route path="manage-lectures" element={<div className="p-8 text-center">Manage Lectures - Coming Soon</div>} />
-              <Route path="manage-courses" element={<div className="p-8 text-center">Manage Courses - Coming Soon</div>} />
-              <Route path="analytics" element={<div className="p-8 text-center">Analytics - Coming Soon</div>} />
-              <Route path="support" element={<div className="p-8 text-center">Support - Coming Soon</div>} />
-              <Route path="settings" element={<div className="p-8 text-center">Settings - Coming Soon</div>} />
+              <Route path="manage-users" element={<ManageUsers />} />
+              <Route path="manage-lectures" element={<ManageLecturesAdmin />} />
+              <Route path="manage-courses" element={<ManageCoursesAdmin />} />
+              <Route path="analytics" element={<Analytics />} />
+              <Route path="support" element={<AdminSupport />} />
             </Route>
 
             {/* Live Lecture Route */}
-            <Route path="/live/:lectureId" element={<div className="p-8 text-center">Live Lecture - Coming Soon</div>} />
+            <Route path="/live/:lectureId" element={
+              <RoleGuard allowedRoles={['student', 'trainer']}>
+                <LiveLecture />
+              </RoleGuard>
+            } />
 
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />

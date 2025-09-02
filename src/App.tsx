@@ -11,7 +11,12 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Landing } from "./pages/Landing";
 import { Auth } from "./pages/Auth";
 import { StudentDashboard } from "./pages/student/StudentDashboard";
+import { BrowseLectures } from "./pages/student/BrowseLectures";
+import { MyLectures } from "./pages/student/MyLectures";
+import { StudentWallet } from "./pages/student/StudentWallet";
 import { TrainerDashboard } from "./pages/trainer/TrainerDashboard";
+import { ScheduleLecture } from "./pages/trainer/ScheduleLecture";
+import { ManageLectures } from "./pages/trainer/ManageLectures";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -36,9 +41,9 @@ const App = () => (
               </RoleGuard>
             }>
               <Route path="dashboard" element={<StudentDashboard />} />
-              <Route path="browse-lectures" element={<div className="p-8 text-center">Browse Lectures - Coming Soon</div>} />
-              <Route path="my-lectures" element={<div className="p-8 text-center">My Lectures - Coming Soon</div>} />
-              <Route path="wallet" element={<div className="p-8 text-center">Wallet - Coming Soon</div>} />
+              <Route path="browse-lectures" element={<BrowseLectures />} />
+              <Route path="my-lectures" element={<MyLectures />} />
+              <Route path="wallet" element={<StudentWallet />} />
               <Route path="support" element={<div className="p-8 text-center">Support - Coming Soon</div>} />
             </Route>
 
@@ -49,8 +54,8 @@ const App = () => (
               </RoleGuard>
             }>
               <Route path="dashboard" element={<TrainerDashboard />} />
-              <Route path="schedule-lecture" element={<div className="p-8 text-center">Schedule Lecture - Coming Soon</div>} />
-              <Route path="manage-lectures" element={<div className="p-8 text-center">Manage Lectures - Coming Soon</div>} />
+              <Route path="schedule-lecture" element={<ScheduleLecture />} />
+              <Route path="manage-lectures" element={<ManageLectures />} />
               <Route path="create-course" element={<div className="p-8 text-center">Create Course - Coming Soon</div>} />
               <Route path="manage-courses" element={<div className="p-8 text-center">Manage Courses - Coming Soon</div>} />
               <Route path="students" element={<div className="p-8 text-center">Students - Coming Soon</div>} />

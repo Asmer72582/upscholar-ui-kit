@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleGuard } from "@/components/common/RoleGuard";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { ModernDashboardLayout } from "@/components/layout/ModernDashboardLayout";
 
 // Pages
 import { Landing } from "./pages/Landing";
@@ -49,7 +49,7 @@ const App = () => (
             {/* Student Routes */}
             <Route path="/student/*" element={
               <RoleGuard allowedRoles={['student']}>
-                <DashboardLayout />
+                <ModernDashboardLayout />
               </RoleGuard>
             }>
               <Route path="dashboard" element={<StudentDashboard />} />
@@ -64,7 +64,7 @@ const App = () => (
             {/* Trainer Routes */}
             <Route path="/trainer/*" element={
               <RoleGuard allowedRoles={['trainer']}>
-                <DashboardLayout />
+                <ModernDashboardLayout />
               </RoleGuard>
             }>
               <Route path="dashboard" element={<TrainerDashboard />} />
@@ -79,7 +79,7 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin/*" element={
               <RoleGuard allowedRoles={['admin']}>
-                <DashboardLayout />
+                <ModernDashboardLayout />
               </RoleGuard>
             }>
               <Route path="dashboard" element={<AdminDashboard />} />

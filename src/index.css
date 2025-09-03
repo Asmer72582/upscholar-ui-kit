@@ -49,34 +49,31 @@
     --input: 217 91% 90%;
     --ring: 223 87% 34%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(223 87% 34%), hsl(213 94% 68%));
-    --gradient-secondary: linear-gradient(135deg, hsl(217 91% 95%), hsl(0 0% 100%));
-    --gradient-accent: linear-gradient(135deg, hsl(213 94% 68%), hsl(223 87% 50%));
+  /* Modern Gradients */
+  --gradient-primary: linear-gradient(135deg, hsl(223 87% 34%), hsl(213 94% 68%));
+  --gradient-secondary: linear-gradient(135deg, hsl(217 91% 95%), hsl(0 0% 100%));
+  --gradient-accent: linear-gradient(135deg, hsl(213 94% 68%), hsl(223 87% 50%));
+  --gradient-sidebar: linear-gradient(180deg, hsl(223 87% 34%), hsl(223 87% 25%));
+  --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(217 91% 98%));
 
-    /* Shadows */
-    --shadow-soft: 0 2px 8px hsl(223 87% 34% / 0.08);
-    --shadow-medium: 0 4px 16px hsl(223 87% 34% / 0.12);
-    --shadow-strong: 0 8px 32px hsl(223 87% 34% / 0.16);
-    --shadow-glow: 0 0 24px hsl(213 94% 68% / 0.3);
+  /* Modern Shadows */
+  --shadow-soft: 0 2px 8px hsl(223 87% 34% / 0.08);
+  --shadow-medium: 0 4px 16px hsl(223 87% 34% / 0.12);
+  --shadow-strong: 0 8px 32px hsl(223 87% 34% / 0.16);
+  --shadow-glow: 0 0 24px hsl(213 94% 68% / 0.3);
+  --shadow-modern: 0 1px 3px hsl(223 87% 34% / 0.12), 0 1px 2px hsl(223 87% 34% / 0.24);
 
     --radius: 1rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Modern Sidebar Design */
+    --sidebar-background: 223 87% 34%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 213 94% 68%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 223 87% 40%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 223 87% 30%;
+    --sidebar-ring: 213 94% 68%;
   }
 
   .dark {
@@ -130,7 +127,7 @@
 
 /* Custom Components & Animations */
 @layer components {
-  /* Gradient Backgrounds */
+  /* Modern Gradient Backgrounds */
   .bg-gradient-primary {
     background: var(--gradient-primary);
   }
@@ -141,6 +138,14 @@
   
   .bg-gradient-accent {
     background: var(--gradient-accent);
+  }
+
+  .bg-gradient-sidebar {
+    background: var(--gradient-sidebar);
+  }
+
+  .bg-gradient-card {
+    background: var(--gradient-card);
   }
 
   /* Shadow Utilities */
@@ -158,6 +163,10 @@
   
   .shadow-glow {
     box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-modern {
+    box-shadow: var(--shadow-modern);
   }
 
   /* Interactive States */

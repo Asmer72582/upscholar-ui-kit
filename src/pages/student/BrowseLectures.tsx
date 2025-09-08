@@ -1,4 +1,23 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+interface Lecture {
+  id: string;
+  title: string;
+  description: string;
+  trainer: string;
+  trainerAvatar: string;
+  price: number;
+  duration: number;
+  scheduledAt: string;
+  category: string;
+  level: string;
+  rating: number;
+  enrolledStudents: number;
+  maxStudents: number;
+  tags: string[];
+  thumbnail: string;
+}
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +37,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const mockLectures = [
+const mockLectures: Lecture[] = [
   {
     id: 'lecture-1',
     title: 'Introduction to React Hooks',
@@ -124,6 +143,7 @@ const mockLectures = [
 ];
 
 export const BrowseLectures: React.FC = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -155,11 +175,14 @@ export const BrowseLectures: React.FC = () => {
       }
     });
 
-  const LectureCard = ({ lecture, isListView = false }: { lecture: any; isListView?: boolean }) => (
-    <Card className={cn(
-      "card-elevated overflow-hidden transition-all",
-      isListView ? "flex flex-row" : ""
-    )}>
+  const LectureCard = ({ lecture, isListView = false }: { lecture: Lecture; isListView?: boolean }) => (
+    <Card 
+      className={cn(
+        "card-elevated overflow-hidden transition-all cursor-pointer hover:shadow-medium",
+        isListView ? "flex flex-row" : ""
+      )}
+      onClick={() => navigate(`/course/${lecture.id}`)}    
+    >
       <div className={cn("relative", isListView ? "w-48 flex-shrink-0" : "")}>
         <img 
           src={lecture.thumbnail} 
@@ -218,9 +241,16 @@ export const BrowseLectures: React.FC = () => {
               <Calendar className="w-3 h-3 inline mr-1" />
               {new Date(lecture.scheduledAt).toLocaleDateString()}
             </div>
-            <Button size="sm" className="btn-primary">
-              <BookOpen className="w-4 h-4 mr-1" />
-              Enroll Now
+            <Button 
+              size="sm" 
+              className="btn-primary"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/course/${lecture.id}`);
+              }}
+            >
+              <PlayCircle className="w-4 h-4 mr-1" />
+              View Course
             </Button>
           </div>
         </CardContent>

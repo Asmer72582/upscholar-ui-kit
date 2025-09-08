@@ -12,6 +12,7 @@ import { Landing } from "./pages/Landing";
 import { Auth } from "./pages/Auth";
 import { StudentDashboard } from "./pages/student/StudentDashboard";
 import { BrowseLectures } from "./pages/student/BrowseLectures";
+import { CourseDetail } from "./pages/student/CourseDetail";
 import { MyLectures } from "./pages/student/MyLectures";
 import { StudentWallet } from "./pages/student/StudentWallet";
 import { LectureDetails } from "./pages/student/LectureDetails";
@@ -54,6 +55,7 @@ const App = () => (
             }>
               <Route path="dashboard" element={<StudentDashboard />} />
               <Route path="browse-lectures" element={<BrowseLectures />} />
+              <Route path="course/:id" element={<CourseDetail />} />
               <Route path="my-lectures" element={<MyLectures />} />
               <Route path="lecture/:id" element={<LectureDetails />} />
               <Route path="lecture/:id/details" element={<LectureDetails />} />

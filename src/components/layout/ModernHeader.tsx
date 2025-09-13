@@ -1,11 +1,11 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { Bell, Search, Settings, Wallet } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { Bell, Search, Settings, Wallet, Coins, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,16 +13,46 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+} from "@/components/ui/dropdown-menu";
+import { SidebarTrigger } from "@/components/ui/sidebar";
+import { walletService, WalletBalance } from "@/services/walletService";
 
 export const ModernHeader: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(
+    null
+  );
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === "student") {
+      fetchWalletBalance();
+    }
+  }, [user]);
+
+  const fetchWalletBalance = async () => {
+    try {
+      setBalanceLoading(true);
+      const balance = await walletService.getBalance();
+      setWalletBalance(balance);
+    } catch (error) {
+      console.error("Error fetching wallet balance:", error);
+      // Don't show error toast in header, just fail silently
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
+  };
+
+  const refreshBalance = () => {
+    if (user?.role === "student") {
+      fetchWalletBalance();
+    }
   };
 
   if (!user) return null;
@@ -32,7 +62,7 @@ export const ModernHeader: React.FC = () => {
       <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
-          
+
           <div className="relative w-96 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
@@ -43,18 +73,42 @@ export const ModernHeader: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {user.role === 'student' && (
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="gap-2 bg-gradient-card border-border/50 hover:shadow-soft"
-            >
-              <Link to="/student/wallet">
-                <Wallet className="w-4 h-4" />
-                Balance: $125.50
-              </Link>
-            </Button>
+          {user.role === "student" && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="gap-2 bg-gradient-card border-border/50 hover:shadow-soft"
+              >
+                <Link to="/student/wallet">
+                  <Coins className="w-4 h-4 text-yellow-600" />
+                  {balanceLoading ? (
+                    <span className="flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Loading...
+                    </span>
+                  ) : walletBalance ? (
+                    <span>{walletBalance.balance} UC</span>
+                  ) : (
+                    <span>-- UC</span>
+                  )}
+                </Link>
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshBalance}
+                disabled={balanceLoading}
+                className="h-8 w-8 p-0 hover:bg-muted/50"
+                title="Refresh balance"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${balanceLoading ? "animate-spin" : ""}`}
+                />
+              </Button>
+            </div>
           )}
 
           <Button
@@ -78,16 +132,25 @@ export const ModernHeader: React.FC = () => {
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-popover/95 backdrop-blur" align="end" forceMount>
+            <DropdownMenuContent
+              className="w-56 bg-popover/95 backdrop-blur"
+              align="end"
+              forceMount
+            >
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    {user.firstName ? `${user.firstName} ${user.lastName}` : user.email.split('@')[0]}
+                    {user.firstName
+                      ? `${user.firstName} ${user.lastName}`
+                      : user.email.split("@")[0]}
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {user.email}
                   </p>
-                  <Badge variant="secondary" className="w-fit capitalize text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="w-fit capitalize text-xs"
+                  >
                     {user.role}
                   </Badge>
                 </div>
@@ -98,11 +161,18 @@ export const ModernHeader: React.FC = () => {
                   Dashboard
                 </Link>
               </DropdownMenuItem>
-              {user.role === 'student' && (
+              {user.role === "student" && (
                 <DropdownMenuItem asChild>
                   <Link to="/student/wallet" className="cursor-pointer">
                     <Wallet className="mr-2 h-4 w-4" />
-                    Wallet
+                    <div className="flex flex-col">
+                      <span>Wallet</span>
+                      {walletBalance && (
+                        <span className="text-xs text-muted-foreground">
+                          {walletBalance.balance} UC available
+                        </span>
+                      )}
+                    </div>
                   </Link>
                 </DropdownMenuItem>
               )}
@@ -113,7 +183,10 @@ export const ModernHeader: React.FC = () => {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
+              <DropdownMenuItem
+                onClick={handleLogout}
+                className="cursor-pointer text-destructive"
+              >
                 Log out
               </DropdownMenuItem>
             </DropdownMenuContent>

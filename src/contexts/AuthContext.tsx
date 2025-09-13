@@ -8,7 +8,13 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
-  register: (email: string, password: string, firstName: string, lastName: string, role: UserRole) => Promise<void>;
+  register: (email: string, password: string, firstName: string, lastName: string, role: UserRole, trainerData?: {
+    resumeFile: File;
+    demoVideoUrl: string;
+    expertise: string[];
+    experience: number;
+    bio: string;
+  }) => Promise<{ isTrainer: boolean; message?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,12 +70,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, firstName: string, lastName: string, role: UserRole) => {
+  const register = async (email: string, password: string, firstName: string, lastName: string, role: UserRole, trainerData?: {
+    resumeFile: File;
+    demoVideoUrl: string;
+    expertise: string[];
+    experience: number;
+    bio: string;
+  }) => {
     setLoading(true);
     try {
-      const user = await authService.register(email, password, firstName, lastName, role);
-      setUser(user);
-      localStorage.setItem('upscholer_user', JSON.stringify(user));
+      const result = await authService.register(email, password, firstName, lastName, role, trainerData);
+      
+      if (role === 'trainer') {
+        // For trainers, result is a status message
+        const trainerResult = result as { message: string; status: string; email: string };
+        return { isTrainer: true, message: trainerResult.message };
+      } else {
+        // For students, result is user data
+        const user = result as User;
+        setUser(user);
+        localStorage.setItem('upscholer_user', JSON.stringify(user));
+        return { isTrainer: false };
+      }
     } catch (error) {
       console.error('Registration error:', error);
       throw error;

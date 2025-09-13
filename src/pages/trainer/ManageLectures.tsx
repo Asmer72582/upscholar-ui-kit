@@ -1,451 +1,501 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { 
+  Search, 
+  MoreHorizontal, 
+  Plus, 
   Calendar, 
-  Clock, 
   Users, 
+  DollarSign, 
+  Clock, 
+  Eye, 
   Edit, 
   Trash2, 
-  MoreHorizontal,
-  Plus,
-  Search,
-  Filter,
+  Play, 
+  RefreshCw,
+  Star,
   CheckCircle,
-  XCircle,
-  Eye
+  Settings
 } from 'lucide-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { Link } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-
-const mockLectures = [
-  {
-    id: 'lecture-1',
-    title: 'Introduction to React Hooks',
-    description: 'Master the fundamentals of React Hooks and learn how to build modern, functional components.',
-    scheduledAt: '2024-01-15T14:00:00Z',
-    duration: 90,
-    maxStudents: 25,
-    enrolledStudents: 18,
-    price: 50,
-    status: 'scheduled',
-    category: 'Programming',
-    tags: ['React', 'JavaScript', 'Hooks'],
-    createdAt: '2024-01-10T10:00:00Z',
-  },
-  {
-    id: 'lecture-2',
-    title: 'Advanced TypeScript Patterns',
-    description: 'Deep dive into advanced TypeScript patterns, generics, and best practices.',
-    scheduledAt: '2024-01-16T16:00:00Z',
-    duration: 120,
-    maxStudents: 20,
-    enrolledStudents: 15,
-    price: 75,
-    status: 'scheduled',
-    category: 'Programming',
-    tags: ['TypeScript', 'JavaScript', 'Advanced'],
-    createdAt: '2024-01-12T15:30:00Z',
-  },
-  {
-    id: 'lecture-3',
-    title: 'CSS Grid Mastery Workshop',
-    description: 'Complete guide to CSS Grid layout system with practical examples.',
-    scheduledAt: '2024-01-08T14:00:00Z',
-    duration: 75,
-    maxStudents: 30,
-    enrolledStudents: 28,
-    price: 40,
-    status: 'completed',
-    category: 'Web Design',
-    tags: ['CSS', 'Layout', 'Grid'],
-    createdAt: '2024-01-03T12:00:00Z',
-    completedAt: '2024-01-08T15:15:00Z',
-  },
-  {
-    id: 'lecture-4',
-    title: 'JavaScript Fundamentals',
-    description: 'Essential JavaScript concepts for beginners.',
-    scheduledAt: '2024-01-10T10:00:00Z',
-    duration: 90,
-    maxStudents: 35,
-    enrolledStudents: 32,
-    price: 45,
-    status: 'completed',
-    category: 'Programming',
-    tags: ['JavaScript', 'Basics'],
-    createdAt: '2024-01-05T09:00:00Z',
-    completedAt: '2024-01-10T11:30:00Z',
-  },
-  {
-    id: 'lecture-5',
-    title: 'React Performance Optimization',
-    description: 'Learn how to optimize React applications for better performance.',
-    scheduledAt: '2024-01-05T16:00:00Z',
-    duration: 105,
-    maxStudents: 20,
-    enrolledStudents: 8,
-    price: 65,
-    status: 'cancelled',
-    category: 'Programming',
-    tags: ['React', 'Performance'],
-    createdAt: '2024-01-01T10:00:00Z',
-    cancelledAt: '2024-01-04T14:00:00Z',
-    cancelReason: 'Insufficient enrollment',
-  },
-  {
-    id: 'lecture-6',
-    title: 'Modern Web Development Tools',
-    description: 'Overview of essential tools for modern web development.',
-    scheduledAt: '2024-01-20T11:00:00Z',
-    duration: 80,
-    maxStudents: 25,
-    enrolledStudents: 0,
-    price: 35,
-    status: 'draft',
-    category: 'Technology',
-    tags: ['Tools', 'Workflow'],
-    createdAt: '2024-01-14T16:30:00Z',
-  },
-];
+import { toast } from '@/hooks/use-toast';
+import { lectureService, Lecture } from '@/services/lectureService';
 
 export const ManageLectures: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState('all');
+  const navigate = useNavigate();
+  const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedStatus, setSelectedStatus] = useState('all');
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'scheduled':
-        return <Calendar className="w-4 h-4 text-primary" />;
-      case 'completed':
-        return <CheckCircle className="w-4 h-4 text-success" />;
-      case 'cancelled':
-        return <XCircle className="w-4 h-4 text-destructive" />;
-      case 'draft':
-        return <Edit className="w-4 h-4 text-muted-foreground" />;
-      default:
-        return <Clock className="w-4 h-4 text-muted-foreground" />;
+  useEffect(() => {
+    loadLectures();
+  }, []);
+
+  const loadLectures = async () => {
+    setLoading(true);
+    try {
+      const myLectures = await lectureService.getMyLectures();
+      setLectures(myLectures);
+    } catch (error: any) {
+      console.error('Error loading lectures:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load lectures. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'scheduled':
-        return 'text-primary bg-primary/10';
-      case 'completed':
-        return 'text-success bg-success/10';
-      case 'cancelled':
-        return 'text-destructive bg-destructive/10';
-      case 'draft':
-        return 'text-muted-foreground bg-muted';
-      default:
-        return 'text-muted-foreground bg-muted';
+  const handleDeleteLecture = async (lectureId: string) => {
+    if (!confirm('Are you sure you want to delete this lecture?')) {
+      return;
+    }
+
+    try {
+      await lectureService.deleteLecture(lectureId);
+      toast({
+        title: 'Success',
+        description: 'Lecture deleted successfully.',
+      });
+      loadLectures(); // Refresh the list
+    } catch (error: any) {
+      console.error('Error deleting lecture:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete lecture.',
+        variant: 'destructive',
+      });
     }
   };
 
-  const filteredLectures = mockLectures.filter(lecture => {
+  const handleCompleteLecture = async (lectureId: string, lectureTitle: string) => {
+    if (!confirm(`Are you sure you want to mark "${lectureTitle}" as completed?`)) {
+      return;
+    }
+
+    try {
+      await lectureService.completeLecture(lectureId);
+      toast({
+        title: 'Success',
+        description: 'Lecture marked as completed successfully.',
+      });
+      loadLectures(); // Refresh the list
+    } catch (error: any) {
+      console.error('Error completing lecture:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to complete lecture.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleEditLecture = (lectureId: string) => {
+    // Navigate to edit page - we'll create this route
+    navigate(`/trainer/lectures/${lectureId}/edit`);
+  };
+
+  const filteredLectures = lectures.filter(lecture => {
     const matchesSearch = lecture.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lecture.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || lecture.category === selectedCategory;
+    const matchesStatus = selectedStatus === 'all' || lecture.status === selectedStatus;
     
-    if (selectedTab === 'all') return matchesSearch;
-    return lecture.status === selectedTab && matchesSearch;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
-  const stats = {
-    total: mockLectures.length,
-    scheduled: mockLectures.filter(l => l.status === 'scheduled').length,
-    completed: mockLectures.filter(l => l.status === 'completed').length,
-    draft: mockLectures.filter(l => l.status === 'draft').length,
-    cancelled: mockLectures.filter(l => l.status === 'cancelled').length,
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'scheduled':
+        return <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>;
+      case 'live':
+        return <Badge className="bg-green-100 text-green-800">Live</Badge>;
+      case 'completed':
+        return <Badge className="bg-gray-100 text-gray-800">Completed</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
-  const LectureCard = ({ lecture }: { lecture: any }) => (
-    <Card className="card-elevated">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-2 mb-2">
-              <Badge className={cn("text-xs", getStatusColor(lecture.status))}>
-                {getStatusIcon(lecture.status)}
-                <span className="ml-1 capitalize">{lecture.status}</span>
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                {lecture.category}
-              </Badge>
-            </div>
-            <CardTitle className="line-clamp-2">{lecture.title}</CardTitle>
-            <CardDescription className="line-clamp-2 mt-1">
-              {lecture.description}
-            </CardDescription>
-          </div>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Eye className="w-4 h-4 mr-2" />
-                View Details
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Lecture
-              </DropdownMenuItem>
-              {lecture.status === 'draft' && (
-                <DropdownMenuItem>
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Publish
-                </DropdownMenuItem>
-              )}
-              {lecture.status === 'scheduled' && (
-                <DropdownMenuItem className="text-destructive">
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Cancel
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem className="text-destructive">
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+  const calculateStats = () => {
+    const totalLectures = lectures.length;
+    const scheduledLectures = lectures.filter(l => l.status === 'scheduled').length;
+    const completedLectures = lectures.filter(l => l.status === 'completed').length;
+    const totalStudents = lectures.reduce((sum, l) => sum + l.enrolledCount, 0);
+    const totalEarnings = lectures.reduce((sum, l) => sum + l.totalEarnings, 0);
+    const averageRating = lectures.length > 0 
+      ? lectures.reduce((sum, l) => sum + l.averageRating, 0) / lectures.length 
+      : 0;
+
+    return {
+      totalLectures,
+      scheduledLectures,
+      completedLectures,
+      totalStudents,
+      totalEarnings,
+      averageRating: Math.round(averageRating * 10) / 10
+    };
+  };
+
+  const stats = calculateStats();
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-center h-64">
+          <LoadingSpinner size="lg" />
         </div>
-      </CardHeader>
-      
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center space-x-4 text-muted-foreground">
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-1" />
-                {new Date(lecture.scheduledAt).toLocaleDateString()}
-              </div>
-              <div className="flex items-center">
-                <Clock className="w-4 h-4 mr-1" />
-                {lecture.duration} min
-              </div>
-            </div>
-            <div className="font-medium text-primary">
-              {lecture.price} UC
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Enrollment</span>
-              <span className="font-medium">
-                {lecture.enrolledStudents}/{lecture.maxStudents}
-              </span>
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div 
-                className={cn(
-                  "h-2 rounded-full transition-all",
-                  lecture.enrolledStudents / lecture.maxStudents > 0.8 
-                    ? "bg-success" 
-                    : lecture.enrolledStudents / lecture.maxStudents > 0.5 
-                    ? "bg-warning" 
-                    : "bg-primary"
-                )} 
-                style={{ width: `${(lecture.enrolledStudents / lecture.maxStudents) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {lecture.tags && lecture.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {lecture.tags.map((tag, index) => (
-                <Badge key={index} variant="secondary" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          <div className="flex space-x-2 pt-2">
-            {lecture.status === 'scheduled' && (
-              <>
-                <Button size="sm" variant="outline" className="flex-1">
-                  <Users className="w-4 h-4 mr-1" />
-                  View Students
-                </Button>
-                <Button size="sm" className="flex-1 btn-primary">
-                  <Calendar className="w-4 h-4 mr-1" />
-                  Start Live
-                </Button>
-              </>
-            )}
-            
-            {lecture.status === 'draft' && (
-              <>
-                <Button size="sm" variant="outline" className="flex-1">
-                  <Edit className="w-4 h-4 mr-1" />
-                  Edit
-                </Button>
-                <Button size="sm" className="flex-1 btn-primary">
-                  <CheckCircle className="w-4 h-4 mr-1" />
-                  Publish
-                </Button>
-              </>
-            )}
-
-            {lecture.status === 'completed' && (
-              <Button size="sm" variant="outline" className="w-full">
-                <Eye className="w-4 h-4 mr-1" />
-                View Analytics
-              </Button>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Manage Lectures</h1>
-          <p className="text-muted-foreground">
-            Organize and track all your lectures
-          </p>
+          <h1 className="text-2xl font-bold">Manage Lectures</h1>
+          <p className="text-muted-foreground">Create, edit, and manage your lectures</p>
         </div>
-        <Button asChild className="btn-primary">
-          <Link to="/trainer/schedule-lecture">
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={loadLectures}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+          <Button onClick={() => navigate('/trainer/schedule-lecture')}>
             <Plus className="w-4 h-4 mr-2" />
-            New Lecture
-          </Link>
-        </Button>
+            Schedule New Lecture
+          </Button>
+        </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="card-elevated">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
+      <div className="space-y-6">
+        {/* Stats Overview */}
+        <div className="grid md:grid-cols-6 gap-4">
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Calendar className="w-6 h-6 mx-auto mb-2 text-primary" />
+              <p className="text-2xl font-bold">{stats.totalLectures}</p>
+              <p className="text-xs text-muted-foreground">Total Lectures</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Clock className="w-6 h-6 mx-auto mb-2 text-blue-600" />
+              <p className="text-2xl font-bold">{stats.scheduledLectures}</p>
+              <p className="text-xs text-muted-foreground">Scheduled</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Play className="w-6 h-6 mx-auto mb-2 text-green-600" />
+              <p className="text-2xl font-bold">{stats.completedLectures}</p>
+              <p className="text-xs text-muted-foreground">Completed</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Users className="w-6 h-6 mx-auto mb-2 text-purple-600" />
+              <p className="text-2xl font-bold">{stats.totalStudents}</p>
+              <p className="text-xs text-muted-foreground">Total Students</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <DollarSign className="w-6 h-6 mx-auto mb-2 text-yellow-600" />
+              <p className="text-2xl font-bold">{stats.totalEarnings}</p>
+              <p className="text-xs text-muted-foreground">Total Earnings</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Star className="w-6 h-6 mx-auto mb-2 text-orange-600" />
+              <p className="text-2xl font-bold">{stats.averageRating}</p>
+              <p className="text-xs text-muted-foreground">Avg Rating</p>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="card-elevated">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
-            <Calendar className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats.scheduled}</div>
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="all">
+          <TabsList>
+            <TabsTrigger value="all">All Lectures ({lectures.length})</TabsTrigger>
+            <TabsTrigger value="scheduled">Scheduled ({stats.scheduledLectures})</TabsTrigger>
+            <TabsTrigger value="completed">Completed ({stats.completedLectures})</TabsTrigger>
+          </TabsList>
 
-        <Card className="card-elevated">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success">{stats.completed}</div>
-          </CardContent>
-        </Card>
+          <TabsContent value="all" className="mt-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>All Lectures</CardTitle>
+                    <CardDescription>Manage all your lectures</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {/* Filters */}
+                <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search lectures..."
+                      className="pl-10"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="Programming">Programming</SelectItem>
+                      <SelectItem value="Web Development">Web Development</SelectItem>
+                      <SelectItem value="Data Science">Data Science</SelectItem>
+                      <SelectItem value="Design">Design</SelectItem>
+                      <SelectItem value="Business">Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        <Card className="card-elevated">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Drafts</CardTitle>
-            <Edit className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.draft}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="card-elevated">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
-            <XCircle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.cancelled}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Search and Filter */}
-      <Card className="card-elevated">
-        <CardContent className="p-4">
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search lectures..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline" size="icon">
-              <Filter className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lectures Tabs */}
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="all">All ({stats.total})</TabsTrigger>
-          <TabsTrigger value="scheduled">Scheduled ({stats.scheduled})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({stats.completed})</TabsTrigger>
-          <TabsTrigger value="draft">Drafts ({stats.draft})</TabsTrigger>
-          <TabsTrigger value="cancelled">Cancelled ({stats.cancelled})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={selectedTab} className="mt-6">
-          {filteredLectures.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredLectures.map((lecture) => (
-                <LectureCard key={lecture.id} lecture={lecture} />
-              ))}
-            </div>
-          ) : (
-            <Card className="card-elevated">
-              <CardContent className="text-center py-12">
-                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  No {selectedTab === 'all' ? '' : selectedTab} lectures found
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm 
-                    ? "Try adjusting your search criteria"
-                    : "Start by creating your first lecture"
-                  }
-                </p>
-                {!searchTerm && (
-                  <Button asChild className="btn-primary">
-                    <Link to="/trainer/schedule-lecture">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Create Lecture
-                    </Link>
-                  </Button>
+                {/* Lectures Table */}
+                {filteredLectures.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No lectures found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      {lectures.length === 0 
+                        ? "You haven't created any lectures yet." 
+                        : "No lectures match your current filters."
+                      }
+                    </p>
+                    {lectures.length === 0 && (
+                      <Button onClick={() => navigate('/trainer/schedule-lecture')}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Schedule Your First Lecture
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Lecture</TableHead>
+                        <TableHead>Schedule</TableHead>
+                        <TableHead>Students</TableHead>
+                        <TableHead>Earnings</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredLectures.map((lecture) => (
+                        <TableRow key={lecture.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{lecture.title}</p>
+                              <p className="text-sm text-muted-foreground">{lecture.category}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <p>{new Date(lecture.scheduledAt).toLocaleDateString()}</p>
+                              <p className="text-muted-foreground">
+                                {new Date(lecture.scheduledAt).toLocaleTimeString()} • {lecture.duration}min
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <p>{lecture.enrolledCount}/{lecture.maxStudents}</p>
+                              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                <div 
+                                  className="bg-primary h-2 rounded-full" 
+                                  style={{ width: `${(lecture.enrolledCount / lecture.maxStudents) * 100}%` }}
+                                />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <p className="font-medium">{lecture.totalEarnings} UC</p>
+                              <p className="text-muted-foreground">{lecture.price} UC each</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(lecture.status)}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => navigate(`/trainer/lectures/${lecture.id}`)}>
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                                
+                                {(lecture.status === 'scheduled' || lecture.status === 'live') && (
+                                  <DropdownMenuItem onClick={() => handleEditLecture(lecture.id)}>
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit Lecture
+                                  </DropdownMenuItem>
+                                )}
+                                
+                                {lecture.status === 'scheduled' && (
+                                  <DropdownMenuItem>
+                                    <Play className="w-4 h-4 mr-2" />
+                                    Start Lecture
+                                  </DropdownMenuItem>
+                                )}
+                                
+                                {(lecture.status === 'scheduled' || lecture.status === 'live') && (
+                                  <DropdownMenuItem 
+                                    onClick={() => handleCompleteLecture(lecture.id, lecture.title)}
+                                    className="text-green-600"
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Complete Lecture
+                                  </DropdownMenuItem>
+                                )}
+                                
+                                {lecture.canBeCancelled && (
+                                  <DropdownMenuItem 
+                                    className="text-red-600"
+                                    onClick={() => handleDeleteLecture(lecture.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Cancel Lecture
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 )}
               </CardContent>
             </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          <TabsContent value="scheduled" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Scheduled Lectures</CardTitle>
+                <CardDescription>Upcoming lectures that are scheduled</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {lectures.filter(l => l.status === 'scheduled').length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No scheduled lectures</h3>
+                    <p className="text-muted-foreground mb-4">You don't have any upcoming lectures.</p>
+                    <Button onClick={() => navigate('/trainer/schedule-lecture')}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Schedule a Lecture
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {lectures.filter(l => l.status === 'scheduled').map((lecture) => (
+                      <div key={lecture.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">{lecture.title}</h3>
+                            <p className="text-sm text-muted-foreground">{lecture.category}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(lecture.scheduledAt).toLocaleString()} • {lecture.duration} minutes
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{lecture.enrolledCount}/{lecture.maxStudents} students</p>
+                            <p className="text-sm text-muted-foreground">{lecture.price} UC</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="completed" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Completed Lectures</CardTitle>
+                <CardDescription>Past lectures that have been completed</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {lectures.filter(l => l.status === 'completed').length === 0 ? (
+                  <div className="text-center py-8">
+                    <Play className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No completed lectures</h3>
+                    <p className="text-muted-foreground">You haven't completed any lectures yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {lectures.filter(l => l.status === 'completed').map((lecture) => (
+                      <div key={lecture.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">{lecture.title}</h3>
+                            <p className="text-sm text-muted-foreground">{lecture.category}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Completed on {new Date(lecture.scheduledAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{lecture.enrolledCount} students attended</p>
+                            <p className="text-sm text-muted-foreground">
+                              {lecture.averageRating > 0 && (
+                                <span className="flex items-center">
+                                  <Star className="w-4 h-4 mr-1 text-yellow-500" />
+                                  {lecture.averageRating}
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-sm font-medium text-green-600">{lecture.totalEarnings} UC earned</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

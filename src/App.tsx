@@ -24,6 +24,7 @@ import { CreateCourse } from "./pages/trainer/CreateCourse";
 import { ManageCourses } from "./pages/trainer/ManageCourses";
 import { Earnings } from "./pages/trainer/Earnings";
 import { Students } from "./pages/trainer/Students";
+import { EditLecture } from "./pages/trainer/EditLecture";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { ManageUsers } from "./pages/admin/ManageUsers";
 import { ManageLectures as ManageLecturesAdmin } from "./pages/admin/ManageLectures";
@@ -31,6 +32,7 @@ import { ManageCourses as ManageCoursesAdmin } from "./pages/admin/ManageCourses
 import { Analytics } from "./pages/admin/Analytics";
 import { AdminSupport } from "./pages/admin/AdminSupport";
 import { LiveLecture } from "./pages/LiveLecture";
+import { TrainerApplicationSuccess } from "./pages/TrainerApplicationSuccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,7 @@ const App = () => (
             {/* Public Routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/trainer-application-success" element={<TrainerApplicationSuccess />} />
 
             {/* Student Routes */}
             <Route path="/student/*" element={
@@ -72,6 +75,7 @@ const App = () => (
               <Route path="dashboard" element={<TrainerDashboard />} />
               <Route path="schedule-lecture" element={<ScheduleLecture />} />
               <Route path="manage-lectures" element={<ManageLectures />} />
+              <Route path="lectures/:id/edit" element={<EditLecture />} />
               <Route path="create-course" element={<CreateCourse />} />
               <Route path="manage-courses" element={<ManageCourses />} />
               <Route path="students" element={<Students />} />

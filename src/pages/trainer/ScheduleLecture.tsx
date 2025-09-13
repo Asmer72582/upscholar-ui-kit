@@ -6,48 +6,48 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { 
   Calendar, 
   Clock, 
   Users, 
   DollarSign,
   Plus,
-  Tag,
   BookOpen,
   CheckCircle,
   ArrowLeft
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { lectureService, CreateLectureData } from '@/services/lectureService';
 
 const categories = [
   'Programming',
-  'Design',
+  'Web Development',
+  'Mobile Development',
   'Data Science',
-  'Marketing',
-  'Technology',
+  'Machine Learning',
+  'DevOps',
+  'Design',
   'Business',
-  'Personal Development',
-  'Language Learning',
+  'Marketing',
+  'Other',
 ];
-
-const difficultyLevels = ['Beginner', 'Intermediate', 'Advanced'];
 
 export const ScheduleLecture: React.FC = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: '',
-    difficulty: '',
     duration: '',
-    maxStudents: '',
+    maxStudents: '50',
     price: '',
     scheduledDate: '',
     scheduledTime: '',
     tags: '',
-    prerequisites: '',
-    objectives: '',
+    meetingLink: '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -65,18 +65,25 @@ export const ScheduleLecture: React.FC = () => {
     if (!formData.title.trim()) newErrors.title = 'Title is required';
     if (!formData.description.trim()) newErrors.description = 'Description is required';
     if (!formData.category) newErrors.category = 'Category is required';
-    if (!formData.difficulty) newErrors.difficulty = 'Difficulty level is required';
     if (!formData.duration || parseInt(formData.duration) <= 0) newErrors.duration = 'Valid duration is required';
     if (!formData.maxStudents || parseInt(formData.maxStudents) <= 0) newErrors.maxStudents = 'Max students is required';
-    if (!formData.price || parseInt(formData.price) <= 0) newErrors.price = 'Valid price is required';
+    if (!formData.price || parseFloat(formData.price) <= 0) newErrors.price = 'Valid price is required';
     if (!formData.scheduledDate) newErrors.scheduledDate = 'Date is required';
     if (!formData.scheduledTime) newErrors.scheduledTime = 'Time is required';
+
+    // Validate scheduled time is in the future
+    if (formData.scheduledDate && formData.scheduledTime) {
+      const scheduledDateTime = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
+      if (scheduledDateTime <= new Date()) {
+        newErrors.scheduledDate = 'Please schedule for a future date and time';
+      }
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!validateForm()) {
@@ -88,21 +95,42 @@ export const ScheduleLecture: React.FC = () => {
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
+    setLoading(true);
+
+    try {
+      // Prepare lecture data
+      const scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
+      
+      const lectureData: CreateLectureData = {
+        title: formData.title,
+        description: formData.description,
+        category: formData.category,
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        price: parseFloat(formData.price),
+        duration: parseInt(formData.duration),
+        scheduledAt: scheduledAt.toISOString(),
+        maxStudents: parseInt(formData.maxStudents),
+        meetingLink: formData.meetingLink || undefined,
+      };
+
+      await lectureService.createLecture(lectureData);
+
       toast({
         title: 'Lecture Scheduled Successfully!',
         description: `"${formData.title}" has been scheduled for ${formData.scheduledDate} at ${formData.scheduledTime}.`,
       });
+      
       navigate('/trainer/manage-lectures');
-    }, 1000);
-  };
-
-  const handleSaveDraft = () => {
-    toast({
-      title: 'Draft Saved',
-      description: 'Your lecture has been saved as a draft.',
-    });
+    } catch (error: any) {
+      console.error('Error scheduling lecture:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to schedule lecture. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -167,18 +195,13 @@ export const ScheduleLecture: React.FC = () => {
               </div>
 
               <div>
-                <Label htmlFor="difficulty">Difficulty Level *</Label>
-                <Select value={formData.difficulty} onValueChange={(value) => handleInputChange('difficulty', value)}>
-                  <SelectTrigger className={errors.difficulty ? 'border-destructive' : ''}>
-                    <SelectValue placeholder="Select difficulty" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {difficultyLevels.map(level => (
-                      <SelectItem key={level} value={level}>{level}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {errors.difficulty && <p className="text-sm text-destructive mt-1">{errors.difficulty}</p>}
+                <Label htmlFor="meetingLink">Meeting Link (Optional)</Label>
+                <Input
+                  id="meetingLink"
+                  placeholder="https://zoom.us/j/..."
+                  value={formData.meetingLink}
+                  onChange={(e) => handleInputChange('meetingLink', e.target.value)}
+                />
               </div>
 
               <div className="md:col-span-2">
@@ -286,41 +309,7 @@ export const ScheduleLecture: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Additional Details */}
-        <Card className="card-elevated">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <CheckCircle className="w-5 h-5 mr-2 text-primary" />
-              Additional Details
-            </CardTitle>
-            <CardDescription>
-              Optional information to enhance your lecture
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="prerequisites">Prerequisites</Label>
-              <Textarea
-                id="prerequisites"
-                placeholder="What should students know before attending this lecture?"
-                value={formData.prerequisites}
-                onChange={(e) => handleInputChange('prerequisites', e.target.value)}
-                className="min-h-[80px]"
-              />
-            </div>
 
-            <div>
-              <Label htmlFor="objectives">Learning Objectives</Label>
-              <Textarea
-                id="objectives"
-                placeholder="What will students be able to do after this lecture?"
-                value={formData.objectives}
-                onChange={(e) => handleInputChange('objectives', e.target.value)}
-                className="min-h-[80px]"
-              />
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Preview */}
         {formData.title && (
@@ -378,10 +367,6 @@ export const ScheduleLecture: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-6 border-t">
-          <Button type="button" variant="outline" onClick={handleSaveDraft}>
-            Save as Draft
-          </Button>
-          
           <div className="flex space-x-3">
             <Button 
               type="button" 
@@ -390,8 +375,12 @@ export const ScheduleLecture: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" className="btn-primary">
-              <Plus className="w-4 h-4 mr-2" />
+            <Button type="submit" className="btn-primary" disabled={loading}>
+              {loading ? (
+                <LoadingSpinner size="sm" className="mr-2" />
+              ) : (
+                <Plus className="w-4 h-4 mr-2" />
+              )}
               Schedule Lecture
             </Button>
           </div>

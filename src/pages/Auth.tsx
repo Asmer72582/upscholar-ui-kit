@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { GraduationCap, UserCheck, Users, Shield } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -40,6 +41,14 @@ export const Auth: React.FC = () => {
     firstName: '',
     lastName: '',
   });
+  const [trainerData, setTrainerData] = useState({
+    resumeFile: null as File | null,
+    demoVideoUrl: '',
+    expertise: [] as string[],
+    experience: 0,
+    bio: '',
+  });
+  const [expertiseInput, setExpertiseInput] = useState('');
   const [loading, setLoading] = useState(false);
 
   const { login, register } = useAuth();
@@ -49,6 +58,29 @@ export const Auth: React.FC = () => {
     e.preventDefault();
     setLoading(true);
 
+    // Validation for trainer registration
+    if (!isLogin && selectedRole === 'trainer') {
+      if (!trainerData.resumeFile) {
+        toast({
+          title: 'Missing Resume',
+          description: 'Please upload your resume file.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+      
+      if (!trainerData.demoVideoUrl || !trainerData.bio || trainerData.expertise.length === 0) {
+        toast({
+          title: 'Missing Information',
+          description: 'Please fill in all trainer-specific fields.',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       if (isLogin) {
         await login(formData.email, formData.password, selectedRole);
@@ -56,20 +88,34 @@ export const Auth: React.FC = () => {
           title: 'Welcome back!',
           description: 'Successfully logged in to your account.',
         });
+        navigate(`/${selectedRole}/dashboard`);
       } else {
-        await register(
+        const result = await register(
           formData.email,
           formData.password,
           formData.firstName,
           formData.lastName,
-          selectedRole
+          selectedRole,
+          selectedRole === 'trainer' ? trainerData : undefined
         );
-        toast({
-          title: 'Account created!',
-          description: 'Welcome to Upscholer. Your learning journey begins now.',
-        });
+        
+        if (result.isTrainer) {
+          // Navigate to success page for trainers
+          navigate('/trainer-application-success', { 
+            state: { 
+              email: formData.email,
+              message: result.message 
+            } 
+          });
+          return;
+        } else {
+          toast({
+            title: 'Account created!',
+            description: 'Welcome to Upscholer. Your learning journey begins now.',
+          });
+          navigate(`/${selectedRole}/dashboard`);
+        }
       }
-      navigate(`/${selectedRole}/dashboard`);
     } catch (error: any) {
       console.error('Auth error:', error);
       toast({
@@ -82,10 +128,45 @@ export const Auth: React.FC = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData(prev => ({
       ...prev,
       [e.target.name]: e.target.value,
+    }));
+  };
+
+  const handleTrainerDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setTrainerData(prev => ({
+      ...prev,
+      [name]: name === 'experience' ? parseInt(value) || 0 : value,
+    }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setTrainerData(prev => ({
+        ...prev,
+        resumeFile: file,
+      }));
+    }
+  };
+
+  const addExpertise = () => {
+    if (expertiseInput.trim() && !trainerData.expertise.includes(expertiseInput.trim())) {
+      setTrainerData(prev => ({
+        ...prev,
+        expertise: [...prev.expertise, expertiseInput.trim()]
+      }));
+      setExpertiseInput('');
+    }
+  };
+
+  const removeExpertise = (expertise: string) => {
+    setTrainerData(prev => ({
+      ...prev,
+      expertise: prev.expertise.filter(e => e !== expertise)
     }));
   };
 
@@ -187,22 +268,133 @@ export const Auth: React.FC = () => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    required
-                    minLength={6}
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="••••••••"
-                  />
-                  {!isLogin && formData.password && formData.password.length < 6 && (
-                    <p className="text-sm text-red-500">Password must be at least 6 characters long</p>
-                  )}
-                </div>
+                {/* Password field - for login (all roles) or student registration */}
+                {(isLogin || (!isLogin && selectedRole === 'student')) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      name="password"
+                      type="password"
+                      required
+                      minLength={6}
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="••••••••"
+                    />
+                    {!isLogin && formData.password && formData.password.length < 6 && (
+                      <p className="text-sm text-red-500">Password must be at least 6 characters long</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Trainer-specific fields */}
+                {!isLogin && selectedRole === 'trainer' && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="resumeFile">Upload Resume/CV</Label>
+                      <Input
+                        id="resumeFile"
+                        name="resumeFile"
+                        type="file"
+                        required
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-white hover:file:bg-primary/90"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Upload your resume in PDF, DOC, or DOCX format (max 5MB)
+                      </p>
+                      {trainerData.resumeFile && (
+                        <p className="text-sm text-green-600">
+                          Selected: {trainerData.resumeFile.name}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="demoVideoUrl">Demo Video URL (60 seconds max)</Label>
+                      <Input
+                        id="demoVideoUrl"
+                        name="demoVideoUrl"
+                        type="url"
+                        required
+                        value={trainerData.demoVideoUrl}
+                        onChange={handleTrainerDataChange}
+                        placeholder="https://youtube.com/watch?v=your-demo-video"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Upload a 60-second demo video to YouTube, Vimeo, or cloud storage
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="experience">Years of Experience</Label>
+                      <Input
+                        id="experience"
+                        name="experience"
+                        type="number"
+                        required
+                        min="0"
+                        max="50"
+                        value={trainerData.experience}
+                        onChange={handleTrainerDataChange}
+                        placeholder="5"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Areas of Expertise</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={expertiseInput}
+                          onChange={(e) => setExpertiseInput(e.target.value)}
+                          placeholder="e.g., JavaScript, React, Node.js"
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addExpertise())}
+                        />
+                        <Button type="button" onClick={addExpertise} variant="outline" size="sm">
+                          Add
+                        </Button>
+                      </div>
+                      {trainerData.expertise.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {trainerData.expertise.map((skill) => (
+                            <span
+                              key={skill}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary rounded-md text-sm"
+                            >
+                              {skill}
+                              <button
+                                type="button"
+                                onClick={() => removeExpertise(skill)}
+                                className="text-primary/70 hover:text-primary"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="bio">Bio (max 500 characters)</Label>
+                      <Textarea
+                        id="bio"
+                        name="bio"
+                        required
+                        maxLength={500}
+                        value={trainerData.bio}
+                        onChange={handleTrainerDataChange}
+                        placeholder="Tell us about yourself, your teaching style, and what makes you a great trainer..."
+                        className="min-h-[100px] resize-none"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {trainerData.bio.length}/500 characters
+                      </p>
+                    </div>
+                  </>
+                )}
 
                 <Button 
                   type="submit" 

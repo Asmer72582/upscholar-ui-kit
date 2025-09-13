@@ -1,95 +1,211 @@
-import { Wallet, Transaction } from '@/types';
+export interface WalletTransaction {
+  id: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  description: string;
+  category: 'lecture_enrollment' | 'funds_added' | 'refund' | 'bonus' | 'withdrawal';
+  reference?: string;
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  paymentMethod?: 'card' | 'paypal' | 'bank_transfer' | 'wallet';
+  relatedLecture?: {
+    _id: string;
+    title: string;
+  };
+  balanceBefore: number;
+  balanceAfter: number;
+  createdAt: string;
+}
 
-// Mock wallet data
-const mockWallets: Record<string, Wallet> = {
-  'user-1': {
-    id: 'wallet-1',
-    userId: 'user-1',
-    balance: 250,
-    transactions: [
-      {
-        id: 'txn-1',
-        type: 'credit',
-        amount: 100,
-        description: 'Initial bonus',
-        createdAt: '2024-01-01T00:00:00Z',
-      },
-      {
-        id: 'txn-2',
-        type: 'credit',
-        amount: 200,
-        description: 'Purchased Upcoins',
-        createdAt: '2024-01-02T00:00:00Z',
-      },
-      {
-        id: 'txn-3',
-        type: 'debit',
-        amount: 50,
-        description: 'Enrolled in React Hooks lecture',
-        createdAt: '2024-01-03T00:00:00Z',
-        relatedLectureId: 'lecture-1',
-      },
-    ],
-  },
+export interface WalletBalance {
+  balance: number;
+  pendingBalance: number;
+  totalEarned: number;
+  totalSpent: number;
+}
+
+const API_URL = 'http://localhost:3000/api/wallet';
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('upscholer_token');
+  return {
+    'Content-Type': 'application/json',
+    'x-auth-token': token || '',
+  };
 };
 
 class WalletService {
-  async getWallet(userId: string): Promise<Wallet> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
-    // Create default wallet if doesn't exist
-    if (!mockWallets[userId]) {
-      mockWallets[userId] = {
-        id: `wallet-${userId}`,
-        userId,
-        balance: 0,
-        transactions: [],
-      };
+  async getBalance(): Promise<WalletBalance> {
+    try {
+      const response = await fetch(`${API_URL}/balance`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch wallet balance');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+      throw error;
     }
-    
-    return mockWallets[userId];
   }
 
-  async addFunds(userId: string, amount: number): Promise<Transaction> {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    const wallet = await this.getWallet(userId);
-    const transaction: Transaction = {
-      id: `txn-${Date.now()}`,
-      type: 'credit',
-      amount,
-      description: 'Purchased Upcoins',
-      createdAt: new Date().toISOString(),
+  async getTransactions(page = 1, limit = 20, filters?: {
+    type?: string;
+    category?: string;
+    status?: string;
+  }): Promise<{
+    transactions: WalletTransaction[];
+    pagination: {
+      current: number;
+      pages: number;
+      total: number;
+      limit: number;
     };
-    
-    wallet.balance += amount;
-    wallet.transactions.unshift(transaction);
-    
-    return transaction;
+  }> {
+    try {
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+
+      if (filters?.type) queryParams.append('type', filters.type);
+      if (filters?.category) queryParams.append('category', filters.category);
+      if (filters?.status) queryParams.append('status', filters.status);
+
+      const response = await fetch(`${API_URL}/transactions?${queryParams}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch transactions');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      throw error;
+    }
   }
 
-  async deductFunds(userId: string, amount: number, description: string, relatedLectureId?: string): Promise<Transaction> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
-    const wallet = await this.getWallet(userId);
-    
-    if (wallet.balance < amount) {
-      throw new Error('Insufficient balance');
+  async addFunds(amount: number, paymentMethod: string): Promise<{ message: string; transaction: WalletTransaction }> {
+    try {
+      const response = await fetch(`${API_URL}/add-funds`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ amount, paymentMethod }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to add funds');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error adding funds:', error);
+      throw error;
     }
-    
-    const transaction: Transaction = {
-      id: `txn-${Date.now()}`,
-      type: 'debit',
-      amount,
-      description,
-      createdAt: new Date().toISOString(),
-      relatedLectureId,
+  }
+
+  async processPayment(lectureId: string, amount: number): Promise<{ message: string; transaction: WalletTransaction }> {
+    try {
+      const response = await fetch(`${API_URL}/pay`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ lectureId, amount }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Payment failed');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      throw error;
+    }
+  }
+
+  async getWalletStats(): Promise<{
+    monthlySpending: number;
+    monthlyTransactions: number;
+    spendingByCategory: Record<string, { total: number; count: number }>;
+    recentActivity: {
+      credits: number;
+      debits: number;
+      creditCount: number;
+      debitCount: number;
     };
-    
-    wallet.balance -= amount;
-    wallet.transactions.unshift(transaction);
-    
-    return transaction;
+  }> {
+    try {
+      const response = await fetch(`${API_URL}/stats`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch wallet stats');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching wallet stats:', error);
+      throw error;
+    }
+  }
+
+  async withdrawFunds(amount: number, withdrawalMethod: string): Promise<{ message: string; transaction: WalletTransaction }> {
+    try {
+      const response = await fetch(`${API_URL}/withdraw`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify({ amount, withdrawalMethod }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to withdraw funds');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error withdrawing funds:', error);
+      throw error;
+    }
+  }
+
+  async getTransactionById(transactionId: string): Promise<WalletTransaction> {
+    try {
+      const response = await fetch(`${API_URL}/transactions/${transactionId}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to fetch transaction');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching transaction:', error);
+      throw error;
+    }
   }
 }
 

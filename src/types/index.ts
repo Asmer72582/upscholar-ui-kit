@@ -9,6 +9,14 @@ export interface User {
   role: UserRole;
   avatar?: string;
   createdAt: string;
+  isApproved: boolean;
+  status: 'pending' | 'approved' | 'rejected';
+  // Trainer-specific fields
+  resume?: string;
+  demoVideoUrl?: string;
+  expertise?: string[];
+  experience?: number;
+  bio?: string;
 }
 
 export interface Lecture {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,75 +8,67 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, MoreHorizontal, UserPlus, Shield, Ban, Mail, Download, Users, GraduationCap, UserCheck } from 'lucide-react';
-
-const users = [
-  {
-    id: 1,
-    name: 'John Smith',
-    email: 'john.smith@email.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-    role: 'student',
-    status: 'active',
-    joinDate: '2024-01-10',
-    lastActive: '2024-01-15',
-    coursesEnrolled: 3,
-    upcoins: 450
-  },
-  {
-    id: 2,
-    name: 'Sarah Johnson',
-    email: 'sarah.j@email.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b2e5?w=100&h=100&fit=crop&crop=face',
-    role: 'trainer',
-    status: 'active',
-    joinDate: '2023-12-05',
-    lastActive: '2024-01-14',
-    coursesCreated: 5,
-    totalEarnings: 12500
-  },
-  {
-    id: 3,
-    name: 'Mike Wilson',
-    email: 'mike.wilson@email.com',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-    role: 'student',
-    status: 'suspended',
-    joinDate: '2024-01-08',
-    lastActive: '2024-01-12',
-    coursesEnrolled: 1,
-    upcoins: 120
-  },
-  {
-    id: 4,
-    name: 'Emily Davis',
-    email: 'emily.davis@email.com',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-    role: 'trainer',
-    status: 'pending',
-    joinDate: '2024-01-12',
-    lastActive: '2024-01-13',
-    coursesCreated: 0,
-    totalEarnings: 0
-  }
-];
-
-const userStats = {
-  total: 1250,
-  students: 980,
-  trainers: 270,
-  active: 1156,
-  pending: 45,
-  suspended: 49
-};
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Search, MoreHorizontal, UserPlus, Shield, Ban, Mail, Download, Users, GraduationCap, UserCheck, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { User } from '@/types';
+import { adminService, UserStats, PendingTrainer } from '@/services/adminService';
+import { UserDetailsModal } from '@/components/admin/UserDetailsModal';
+import { RejectTrainerModal } from '@/components/admin/RejectTrainerModal';
 
 export const ManageUsers: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [pendingTrainers, setPendingTrainers] = useState<PendingTrainer[]>([]);
+  const [userStats, setUserStats] = useState<UserStats>({
+    total: 0,
+    students: 0,
+    trainers: 0,
+    admins: 0,
+    active: 0,
+    pending: 0,
+    suspended: 0,
+  });
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+  const [trainerToReject, setTrainerToReject] = useState<PendingTrainer | null>(null);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const [allUsers, pendingTrainersData, stats] = await Promise.all([
+        adminService.getAllUsers(),
+        adminService.getPendingTrainers(),
+        adminService.getUserStats(),
+      ]);
+
+      setUsers(allUsers);
+      setPendingTrainers(pendingTrainersData);
+      setUserStats(stats);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load user data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const fullName = `${user.firstName} ${user.lastName}`;
+    const matchesSearch = fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus;
@@ -84,14 +76,102 @@ export const ManageUsers: React.FC = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
+  const handleApproveTrainer = async (trainerId: string) => {
+    try {
+      await adminService.approveTrainer(trainerId);
+      toast({
+        title: 'Success',
+        description: 'Trainer approved successfully. They will receive login credentials via email.',
+      });
+      loadData(); // Refresh data
+      setIsUserModalOpen(false);
+    } catch (error) {
+      console.error('Error approving trainer:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to approve trainer. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleRejectTrainer = async (trainerId: string, reason?: string) => {
+    try {
+      await adminService.rejectTrainer(trainerId, reason);
+      toast({
+        title: 'Success',
+        description: 'Trainer application rejected. They will be notified via email.',
+      });
+      loadData(); // Refresh data
+      setIsUserModalOpen(false);
+    } catch (error) {
+      console.error('Error rejecting trainer:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to reject trainer application. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSuspendUser = async (userId: string) => {
+    // This would need a new API endpoint for user suspension
+    toast({
+      title: 'Feature Coming Soon',
+      description: 'User suspension feature will be available soon.',
+    });
+  };
+
+  const handleActivateUser = async (userId: string) => {
+    // This would need a new API endpoint for user activation
+    toast({
+      title: 'Feature Coming Soon',
+      description: 'User activation feature will be available soon.',
+    });
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+      const blob = await adminService.downloadUserReport();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `users-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: 'Success',
+        description: 'User report downloaded successfully.',
+      });
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to download user report. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const openRejectModal = (trainer: PendingTrainer) => {
+    setTrainerToReject(trainer);
+    setIsRejectModalOpen(true);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
       case 'pending':
         return <Badge variant="secondary">Pending</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
       case 'suspended':
-        return <Badge className="bg-red-100 text-red-800">Suspended</Badge>;
+        return <Badge className="bg-orange-100 text-orange-800">Suspended</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -110,6 +190,16 @@ export const ManageUsers: React.FC = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-center h-64">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
@@ -117,15 +207,21 @@ export const ManageUsers: React.FC = () => {
           <h1 className="text-2xl font-bold">Manage Users</h1>
           <p className="text-muted-foreground">Monitor and manage platform users</p>
         </div>
-        <Button>
-          <UserPlus className="w-4 h-4 mr-2" />
-          Add User
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={loadData}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
+          <Button onClick={handleDownloadReport}>
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-6">
         {/* Overview Cards */}
-        <div className="grid md:grid-cols-6 gap-4">
+        <div className="grid md:grid-cols-7 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <Users className="w-6 h-6 mx-auto mb-2 text-primary" />
@@ -145,6 +241,13 @@ export const ManageUsers: React.FC = () => {
               <UserCheck className="w-6 h-6 mx-auto mb-2 text-purple-600" />
               <p className="text-2xl font-bold">{userStats.trainers}</p>
               <p className="text-xs text-muted-foreground">Trainers</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <Shield className="w-6 h-6 mx-auto mb-2 text-indigo-600" />
+              <p className="text-2xl font-bold">{userStats.admins}</p>
+              <p className="text-xs text-muted-foreground">Admins</p>
             </CardContent>
           </Card>
           <Card>
@@ -192,7 +295,7 @@ export const ManageUsers: React.FC = () => {
                     <CardTitle>User Management</CardTitle>
                     <CardDescription>View and manage all platform users</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={handleDownloadReport}>
                     <Download className="w-4 h-4 mr-1" />
                     Export
                   </Button>
@@ -253,26 +356,23 @@ export const ManageUsers: React.FC = () => {
                           <div className="flex items-center gap-3">
                             <Avatar className="w-8 h-8">
                               <AvatarImage src={user.avatar} />
-                              <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                              <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="font-medium">{user.name}</p>
+                              <p className="font-medium">{user.firstName} {user.lastName}</p>
                               <p className="text-sm text-muted-foreground">{user.email}</p>
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>{getRoleBadge(user.role)}</TableCell>
                         <TableCell>{getStatusBadge(user.status)}</TableCell>
-                        <TableCell>{new Date(user.joinDate).toLocaleDateString()}</TableCell>
+                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <p>Last: {new Date(user.lastActive).toLocaleDateString()}</p>
-                            {user.role === 'student' && (
-                              <p className="text-muted-foreground">{user.coursesEnrolled} courses</p>
-                            )}
-                            {user.role === 'trainer' && (
-                              <p className="text-muted-foreground">{user.coursesCreated || 0} courses</p>
-                            )}
+                            <p>Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
+                            <p className="text-muted-foreground">
+                              {user.isApproved ? 'Approved' : 'Not Approved'}
+                            </p>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -283,7 +383,10 @@ export const ManageUsers: React.FC = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedUser(user);
+                                setIsUserModalOpen(true);
+                              }}>
                                 <Shield className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
@@ -291,13 +394,19 @@ export const ManageUsers: React.FC = () => {
                                 <Mail className="w-4 h-4 mr-2" />
                                 Send Email
                               </DropdownMenuItem>
-                              {user.status === 'active' ? (
-                                <DropdownMenuItem className="text-red-600">
+                              {user.status === 'approved' ? (
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => handleSuspendUser(user.id)}
+                                >
                                   <Ban className="w-4 h-4 mr-2" />
                                   Suspend User
                                 </DropdownMenuItem>
                               ) : (
-                                <DropdownMenuItem className="text-green-600">
+                                <DropdownMenuItem 
+                                  className="text-green-600"
+                                  onClick={() => handleActivateUser(user.id)}
+                                >
                                   <UserCheck className="w-4 h-4 mr-2" />
                                   Activate User
                                 </DropdownMenuItem>
@@ -313,15 +422,55 @@ export const ManageUsers: React.FC = () => {
             </Card>
           </TabsContent>
 
-          {/* Other tab contents would be similar with filtered data */}
           <TabsContent value="students" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Students</CardTitle>
+                <CardTitle>Students ({users.filter(u => u.role === 'student').length})</CardTitle>
                 <CardDescription>Manage student accounts</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Student management interface would go here...</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Join Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.filter(u => u.role === 'student').map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={user.avatar} />
+                              <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{user.firstName} {user.lastName}</p>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(user.status)}</TableCell>
+                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setIsUserModalOpen(true);
+                            }}
+                          >
+                            View Details
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -329,11 +478,56 @@ export const ManageUsers: React.FC = () => {
           <TabsContent value="trainers" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Trainers</CardTitle>
+                <CardTitle>Trainers ({users.filter(u => u.role === 'trainer').length})</CardTitle>
                 <CardDescription>Manage trainer accounts and approvals</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Trainer management interface would go here...</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Trainer</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Experience</TableHead>
+                      <TableHead>Join Date</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.filter(u => u.role === 'trainer').map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={user.avatar} />
+                              <AvatarFallback>{user.firstName[0]}{user.lastName[0]}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{user.firstName} {user.lastName}</p>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(user.status)}</TableCell>
+                        <TableCell>
+                          {user.experience !== undefined ? `${user.experience} years` : 'N/A'}
+                        </TableCell>
+                        <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setIsUserModalOpen(true);
+                            }}
+                          >
+                            View Details
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
@@ -341,16 +535,131 @@ export const ManageUsers: React.FC = () => {
           <TabsContent value="pending" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Pending Approvals</CardTitle>
+                <CardTitle>Pending Trainer Applications ({pendingTrainers.length})</CardTitle>
                 <CardDescription>Review and approve new trainer applications</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Pending approvals interface would go here...</p>
+                {pendingTrainers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 mx-auto text-green-500 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Pending Applications</h3>
+                    <p className="text-muted-foreground">All trainer applications have been reviewed.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Applicant</TableHead>
+                        <TableHead>Experience</TableHead>
+                        <TableHead>Expertise</TableHead>
+                        <TableHead>Applied</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pendingTrainers.map((trainer) => (
+                        <TableRow key={trainer.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src={trainer.avatar} />
+                                <AvatarFallback>{trainer.firstName[0]}{trainer.lastName[0]}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">{trainer.firstName} {trainer.lastName}</p>
+                                <p className="text-sm text-muted-foreground">{trainer.email}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{trainer.experience} years</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {trainer.expertise.slice(0, 2).map((skill, index) => (
+                                <Badge key={index} variant="outline" className="text-xs">
+                                  {skill}
+                                </Badge>
+                              ))}
+                              {trainer.expertise.length > 2 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{trainer.expertise.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>{new Date(trainer.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(trainer);
+                                  setIsUserModalOpen(true);
+                                }}
+                              >
+                                <Shield className="w-4 h-4 mr-1" />
+                                Review
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => handleApproveTrainer(trainer.id)}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="destructive"
+                                onClick={() => openRejectModal(trainer)}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modals */}
+      <UserDetailsModal
+        user={selectedUser}
+        isOpen={isUserModalOpen}
+        onClose={() => {
+          setIsUserModalOpen(false);
+          setSelectedUser(null);
+        }}
+        onApprove={handleApproveTrainer}
+        onReject={(userId) => {
+          const trainer = pendingTrainers.find(t => t.id === userId);
+          if (trainer) {
+            openRejectModal(trainer);
+          }
+        }}
+        onSuspend={handleSuspendUser}
+        onActivate={handleActivateUser}
+      />
+
+      <RejectTrainerModal
+        isOpen={isRejectModalOpen}
+        onClose={() => {
+          setIsRejectModalOpen(false);
+          setTrainerToReject(null);
+        }}
+        onConfirm={(reason) => {
+          if (trainerToReject) {
+            handleRejectTrainer(trainerToReject.id, reason);
+          }
+        }}
+        trainerName={trainerToReject ? `${trainerToReject.firstName} ${trainerToReject.lastName}` : ''}
+      />
     </div>
   );
 };

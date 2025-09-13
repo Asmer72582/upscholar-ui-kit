@@ -70,10 +70,11 @@ export const Auth: React.FC = () => {
         });
       }
       navigate(`/${selectedRole}/dashboard`);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Auth error:', error);
       toast({
         title: 'Authentication Error',
-        description: 'Please check your credentials and try again.',
+        description: error.message || 'Please check your credentials and try again.',
         variant: 'destructive',
       });
     } finally {
@@ -193,10 +194,14 @@ export const Auth: React.FC = () => {
                     name="password"
                     type="password"
                     required
+                    minLength={6}
                     value={formData.password}
                     onChange={handleInputChange}
                     placeholder="••••••••"
                   />
+                  {!isLogin && formData.password && formData.password.length < 6 && (
+                    <p className="text-sm text-red-500">Password must be at least 6 characters long</p>
+                  )}
                 </div>
 
                 <Button 

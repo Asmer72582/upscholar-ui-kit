@@ -15,6 +15,7 @@ import { BrowseLectures } from "./pages/student/BrowseLectures";
 import { CourseDetail } from "./pages/student/CourseDetail";
 import { MyLectures } from "./pages/student/MyLectures";
 import { StudentWallet } from "./pages/student/StudentWallet";
+import { BuyUpCoins } from "./pages/student/BuyUpCoins";
 import { LectureDetails } from "./pages/student/LectureDetails";
 import { Support } from "./pages/student/Support";
 import { TrainerDashboard } from "./pages/trainer/TrainerDashboard";
@@ -24,15 +25,23 @@ import { CreateCourse } from "./pages/trainer/CreateCourse";
 import { ManageCourses } from "./pages/trainer/ManageCourses";
 import { Earnings } from "./pages/trainer/Earnings";
 import { Students } from "./pages/trainer/Students";
+import { Settings as TrainerSettings } from "./pages/trainer/Settings";
 import { EditLecture } from "./pages/trainer/EditLecture";
+import { TrainerWallet } from "./pages/trainer/TrainerWallet";
+import { TrainerBuyUpCoins } from "./pages/trainer/TrainerBuyUpCoins";
+import { TrainerWalletEarnings } from "./pages/trainer/TrainerWalletEarnings";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { ManageUsers } from "./pages/admin/ManageUsers";
 import { ManageLectures as ManageLecturesAdmin } from "./pages/admin/ManageLectures";
 import { ManageCourses as ManageCoursesAdmin } from "./pages/admin/ManageCourses";
 import { Analytics } from "./pages/admin/Analytics";
 import { AdminSupport } from "./pages/admin/AdminSupport";
+import { WithdrawalRequests } from "./pages/admin/WithdrawalRequests";
 import { LiveLecture } from "./pages/LiveLecture";
+import { MeetingRoom } from "./pages/MeetingRoom";
 import { TrainerApplicationSuccess } from "./pages/TrainerApplicationSuccess";
+import { TrainerLectureDetails } from "./pages/trainer/LectureDetails";
+import { ResetPassword } from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +57,7 @@ const App = () => (
             {/* Public Routes */}
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/trainer-application-success" element={<TrainerApplicationSuccess />} />
 
             {/* Student Routes */}
@@ -58,11 +68,11 @@ const App = () => (
             }>
               <Route path="dashboard" element={<StudentDashboard />} />
               <Route path="browse-lectures" element={<BrowseLectures />} />
-              <Route path="course/:id" element={<CourseDetail />} />
               <Route path="my-lectures" element={<MyLectures />} />
               <Route path="lecture/:id" element={<LectureDetails />} />
               <Route path="lecture/:id/details" element={<LectureDetails />} />
               <Route path="wallet" element={<StudentWallet />} />
+              <Route path="buy-upcoins" element={<BuyUpCoins />} />
               <Route path="support" element={<Support />} />
             </Route>
 
@@ -76,10 +86,11 @@ const App = () => (
               <Route path="schedule-lecture" element={<ScheduleLecture />} />
               <Route path="manage-lectures" element={<ManageLectures />} />
               <Route path="lectures/:id/edit" element={<EditLecture />} />
-              <Route path="create-course" element={<CreateCourse />} />
-              <Route path="manage-courses" element={<ManageCourses />} />
+              <Route path="lectures/:id/details" element={<TrainerLectureDetails />} />
               <Route path="students" element={<Students />} />
-              <Route path="earnings" element={<Earnings />} />
+              <Route path="wallet" element={<TrainerWalletEarnings />} />
+              <Route path="buy-upcoins" element={<TrainerBuyUpCoins />} />
+              <Route path="settings" element={<TrainerSettings />} />
             </Route>
 
             {/* Admin Routes */}
@@ -92,6 +103,7 @@ const App = () => (
               <Route path="manage-users" element={<ManageUsers />} />
               <Route path="manage-lectures" element={<ManageLecturesAdmin />} />
               <Route path="manage-courses" element={<ManageCoursesAdmin />} />
+              <Route path="withdrawals" element={<WithdrawalRequests />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="support" element={<AdminSupport />} />
             </Route>
@@ -100,6 +112,13 @@ const App = () => (
             <Route path="/live/:lectureId" element={
               <RoleGuard allowedRoles={['student', 'trainer']}>
                 <LiveLecture />
+              </RoleGuard>
+            } />
+
+            {/* Meeting Room Route */}
+            <Route path="/meeting/:lectureId" element={
+              <RoleGuard allowedRoles={['student', 'trainer']}>
+                <MeetingRoom />
               </RoleGuard>
             } />
 

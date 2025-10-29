@@ -2,18 +2,29 @@ export interface WalletTransaction {
   id: string;
   type: 'credit' | 'debit';
   amount: number;
+  realMoneyAmount?: number;
+  currency?: string;
   description: string;
-  category: 'lecture_enrollment' | 'funds_added' | 'refund' | 'bonus' | 'withdrawal';
+  category: string;
+  status: string;
   reference?: string;
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  paymentMethod?: 'card' | 'paypal' | 'bank_transfer' | 'wallet';
+  paymentMethod?: string;
   relatedLecture?: {
     _id: string;
     title: string;
-  };
+    price: number;
+  } | string | null;
   balanceBefore: number;
   balanceAfter: number;
   createdAt: string;
+  metadata?: {
+    studentId?: string;
+    studentName?: string;
+    lectureTitle?: string;
+    platformFee?: number;
+    grossAmount?: number;
+    netAmount?: number;
+  };
 }
 
 export interface WalletBalance {
@@ -209,4 +220,48 @@ class WalletService {
   }
 }
 
-export const walletService = new WalletService();
+const getEarnings = async () => {
+  const response = await fetch(`${API_URL}/earnings`, {
+    headers: {
+      'x-auth-token': localStorage.getItem('upscholer_token') || '',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch earnings');
+  }
+
+  return response.json();
+};
+
+const requestWithdrawal = async (amount: number, bankDetails: {
+  accountNumber: string;
+  ifscCode: string;
+  accountHolderName: string;
+  bankName?: string;
+}, upiId?: string) => {
+  const response = await fetch(`${API_URL}/withdraw`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-auth-token': localStorage.getItem('upscholer_token') || '',
+    },
+    body: JSON.stringify({ amount, bankDetails, upiId }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to process withdrawal');
+  }
+
+  return response.json();
+};
+
+export const walletService = {
+  getBalance: new WalletService().getBalance,
+  getTransactions: new WalletService().getTransactions,
+  getStats: new WalletService().getWalletStats,
+  getEarnings,
+  requestWithdrawal
+};

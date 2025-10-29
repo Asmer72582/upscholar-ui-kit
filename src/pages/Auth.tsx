@@ -8,8 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { GraduationCap, UserCheck, Users, Shield } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { GraduationCap, UserCheck, Users, Shield, Mail, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+
+const API_URL = 'http://localhost:3000/api';
 
 const roleOptions = [
   {
@@ -50,6 +53,9 @@ export const Auth: React.FC = () => {
   });
   const [expertiseInput, setExpertiseInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [sendingResetEmail, setSendingResetEmail] = useState(false);
 
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -170,6 +176,51 @@ export const Auth: React.FC = () => {
     }));
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter your email address',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setSendingResetEmail(true);
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send reset email');
+      }
+
+      toast({
+        title: 'Email Sent',
+        description: data.message,
+      });
+
+      setForgotPasswordOpen(false);
+      setForgotPasswordEmail('');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send reset email';
+      toast({
+        title: 'Error',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingResetEmail(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-secondary flex flex-col justify-center py-12">
       <div className="container mx-auto px-4">
@@ -271,7 +322,19 @@ export const Auth: React.FC = () => {
                 {/* Password field - for login (all roles) or student registration */}
                 {(isLogin || (!isLogin && selectedRole === 'student')) && (
                   <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      {isLogin && (
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="text-xs px-0 h-auto"
+                          onClick={() => setForgotPasswordOpen(true)}
+                        >
+                          Forgot Password?
+                        </Button>
+                      )}
+                    </div>
                     <Input
                       id="password"
                       name="password"
@@ -430,6 +493,64 @@ export const Auth: React.FC = () => {
           </Card>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Dialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-primary" />
+              Forgot Password
+            </DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="resetEmail">Email Address</Label>
+              <Input
+                id="resetEmail"
+                type="email"
+                placeholder="Enter your email"
+                value={forgotPasswordEmail}
+                onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                disabled={sendingResetEmail}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setForgotPasswordOpen(false);
+                setForgotPasswordEmail('');
+              }}
+              disabled={sendingResetEmail}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleForgotPassword}
+              disabled={sendingResetEmail || !forgotPasswordEmail}
+            >
+              {sendingResetEmail ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Send Reset Link
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

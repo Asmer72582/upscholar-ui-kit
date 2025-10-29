@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Wallet, 
@@ -17,20 +14,20 @@ import {
   TrendingUp,
   TrendingDown,
   History,
-  DollarSign,
   Filter,
   Calendar,
-  BookOpen,
   Gift,
   RefreshCw,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Users,
+  BookOpen
 } from 'lucide-react';
 import { walletService, WalletBalance, WalletTransaction } from '@/services/walletService';
 import { toast } from 'sonner';
 
-export const StudentWallet: React.FC = () => {
+export const TrainerWallet: React.FC = () => {
   const navigate = useNavigate();
   const [balance, setBalance] = useState<WalletBalance | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
@@ -94,7 +91,7 @@ export const StudentWallet: React.FC = () => {
   };
 
   const handleBuyUpCoins = () => {
-    navigate('/student/buy-upcoins');
+    navigate('/trainer/buy-upcoins');
   };
 
   const formatDate = (dateString: string) => {
@@ -111,14 +108,12 @@ export const StudentWallet: React.FC = () => {
     switch (category) {
       case 'lecture_enrollment':
         return <BookOpen className="w-4 h-4" />;
-      case 'funds_added':
-        return <Plus className="w-4 h-4" />;
-      case 'bonus':
-        return <Gift className="w-4 h-4" />;
-      case 'refund':
-        return <RefreshCw className="w-4 h-4" />;
-      default:
+      case 'upcoin_purchase':
         return <Coins className="w-4 h-4" />;
+      case 'joining_bonus':
+        return <Gift className="w-4 h-4" />;
+      default:
+        return <Wallet className="w-4 h-4" />;
     }
   };
 
@@ -126,12 +121,10 @@ export const StudentWallet: React.FC = () => {
     switch (category) {
       case 'lecture_enrollment':
         return 'bg-blue-100 text-blue-600';
-      case 'funds_added':
+      case 'upcoin_purchase':
         return 'bg-green-100 text-green-600';
-      case 'bonus':
+      case 'joining_bonus':
         return 'bg-purple-100 text-purple-600';
-      case 'refund':
-        return 'bg-orange-100 text-orange-600';
       default:
         return 'bg-gray-100 text-gray-600';
     }
@@ -145,8 +138,6 @@ export const StudentWallet: React.FC = () => {
         return 'bg-yellow-100 text-yellow-800';
       case 'failed':
         return 'bg-red-100 text-red-800';
-      case 'cancelled':
-        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -154,35 +145,22 @@ export const StudentWallet: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="h-8 bg-muted rounded w-48 animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <div className="h-4 bg-muted rounded animate-pulse" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-muted rounded animate-pulse" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="flex items-center justify-center h-96">
+        <RefreshCw className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">My Wallet</h1>
+          <h1 className="text-3xl font-bold">Trainer Wallet</h1>
           <p className="text-muted-foreground">
-            Manage your Upcoins and transaction history
+            Manage your UpCoins, track earnings, and view transaction history
           </p>
         </div>
-        
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -209,12 +187,9 @@ export const StudentWallet: React.FC = () => {
             <Wallet className="h-4 w-4 opacity-90" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold flex items-center gap-2">
-              <Coins className="w-6 h-6" />
-              {balance?.balance || 0} UC
-            </div>
+            <div className="text-3xl font-bold">{balance?.balance || 0} UC</div>
             <p className="text-xs opacity-75 mt-1">
-              Available for spending
+              Available UpCoins
             </p>
           </CardContent>
         </Card>
@@ -225,11 +200,9 @@ export const StudentWallet: React.FC = () => {
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {balance?.totalEarned || 0} UC
-            </div>
-            <p className="text-xs text-muted-foreground">
-              All time earnings
+            <div className="text-2xl font-bold text-green-600">{balance?.totalEarned || 0} UC</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              From student enrollments
             </p>
           </CardContent>
         </Card>
@@ -240,36 +213,54 @@ export const StudentWallet: React.FC = () => {
             <TrendingDown className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              {balance?.totalSpent || 0} UC
-            </div>
-            <p className="text-xs text-muted-foreground">
-              All time spending
+            <div className="text-2xl font-bold text-red-600">{balance?.totalSpent || 0} UC</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              On course creation
             </p>
           </CardContent>
         </Card>
 
         <Card className="card-elevated">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+            <CardTitle className="text-sm font-medium">Net Earnings</CardTitle>
+            <Coins className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {balance?.pendingBalance || 0} UC
+            <div className="text-2xl font-bold text-primary">
+              {((balance?.totalEarned || 0) - (balance?.totalSpent || 0))} UC
             </div>
-            <p className="text-xs text-muted-foreground">
-              Processing transactions
+            <p className="text-xs text-muted-foreground mt-1">
+              Profit after expenses
             </p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Info Card */}
+      <Card className="card-elevated bg-blue-50 border-blue-200">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-4">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Coins className="w-6 h-6 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-blue-900 mb-1">How Trainer Wallet Works</h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• <strong>Course Creation:</strong> Costs 50 UpCoins per lecture</li>
+                <li>• <strong>Student Enrollments:</strong> Earn 90% of lecture price (10% platform fee)</li>
+                <li>• <strong>Buy UpCoins:</strong> Purchase more via UPI/Card/NetBanking</li>
+                <li>• <strong>Track Everything:</strong> View all earnings and expenses</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Tabs */}
-      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-4">
+        <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="transactions">All Transactions</TabsTrigger>
+          <TabsTrigger value="transactions">Transactions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -347,12 +338,6 @@ export const StudentWallet: React.FC = () => {
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Calendar className="w-3 h-3" />
                             <span>{formatDate(transaction.createdAt)}</span>
-                            {transaction.relatedLecture && (
-                              <>
-                                <span>•</span>
-                                <span>{transaction.relatedLecture.title}</span>
-                              </>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -391,159 +376,60 @@ export const StudentWallet: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="transactions" className="space-y-4">
-          {/* Filters */}
           <Card className="card-elevated">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter className="w-5 h-5" />
-                Filter Transactions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Type</label>
-                  <Select 
-                    value={transactionFilter.type} 
-                    onValueChange={(value) => setTransactionFilter(prev => ({ ...prev, type: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="credit">Credits</SelectItem>
-                      <SelectItem value="debit">Debits</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Category</label>
-                  <Select 
-                    value={transactionFilter.category} 
-                    onValueChange={(value) => setTransactionFilter(prev => ({ ...prev, category: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="lecture_enrollment">Lecture Enrollment</SelectItem>
-                      <SelectItem value="funds_added">Funds Added</SelectItem>
-                      <SelectItem value="bonus">Bonus</SelectItem>
-                      <SelectItem value="refund">Refund</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Status</label>
-                  <Select 
-                    value={transactionFilter.status} 
-                    onValueChange={(value) => setTransactionFilter(prev => ({ ...prev, status: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="failed">Failed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Transaction List */}
-          <Card className="card-elevated">
-            <CardHeader>
-              <CardTitle>Transaction History</CardTitle>
+              <CardTitle>All Transactions</CardTitle>
               <CardDescription>
-                Complete history of your wallet transactions ({pagination.total} total)
+                Complete history of your wallet activity
               </CardDescription>
             </CardHeader>
             <CardContent>
               {transactions.length > 0 ? (
-                <>
-                  <div className="space-y-3">
-                    {transactions.map((transaction) => (
-                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${getCategoryColor(transaction.category)}`}>
-                            {getCategoryIcon(transaction.category)}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-medium">{transaction.description}</p>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Calendar className="w-3 h-3" />
-                              <span>{formatDate(transaction.createdAt)}</span>
-                              {transaction.paymentMethod && (
-                                <>
-                                  <span>•</span>
-                                  <span className="capitalize">{transaction.paymentMethod}</span>
-                                </>
-                              )}
-                              {transaction.relatedLecture && (
-                                <>
-                                  <span>•</span>
-                                  <span>{transaction.relatedLecture.title}</span>
-                                </>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              Balance: {transaction.balanceBefore} UC → {transaction.balanceAfter} UC
-                            </div>
-                          </div>
+                <div className="space-y-4">
+                  {transactions.map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${getCategoryColor(transaction.category)}`}>
+                          {getCategoryIcon(transaction.category)}
                         </div>
-                        <div className="text-right">
-                          <p className={`font-medium ${
-                            transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {transaction.type === 'credit' ? '+' : '-'}{transaction.amount} UC
-                          </p>
-                          <Badge className={`text-xs ${getStatusColor(transaction.status)}`}>
-                            {transaction.status}
-                          </Badge>
+                        <div>
+                          <p className="font-medium">{transaction.description}</p>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            <span>{formatDate(transaction.createdAt)}</span>
+                            {transaction.paymentMethod && (
+                              <>
+                                <span>•</span>
+                                <span className="capitalize">{transaction.paymentMethod}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-
-                  {/* Pagination */}
-                  {pagination.pages > 1 && (
-                    <div className="flex justify-center items-center space-x-2 mt-6">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPagination(prev => ({ ...prev, current: Math.max(1, prev.current - 1) }))}
-                        disabled={pagination.current === 1}
-                      >
-                        Previous
-                      </Button>
-                      <span className="text-sm text-muted-foreground">
-                        Page {pagination.current} of {pagination.pages}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPagination(prev => ({ ...prev, current: Math.min(prev.pages, prev.current + 1) }))}
-                        disabled={pagination.current === pagination.pages}
-                      >
-                        Next
-                      </Button>
+                      <div className="text-right">
+                        <p className={`font-medium ${
+                          transaction.type === 'credit' ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {transaction.type === 'credit' ? '+' : '-'}{transaction.amount} UC
+                        </p>
+                        {transaction.realMoneyAmount && transaction.realMoneyAmount > 0 && (
+                          <p className="text-xs text-muted-foreground">
+                            ₹{transaction.realMoneyAmount}
+                          </p>
+                        )}
+                        <Badge className={`text-xs ${getStatusColor(transaction.status)}`}>
+                          {transaction.status}
+                        </Badge>
+                      </div>
                     </div>
-                  )}
-                </>
+                  ))}
+                </div>
               ) : (
                 <div className="text-center py-8">
                   <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                   <h3 className="text-lg font-medium mb-2">No transactions found</h3>
                   <p className="text-muted-foreground mb-4">
-                    Try adjusting your filters or buy some UpCoins to get started
+                    Start creating lectures and earning UpCoins!
                   </p>
                   <Button onClick={handleBuyUpCoins}>
                     Buy UpCoins

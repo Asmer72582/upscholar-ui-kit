@@ -146,9 +146,9 @@ export const ScheduleLecture: React.FC = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          <h1 className="text-3xl font-bold mb-2">Schedule New Lecture</h1>
+          <h1 className="text-3xl font-bold mb-2">List New Lecture</h1>
           <p className="text-muted-foreground">
-            Create and schedule a new lecture for your students
+            Create and list a new lecture for your students
           </p>
         </div>
       </div>
@@ -381,7 +381,7 @@ export const ScheduleLecture: React.FC = () => {
               ) : (
                 <Plus className="w-4 h-4 mr-2" />
               )}
-              Schedule Lecture
+              List Lecture
             </Button>
           </div>
         </div>

@@ -6,11 +6,16 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  name?: string;
   role: UserRole;
   avatar?: string;
   createdAt: string;
   isApproved: boolean;
   status: 'pending' | 'approved' | 'rejected';
+  // Wallet fields
+  walletBalance?: number;
+  totalEarned?: number;
+  totalSpent?: number;
   // Trainer-specific fields
   resume?: string;
   demoVideoUrl?: string;

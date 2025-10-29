@@ -38,12 +38,13 @@ export const DashboardSidebar: React.FC = () => {
           { title: 'Browse Lectures', href: '/student/browse-lectures', icon: BookOpen },
           { title: 'My Lectures', href: '/student/my-lectures', icon: GraduationCap },
           { title: 'Wallet', href: '/student/wallet', icon: Wallet },
+          { title: 'Buy UpCoins', href: '/student/buy-upcoins', icon: CreditCard },
           { title: 'Support', href: '/student/support', icon: MessageSquare },
         ];
       case 'trainer':
         return [
           { title: 'Dashboard', href: '/trainer/dashboard', icon: Home },
-          { title: 'Schedule Lecture', href: '/trainer/schedule-lecture', icon: PlusCircle },
+          { title: 'List Lecture', href: '/trainer/schedule-lecture', icon: PlusCircle },
           { title: 'Manage Lectures', href: '/trainer/manage-lectures', icon: Calendar },
           { title: 'Create Course', href: '/trainer/create-course', icon: BookOpen },
           { title: 'Manage Courses', href: '/trainer/manage-courses', icon: ClipboardList },

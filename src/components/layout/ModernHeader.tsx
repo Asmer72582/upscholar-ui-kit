@@ -26,7 +26,7 @@ export const ModernHeader: React.FC = () => {
   const [balanceLoading, setBalanceLoading] = useState(false);
 
   useEffect(() => {
-    if (user?.role === "student") {
+    if (user?.role === "student" || user?.role === "trainer") {
       fetchWalletBalance();
     }
   }, [user]);
@@ -50,7 +50,7 @@ export const ModernHeader: React.FC = () => {
   };
 
   const refreshBalance = () => {
-    if (user?.role === "student") {
+    if (user?.role === "student" || user?.role === "trainer") {
       fetchWalletBalance();
     }
   };
@@ -73,7 +73,7 @@ export const ModernHeader: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {user.role === "student" && (
+          {(user.role === "student" || user.role === "trainer") && (
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -81,7 +81,7 @@ export const ModernHeader: React.FC = () => {
                 asChild
                 className="gap-2 bg-gradient-card border-border/50 hover:shadow-soft"
               >
-                <Link to="/student/wallet">
+                <Link to={`/${user.role}/wallet`}>
                   <Coins className="w-4 h-4 text-yellow-600" />
                   {balanceLoading ? (
                     <span className="flex items-center gap-1">
@@ -161,9 +161,9 @@ export const ModernHeader: React.FC = () => {
                   Dashboard
                 </Link>
               </DropdownMenuItem>
-              {user.role === "student" && (
+              {(user.role === "student" || user.role === "trainer") && (
                 <DropdownMenuItem asChild>
-                  <Link to="/student/wallet" className="cursor-pointer">
+                  <Link to={`/${user.role}/wallet`} className="cursor-pointer">
                     <Wallet className="mr-2 h-4 w-4" />
                     <div className="flex flex-col">
                       <span>Wallet</span>

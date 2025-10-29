@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { adminService } from '@/services/adminService';
 import { 
   BarChart3, 
   BookOpen, 
@@ -39,6 +40,7 @@ interface SidebarItem {
   title: string;
   href: string;
   icon: React.ComponentType<any>;
+  badge?: number;
 }
 
 export const ModernSidebar: React.FC = () => {
@@ -46,6 +48,26 @@ export const ModernSidebar: React.FC = () => {
   const { state } = useSidebar();
   const location = useLocation();
   const collapsed = state === 'collapsed';
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Fetch pending trainers count for admin
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      const fetchPendingCount = async () => {
+        try {
+          const stats = await adminService.getUserStats();
+          setPendingCount(stats.pending || 0);
+        } catch (error) {
+          console.error('Error fetching pending count:', error);
+        }
+      };
+      
+      fetchPendingCount();
+      // Refresh every 30 seconds
+      const interval = setInterval(fetchPendingCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   if (!user) return null;
 
@@ -57,24 +79,25 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Browse Lectures', href: '/student/browse-lectures', icon: BookOpen },
           { title: 'My Lectures', href: '/student/my-lectures', icon: GraduationCap },
           { title: 'Wallet', href: '/student/wallet', icon: Wallet },
+          { title: 'Buy UpCoins', href: '/student/buy-upcoins', icon: CreditCard },
           { title: 'Support', href: '/student/support', icon: MessageSquare },
         ];
       case 'trainer':
         return [
           { title: 'Dashboard', href: '/trainer/dashboard', icon: Home },
-          { title: 'Schedule Lecture', href: '/trainer/schedule-lecture', icon: PlusCircle },
+          { title: 'List Lecture', href: '/trainer/schedule-lecture', icon: PlusCircle },
           { title: 'Manage Lectures', href: '/trainer/manage-lectures', icon: Calendar },
-          { title: 'Create Course', href: '/trainer/create-course', icon: BookOpen },
-          { title: 'Manage Courses', href: '/trainer/manage-courses', icon: ClipboardList },
           { title: 'Students', href: '/trainer/students', icon: Users },
-          { title: 'Earnings', href: '/trainer/earnings', icon: CreditCard },
+          { title: 'Wallet & Earnings', href: '/trainer/wallet', icon: Wallet },
+          { title: 'Buy UpCoins', href: '/trainer/buy-upcoins', icon: CreditCard },
+          { title: 'Settings', href: '/trainer/settings', icon: Settings },
         ];
       case 'admin':
         return [
           { title: 'Dashboard', href: '/admin/dashboard', icon: Home },
-          { title: 'Manage Users', href: '/admin/manage-users', icon: Users },
+          { title: 'Manage Users', href: '/admin/manage-users', icon: Users, badge: pendingCount },
           { title: 'Manage Lectures', href: '/admin/manage-lectures', icon: BookOpen },
-          { title: 'Manage Courses', href: '/admin/manage-courses', icon: ClipboardList },
+          { title: 'Withdrawal Requests', href: '/admin/withdrawals', icon: Wallet },
           { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
           { title: 'Support', href: '/admin/support', icon: MessageSquare },
           { title: 'Settings', href: '/admin/settings', icon: Settings },
@@ -129,8 +152,21 @@ export const ModernSidebar: React.FC = () => {
                       {!collapsed && (
                         <>
                           <span className="font-medium">{item.title}</span>
-                          <ChevronRight className="w-4 h-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                          {item.badge && item.badge > 0 && (
+                            <span className="ml-auto mr-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                              {item.badge > 9 ? '9+' : item.badge}
+                            </span>
+                          )}
+                          <ChevronRight className={cn(
+                            "w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity",
+                            !item.badge && "ml-auto"
+                          )} />
                         </>
+                      )}
+                      {collapsed && item.badge && item.badge > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                          {item.badge > 9 ? '9' : item.badge}
+                        </span>
                       )}
                     </Link>
                   </SidebarMenuButton>

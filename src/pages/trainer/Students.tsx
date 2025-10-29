@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,96 +8,152 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, MoreHorizontal, MessageCircle, Mail, Download, Filter, Users, BookOpen, Clock } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Search, MoreHorizontal, MessageCircle, Mail, Download, Filter, Users, BookOpen, Clock, Loader2, Send, X, RefreshCw, TrendingUp } from 'lucide-react';
+import { trainerService } from '@/services/trainerService';
+import { useToast } from '@/hooks/use-toast';
 
-const students = [
-  {
-    id: 1,
-    name: 'John Smith',
-    email: 'john.smith@email.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-    course: 'Complete React Masterclass',
-    enrolledDate: '2024-01-10',
-    progress: 75,
-    lastActive: '2024-01-15',
-    status: 'active',
-    completedLectures: 30,
-    totalLectures: 40
-  },
-  {
-    id: 2,
-    name: 'Sarah Johnson',
-    email: 'sarah.j@email.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b2e5?w=100&h=100&fit=crop&crop=face',
-    course: 'Advanced TypeScript',
-    enrolledDate: '2024-01-12',
-    progress: 45,
-    lastActive: '2024-01-14',
-    status: 'active',
-    completedLectures: 12,
-    totalLectures: 28
-  },
-  {
-    id: 3,
-    name: 'Mike Wilson',
-    email: 'mike.wilson@email.com',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
-    course: 'UI/UX Fundamentals',
-    enrolledDate: '2024-01-05',
-    progress: 100,
-    lastActive: '2024-01-13',
-    status: 'completed',
-    completedLectures: 25,
-    totalLectures: 25
-  },
-  {
-    id: 4,
-    name: 'Emily Davis',
-    email: 'emily.davis@email.com',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=face',
-    course: 'Complete React Masterclass',
-    enrolledDate: '2024-01-08',
-    progress: 25,
-    lastActive: '2024-01-09',
-    status: 'inactive',
-    completedLectures: 10,
-    totalLectures: 40
-  }
-];
+interface Student {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string;
+  enrolledCourses: Array<{
+    lectureId: string;
+    lectureTitle: string;
+    status: string;
+    scheduledAt: string;
+    attended: boolean;
+  }>;
+  totalLectures: number;
+  completedLectures: number;
+  attendedLectures: number;
+  progress: number;
+  status: string;
+  enrolledDate: string;
+  lastActive: string;
+}
 
-const courseStats = [
-  {
-    course: 'Complete React Masterclass',
-    totalStudents: 156,
-    activeStudents: 132,
-    averageProgress: 68,
-    completionRate: 78
-  },
-  {
-    course: 'Advanced TypeScript',
-    totalStudents: 89,
-    activeStudents: 76,
-    averageProgress: 52,
-    completionRate: 65
-  },
-  {
-    course: 'UI/UX Fundamentals',
-    totalStudents: 211,
-    activeStudents: 189,
-    averageProgress: 71,
-    completionRate: 82
-  }
-];
+interface CourseStats {
+  course: string;
+  totalStudents: number;
+  activeStudents: number;
+  averageProgress: number;
+  completionRate: number;
+}
 
 export const Students: React.FC = () => {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [courseStats, setCourseStats] = useState<CourseStats[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailContent, setEmailContent] = useState('');
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const { toast } = useToast();
+
+  const fetchStudentsData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [studentsData, statsData] = await Promise.all([
+        trainerService.getEnrolledStudents(),
+        trainerService.getCourseStats()
+      ]);
+      setStudents(studentsData);
+      setCourseStats(statsData);
+    } catch (error) {
+      console.error('Error fetching students data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load students data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchStudentsData();
+  }, [fetchStudentsData]);
+
+  const handleOpenEmailModal = (student: Student) => {
+    setSelectedStudent(student);
+    setEmailSubject('');
+    setEmailContent('');
+    setEmailModalOpen(true);
+  };
+
+  const handleCloseEmailModal = () => {
+    setEmailModalOpen(false);
+    setSelectedStudent(null);
+    setEmailSubject('');
+    setEmailContent('');
+  };
+
+  const handleSendEmail = async () => {
+    if (!selectedStudent) return;
+
+    if (!emailSubject.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter an email subject',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!emailContent.trim()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please enter email content',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setSendingEmail(true);
+      await trainerService.sendEmailToStudent(
+        selectedStudent.id,
+        emailSubject,
+        emailContent
+      );
+
+      toast({
+        title: 'Email Sent Successfully',
+        description: `Your email has been sent to ${selectedStudent.name}`,
+      });
+
+      handleCloseEmailModal();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while sending the email';
+      toast({
+        title: 'Failed to Send Email',
+        description: errorMessage,
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // Get unique course titles for filtering
+  const uniqueCourses = Array.from(new Set(
+    students.flatMap(student => student.enrolledCourses.map(course => course.lectureTitle))
+  ));
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCourse = selectedCourse === 'all' || student.course === selectedCourse;
+    const matchesCourse = selectedCourse === 'all' || 
+                         student.enrolledCourses.some(course => course.lectureTitle === selectedCourse);
     const matchesStatus = selectedStatus === 'all' || student.status === selectedStatus;
     
     return matchesSearch && matchesCourse && matchesStatus;
@@ -123,11 +179,37 @@ export const Students: React.FC = () => {
     return 'bg-gray-500';
   };
 
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-muted-foreground">Loading students data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">My Students</h1>
-        <p className="text-muted-foreground">Manage and track your students' progress</p>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">My Students</h1>
+          <p className="text-muted-foreground">Manage and track your students' progress</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchStudentsData}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4 mr-2" />
+          )}
+          Refresh
+        </Button>
       </div>
 
       <div className="space-y-6">
@@ -171,7 +253,11 @@ export const Students: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Avg Progress</p>
-                  <p className="text-2xl font-bold">{Math.round(students.reduce((acc, s) => acc + s.progress, 0) / students.length)}%</p>
+                  <p className="text-2xl font-bold">
+                    {students.length > 0 
+                      ? Math.round(students.reduce((acc, s) => acc + s.progress, 0) / students.length)
+                      : 0}%
+                  </p>
                 </div>
                 <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
                   <span className="text-purple-600 font-bold text-sm">%</span>
@@ -219,9 +305,11 @@ export const Students: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Courses</SelectItem>
-                      <SelectItem value="Complete React Masterclass">React Masterclass</SelectItem>
-                      <SelectItem value="Advanced TypeScript">Advanced TypeScript</SelectItem>
-                      <SelectItem value="UI/UX Fundamentals">UI/UX Fundamentals</SelectItem>
+                      {uniqueCourses.map((course) => (
+                        <SelectItem key={course} value={course}>
+                          {course}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -250,64 +338,87 @@ export const Students: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredStudents.map((student) => (
-                      <TableRow key={student.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage src={student.avatar} />
-                              <AvatarFallback>{student.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{student.name}</p>
-                              <p className="text-sm text-muted-foreground">{student.email}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{student.course}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {student.completedLectures}/{student.totalLectures} lectures
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span>{student.progress}%</span>
-                            </div>
-                            <div className="w-24 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className={`h-2 rounded-full ${getProgressColor(student.progress)}`}
-                                style={{ width: `${student.progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(student.status)}</TableCell>
-                        <TableCell>{new Date(student.lastActive).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MoreHorizontal className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <MessageCircle className="w-4 h-4 mr-2" />
-                                Send Message
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Mail className="w-4 h-4 mr-2" />
-                                Send Email
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                    {filteredStudents.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          No students found matching your filters.
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      filteredStudents.map((student) => (
+                        <TableRow key={student.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src={student.avatar} />
+                                <AvatarFallback>{student.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium">{student.name}</p>
+                                <p className="text-sm text-muted-foreground">{student.email}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="group relative">
+                              <p className="font-medium">
+                                {student.enrolledCourses.length} {student.enrolledCourses.length === 1 ? 'Course' : 'Courses'}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {student.completedLectures}/{student.totalLectures} lectures
+                              </p>
+                              {student.enrolledCourses.length > 0 && (
+                                <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-10 bg-popover border rounded-lg shadow-lg p-3 min-w-[200px]">
+                                  <p className="text-xs font-semibold mb-2">Enrolled Courses:</p>
+                                  <ul className="space-y-1">
+                                    {student.enrolledCourses.map((course, idx) => (
+                                      <li key={idx} className="text-xs flex items-center gap-2">
+                                        <BookOpen className="w-3 h-3" />
+                                        <span className="truncate">{course.lectureTitle}</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-sm">
+                                <span>{student.progress}%</span>
+                              </div>
+                              <div className="w-24 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full ${getProgressColor(student.progress)}`}
+                                  style={{ width: `${student.progress}%` }}
+                                />
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{getStatusBadge(student.status)}</TableCell>
+                          <TableCell>{new Date(student.lastActive).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenEmailModal(student)}>
+                                  <Mail className="w-4 h-4 mr-2" />
+                                  Send Email
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <MessageCircle className="w-4 h-4 mr-2" />
+                                  View Details
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -316,37 +427,157 @@ export const Students: React.FC = () => {
 
           <TabsContent value="analytics" className="mt-6">
             <div className="grid gap-6">
-              {courseStats.map((course) => (
-                <Card key={course.course}>
-                  <CardHeader>
-                    <CardTitle>{course.course}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid md:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-primary">{course.totalStudents}</p>
-                        <p className="text-sm text-muted-foreground">Total Students</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-green-600">{course.activeStudents}</p>
-                        <p className="text-sm text-muted-foreground">Active Students</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-blue-600">{course.averageProgress}%</p>
-                        <p className="text-sm text-muted-foreground">Avg Progress</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-2xl font-bold text-purple-600">{course.completionRate}%</p>
-                        <p className="text-sm text-muted-foreground">Completion Rate</p>
-                      </div>
-                    </div>
+              {courseStats.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <TrendingUp className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">No course analytics available yet.</p>
                   </CardContent>
                 </Card>
-              ))}
+              ) : (
+                courseStats.map((course) => (
+                  <Card key={course.course} className="hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">{course.course}</CardTitle>
+                        <Badge variant="outline" className="ml-2">
+                          {course.totalStudents} {course.totalStudents === 1 ? 'Student' : 'Students'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid md:grid-cols-4 gap-6">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-muted-foreground">Total Students</p>
+                            <Users className="w-4 h-4 text-primary" />
+                          </div>
+                          <p className="text-2xl font-bold text-primary">{course.totalStudents}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-muted-foreground">Active Students</p>
+                            <BookOpen className="w-4 h-4 text-green-600" />
+                          </div>
+                          <p className="text-2xl font-bold text-green-600">{course.activeStudents}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-muted-foreground">Avg Progress</p>
+                            <TrendingUp className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <p className="text-2xl font-bold text-blue-600">{course.averageProgress}%</p>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className="bg-blue-600 h-1.5 rounded-full"
+                              style={{ width: `${course.averageProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-muted-foreground">Completion Rate</p>
+                            <Clock className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <p className="text-2xl font-bold text-purple-600">{course.completionRate}%</p>
+                          <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div 
+                              className="bg-purple-600 h-1.5 rounded-full"
+                              style={{ width: `${course.completionRate}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Email Modal */}
+      <Dialog open={emailModalOpen} onOpenChange={setEmailModalOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-primary" />
+              Send Email to Student
+            </DialogTitle>
+            <DialogDescription>
+              {selectedStudent && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={selectedStudent.avatar} />
+                    <AvatarFallback>{selectedStudent.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-foreground">{selectedStudent.name}</p>
+                    <p className="text-sm">{selectedStudent.email}</p>
+                  </div>
+                </div>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject *</Label>
+              <Input
+                id="subject"
+                placeholder="Enter email subject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                disabled={sendingEmail}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="content">Message *</Label>
+              <Textarea
+                id="content"
+                placeholder="Write your message here..."
+                value={emailContent}
+                onChange={(e) => setEmailContent(e.target.value)}
+                disabled={sendingEmail}
+                rows={8}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground">
+                {emailContent.length} characters
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCloseEmailModal}
+              disabled={sendingEmail}
+            >
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={sendingEmail || !emailSubject.trim() || !emailContent.trim()}
+            >
+              {sendingEmail ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

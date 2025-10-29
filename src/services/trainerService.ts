@@ -189,6 +189,164 @@ class TrainerService {
       throw error;
     }
   }
+
+  async getEnrolledStudents(): Promise<Array<{
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+    enrolledCourses: Array<{
+      lectureId: string;
+      lectureTitle: string;
+      status: string;
+      scheduledAt: string;
+      attended: boolean;
+    }>;
+    totalLectures: number;
+    completedLectures: number;
+    attendedLectures: number;
+    progress: number;
+    status: string;
+    enrolledDate: string;
+    lastActive: string;
+  }>> {
+    try {
+      const response = await fetch(`${API_URL}/trainer/students`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch enrolled students');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching enrolled students:', error);
+      throw error;
+    }
+  }
+
+  async getCourseStats(): Promise<Array<{
+    course: string;
+    totalStudents: number;
+    activeStudents: number;
+    averageProgress: number;
+    completionRate: number;
+  }>> {
+    try {
+      const response = await fetch(`${API_URL}/trainer/students/course-stats`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch course statistics');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching course statistics:', error);
+      throw error;
+    }
+  }
+
+  async sendEmailToStudent(studentId: string, subject: string, content: string): Promise<{
+    success: boolean;
+    message: string;
+    recipient: string;
+  }> {
+    try {
+      const response = await fetch(`${API_URL}/trainer/students/send-email`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ studentId, subject, content }),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to send email');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw error;
+    }
+  }
+
+  async getProfile(): Promise<any> {
+    try {
+      const response = await fetch(`${API_URL}/trainer/profile`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch trainer profile');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching trainer profile:', error);
+      throw error;
+    }
+  }
+
+  async updateProfile(data: {
+    firstname?: string;
+    lastname?: string;
+    bio?: string;
+    demoVideoUrl?: string;
+    expertise?: string[];
+  }): Promise<any> {
+    try {
+      const response = await fetch(`${API_URL}/trainer/profile`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update profile');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      throw error;
+    }
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      const response = await fetch(`${API_URL}/trainer/change-password`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ currentPassword, newPassword }),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to change password');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error changing password:', error);
+      throw error;
+    }
+  }
 }
 
 export const trainerService = new TrainerService();

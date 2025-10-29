@@ -388,7 +388,7 @@ export const TrainerDashboard: React.FC = () => {
             <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
               <Link to="/trainer/schedule-lecture">
                 <PlusCircle className="w-6 h-6" />
-                <span className="text-sm">Schedule Lecture</span>
+                <span className="text-sm">List Lecture</span>
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">

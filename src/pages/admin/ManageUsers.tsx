@@ -284,7 +284,14 @@ export const ManageUsers: React.FC = () => {
             <TabsTrigger value="all">All Users</TabsTrigger>
             <TabsTrigger value="students">Students</TabsTrigger>
             <TabsTrigger value="trainers">Trainers</TabsTrigger>
-            <TabsTrigger value="pending">Pending Approval</TabsTrigger>
+            <TabsTrigger value="pending" className="relative">
+              Pending Approval
+              {pendingTrainers.length > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {pendingTrainers.length > 9 ? '9+' : pendingTrainers.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-6">

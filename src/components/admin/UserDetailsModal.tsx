@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Calendar, Shield, FileText, Video, Award, Clock } from 'lucide-react';
+import { User, Mail, Calendar, Shield, FileText, Video, Award, Clock, Download, ExternalLink } from 'lucide-react';
 import { User as UserType } from '@/types';
 
 interface UserDetailsModalProps {
@@ -168,11 +168,37 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
 
                 {user.resume && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    <label className="text-sm font-medium text-muted-foreground flex items-center gap-1 mb-2">
                       <FileText className="w-3 h-3" />
-                      Resume
+                      Resume/CV
                     </label>
-                    <p className="text-sm text-muted-foreground">Resume file uploaded</p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open(`http://localhost:3000${user.resume}`, '_blank')}
+                      >
+                        <ExternalLink className="w-3 h-3 mr-2" />
+                        View Resume
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                      >
+                        <a
+                          href={`http://localhost:3000${user.resume}`}
+                          download
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="w-3 h-3" />
+                          Download
+                        </a>
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {user.resume.split('/').pop()}
+                    </p>
                   </div>
                 )}
               </div>

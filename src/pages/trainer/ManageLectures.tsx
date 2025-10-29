@@ -80,6 +80,39 @@ export const ManageLectures: React.FC = () => {
     }
   };
 
+  const handleStartMeeting = async (lectureId: string, lectureTitle: string) => {
+    try {
+      const token = localStorage.getItem('upscholer_token');
+      const response = await fetch(`http://localhost:3000/api/lectures/${lectureId}/start-meeting`, {
+        method: 'POST',
+        headers: {
+          'x-auth-token': token || '',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to start meeting');
+      }
+
+      const data = await response.json();
+      toast({
+        title: 'Success',
+        description: data.message || 'Meeting started successfully!',
+      });
+      
+      // Navigate to meeting room
+      navigate(`/meeting/${lectureId}`);
+    } catch (error: any) {
+      console.error('Error starting meeting:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to start meeting',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleCompleteLecture = async (lectureId: string, lectureTitle: string) => {
     if (!confirm(`Are you sure you want to mark "${lectureTitle}" as completed?`)) {
       return;
@@ -357,7 +390,7 @@ export const ManageLectures: React.FC = () => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => navigate(`/trainer/lectures/${lecture.id}`)}>
+                                <DropdownMenuItem onClick={() => navigate(`/trainer/lectures/${lecture.id}/details`)}>
                                   <Eye className="w-4 h-4 mr-2" />
                                   View Details
                                 </DropdownMenuItem>
@@ -370,9 +403,9 @@ export const ManageLectures: React.FC = () => {
                                 )}
                                 
                                 {lecture.status === 'scheduled' && (
-                                  <DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleStartMeeting(lecture.id, lecture.title)}>
                                     <Play className="w-4 h-4 mr-2" />
-                                    Start Lecture
+                                    Start Meeting
                                   </DropdownMenuItem>
                                 )}
                                 

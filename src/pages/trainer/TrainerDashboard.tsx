@@ -97,7 +97,7 @@ export const TrainerDashboard: React.FC = () => {
       {/* Welcome Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-2">
-          Welcome back, {user?.firstname}! 🎓
+          Welcome back, {user?.firstName}! 🎓
         </h1>
         <p className="text-lg opacity-90">
           Manage your lectures and track your teaching success
@@ -398,15 +398,15 @@ export const TrainerDashboard: React.FC = () => {
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
-              <Link to="/student/browse-lectures">
+              <Link to="/trainer/students">
                 <Users className="w-6 h-6" />
                 <span className="text-sm">View Students</span>
               </Link>
             </Button>
             <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
-              <Link to="/trainer/manage-lectures">
-                <BarChart3 className="w-6 h-6" />
-                <span className="text-sm">Analytics</span>
+              <Link to="/trainer/wallet">
+                <DollarSign className="w-6 h-6" />
+                <span className="text-sm">Wallet & Earnings</span>
               </Link>
             </Button>
           </div>

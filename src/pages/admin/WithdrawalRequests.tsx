@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '@/config/env';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -81,7 +82,7 @@ export const WithdrawalRequests: React.FC = () => {
       const status = selectedTab === 'all' ? '' : selectedTab;
       
       const response = await fetch(
-        `http://localhost:3000/api/admin/withdrawals${status ? `?status=${status}` : ''}`,
+        `${API_URL}/admin/withdrawals${status ? `?status=${status}` : ''}`,
         {
           headers: {
             'x-auth-token': token || '',
@@ -109,7 +110,7 @@ export const WithdrawalRequests: React.FC = () => {
       const token = localStorage.getItem('upscholer_token');
       
       const response = await fetch(
-        `http://localhost:3000/api/admin/withdrawals/${withdrawalId}/approve`,
+        `${API_URL}/admin/withdrawals/${withdrawalId}/approve`,
         {
           method: 'PUT',
           headers: {
@@ -145,7 +146,7 @@ export const WithdrawalRequests: React.FC = () => {
       const token = localStorage.getItem('upscholer_token');
       
       const response = await fetch(
-        `http://localhost:3000/api/admin/withdrawals/${selectedWithdrawal._id}/reject`,
+        `${API_URL}/admin/withdrawals/${selectedWithdrawal._id}/reject`,
         {
           method: 'PUT',
           headers: {

@@ -1,6 +1,7 @@
 import { User, UserRole } from "@/types";
+import { API_URL } from "@/config/env";
 
-const API_URL = "http://localhost:3000/api/auth";
+const AUTH_API_URL = `${API_URL}/auth`;
 
 const fetchConfig = {
   credentials: "include" as RequestCredentials,
@@ -15,7 +16,7 @@ class AuthService {
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     try {
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch(`${AUTH_API_URL}/login`, {
         ...fetchConfig,
         method: "POST",
         signal: controller.signal,
@@ -97,7 +98,7 @@ class AuthService {
         formData.append('experience', trainerData.experience.toString());
         formData.append('bio', trainerData.bio);
 
-        response = await fetch(`${API_URL}/register`, {
+        response = await fetch(`${AUTH_API_URL}/register`, {
           method: "POST",
           signal: controller.signal,
           credentials: 'include',
@@ -105,7 +106,7 @@ class AuthService {
         });
       } else {
         // For students, use JSON
-        response = await fetch(`${API_URL}/register`, {
+        response = await fetch(`${AUTH_API_URL}/register`, {
           ...fetchConfig,
           method: "POST",
           signal: controller.signal,
@@ -170,7 +171,7 @@ class AuthService {
     const token = localStorage.getItem("upscholer_token");
     if (!token) throw new Error("No token found");
 
-    const response = await fetch(`${API_URL}/me`, {
+    const response = await fetch(`${AUTH_API_URL}/me`, {
       ...fetchConfig,
       headers: {
         ...fetchConfig.headers,

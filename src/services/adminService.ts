@@ -1,6 +1,7 @@
 import { User } from "@/types";
+import { API_URL } from "@/config/env";
 
-const API_URL = "http://localhost:3000/api/auth";
+const AUTH_API_URL = `${API_URL}/auth`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem("upscholer_token");
@@ -35,7 +36,7 @@ export interface PendingTrainer extends User {
 class AdminService {
   async getAllUsers(): Promise<User[]> {
     try {
-      const response = await fetch(`${API_URL}/users`, {
+      const response = await fetch(`${AUTH_API_URL}/users`, {
         ...fetchConfig,
         method: "GET",
         headers: getAuthHeaders(),
@@ -73,7 +74,7 @@ class AdminService {
 
   async getPendingTrainers(): Promise<PendingTrainer[]> {
     try {
-      const response = await fetch(`${API_URL}/trainers/pending`, {
+      const response = await fetch(`${AUTH_API_URL}/trainers/pending`, {
         ...fetchConfig,
         method: "GET",
         headers: getAuthHeaders(),
@@ -112,7 +113,7 @@ class AdminService {
     trainerId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_URL}/trainers/${trainerId}/approve`, {
+      const response = await fetch(`${AUTH_API_URL}/trainers/${trainerId}/approve`, {
         ...fetchConfig,
         method: "POST",
         headers: getAuthHeaders(),
@@ -139,7 +140,7 @@ class AdminService {
     reason?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_URL}/trainers/${trainerId}/reject`, {
+      const response = await fetch(`${AUTH_API_URL}/trainers/${trainerId}/reject`, {
         ...fetchConfig,
         method: "POST",
         headers: getAuthHeaders(),
@@ -300,7 +301,7 @@ class AdminService {
   }> {
     try {
       const response = await fetch(
-        "http://localhost:3000/api/admin/stats/overview",
+        `${API_URL}/admin/stats/overview`,
         {
           method: "GET",
           headers: getAuthHeaders(),
@@ -322,7 +323,7 @@ class AdminService {
   async getRecentActivity(): Promise<any[]> {
     try {
       const response = await fetch(
-        "http://localhost:3000/api/admin/stats/recent-activity",
+        `${API_URL}/admin/stats/recent-activity`,
         {
           method: "GET",
           headers: getAuthHeaders(),
@@ -344,7 +345,7 @@ class AdminService {
   async getPendingApprovals(): Promise<any[]> {
     try {
       const response = await fetch(
-        "http://localhost:3000/api/admin/stats/pending-approvals",
+        `${API_URL}/admin/stats/pending-approvals`,
         {
           method: "GET",
           headers: getAuthHeaders(),

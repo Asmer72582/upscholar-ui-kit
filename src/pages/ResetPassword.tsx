@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Lock, Eye, EyeOff, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-const API_URL = 'http://localhost:3000/api';
+import { toast } from 'sonner';
+import { API_URL } from '@/config/env';
 
 export const ResetPassword: React.FC = () => {
   const { token } = useParams<{ token: string }>();

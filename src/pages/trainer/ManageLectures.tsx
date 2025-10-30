@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '@/config/env';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -83,7 +84,7 @@ export const ManageLectures: React.FC = () => {
   const handleStartMeeting = async (lectureId: string, lectureTitle: string) => {
     try {
       const token = localStorage.getItem('upscholer_token');
-      const response = await fetch(`http://localhost:3000/api/lectures/${lectureId}/start-meeting`, {
+      const response = await fetch(`${API_URL}/lectures/${lectureId}/start-meeting`, {
         method: 'POST',
         headers: {
           'x-auth-token': token || '',

@@ -1,3 +1,5 @@
+import { API_URL } from '@/config/env';
+
 export interface WalletTransaction {
   id: string;
   type: 'credit' | 'debit';
@@ -34,7 +36,7 @@ export interface WalletBalance {
   totalSpent: number;
 }
 
-const API_URL = 'http://localhost:3000/api/wallet';
+const WALLET_API_URL = `${API_URL}/wallet`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('upscholer_token');
@@ -47,7 +49,7 @@ const getAuthHeaders = () => {
 class WalletService {
   async getBalance(): Promise<WalletBalance> {
     try {
-      const response = await fetch(`${API_URL}/balance`, {
+      const response = await fetch(`${WALLET_API_URL}/balance`, {
         method: 'GET',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -88,7 +90,7 @@ class WalletService {
       if (filters?.category) queryParams.append('category', filters.category);
       if (filters?.status) queryParams.append('status', filters.status);
 
-      const response = await fetch(`${API_URL}/transactions?${queryParams}`, {
+      const response = await fetch(`${WALLET_API_URL}/transactions?${queryParams}`, {
         method: 'GET',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -108,7 +110,7 @@ class WalletService {
 
   async addFunds(amount: number, paymentMethod: string): Promise<{ message: string; transaction: WalletTransaction }> {
     try {
-      const response = await fetch(`${API_URL}/add-funds`, {
+      const response = await fetch(`${WALLET_API_URL}/add-funds`, {
         method: 'POST',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -129,7 +131,7 @@ class WalletService {
 
   async processPayment(lectureId: string, amount: number): Promise<{ message: string; transaction: WalletTransaction }> {
     try {
-      const response = await fetch(`${API_URL}/pay`, {
+      const response = await fetch(`${WALLET_API_URL}/pay`, {
         method: 'POST',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -160,7 +162,7 @@ class WalletService {
     };
   }> {
     try {
-      const response = await fetch(`${API_URL}/stats`, {
+      const response = await fetch(`${WALLET_API_URL}/stats`, {
         method: 'GET',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -180,7 +182,7 @@ class WalletService {
 
   async withdrawFunds(amount: number, withdrawalMethod: string): Promise<{ message: string; transaction: WalletTransaction }> {
     try {
-      const response = await fetch(`${API_URL}/withdraw`, {
+      const response = await fetch(`${WALLET_API_URL}/withdraw`, {
         method: 'POST',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -201,7 +203,7 @@ class WalletService {
 
   async getTransactionById(transactionId: string): Promise<WalletTransaction> {
     try {
-      const response = await fetch(`${API_URL}/transactions/${transactionId}`, {
+      const response = await fetch(`${WALLET_API_URL}/transactions/${transactionId}`, {
         method: 'GET',
         headers: getAuthHeaders(),
         credentials: 'include',
@@ -221,7 +223,7 @@ class WalletService {
 }
 
 const getEarnings = async () => {
-  const response = await fetch(`${API_URL}/earnings`, {
+  const response = await fetch(`${WALLET_API_URL}/earnings`, {
     headers: {
       'x-auth-token': localStorage.getItem('upscholer_token') || '',
     },
@@ -241,7 +243,7 @@ const requestWithdrawal = async (amount: number, bankDetails: {
   accountHolderName: string;
   bankName?: string;
 }, upiId?: string) => {
-  const response = await fetch(`${API_URL}/withdraw`, {
+  const response = await fetch(`${WALLET_API_URL}/withdraw`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

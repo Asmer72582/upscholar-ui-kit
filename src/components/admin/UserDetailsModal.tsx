@@ -1,4 +1,5 @@
 import React from 'react';
+import { API_BASE_URL } from '@/config/env';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -176,7 +177,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => window.open(`http://localhost:3000${user.resume}`, '_blank')}
+                        onClick={() => window.open(`${API_BASE_URL}${user.resume}`, '_blank')}
                       >
                         <ExternalLink className="w-3 h-3 mr-2" />
                         View Resume
@@ -187,7 +188,7 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
                         asChild
                       >
                         <a
-                          href={`http://localhost:3000${user.resume}`}
+                          href={`${API_BASE_URL}${user.resume}`}
                           download
                           className="flex items-center gap-2"
                         >

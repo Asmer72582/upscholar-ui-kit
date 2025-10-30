@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { io, Socket } from 'socket.io-client';
+import { useAuth } from '@/contexts/AuthContext';
+import io, { Socket } from 'socket.io-client';
 import Peer from 'simple-peer';
+import { toast } from 'sonner';
+import { SOCKET_URL } from '@/config/env';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,8 +26,6 @@ import {
   Download,
   Trash2
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface Participant {
   socketId: string;
@@ -140,20 +141,45 @@ export const MeetingRoom: React.FC = () => {
   const initializeMeeting = async () => {
     try {
       console.log('Initializing meeting...');
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true
-      });
-      console.log('Got local stream:', stream.id);
+      // Get user media - try with video, fallback to audio only
+      let stream: MediaStream | null = null;
+      
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true
+        });
+        console.log('✅ Got local stream with video:', stream.id);
+      } catch (videoError) {
+        console.warn('⚠️ Video not available, trying audio only:', videoError);
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true
+          });
+          console.log('✅ Got local stream with audio only:', stream.id);
+          setVideoEnabled(false);
+          toast.info('Joined with audio only (camera not available)');
+        } catch (audioError) {
+          console.error('❌ No media available:', audioError);
+          toast.error('Could not access camera or microphone');
+          return;
+        }
+      }
+      
+      if (!stream) {
+        toast.error('Failed to get media stream');
+        return;
+      }
+      
       setLocalStream(stream);
-      if (localVideoRef.current) {
+      if (localVideoRef.current && stream.getVideoTracks().length > 0) {
         localVideoRef.current.srcObject = stream;
       }
 
       // Connect to socket
       console.log('Connecting to Socket.io server...');
-      const newSocket = io('http://localhost:3000');
+      const newSocket = io(SOCKET_URL);
       setSocket(newSocket);
 
       newSocket.emit('join-meeting', {
@@ -337,14 +363,19 @@ export const MeetingRoom: React.FC = () => {
     peer.on('stream', (remoteStream) => {
       console.log('✅ Received remote stream from:', socketId, 'Tracks:', remoteStream.getTracks().length);
       remoteStream.getTracks().forEach(track => {
-        console.log('  - Track:', track.kind, 'enabled:', track.enabled);
+        console.log('  - Track:', track.kind, 'ID:', track.id, 'enabled:', track.enabled, 'label:', track.label);
       });
       
       const peerConnection = peersRef.current.get(socketId);
       if (peerConnection) {
         peerConnection.stream = remoteStream;
         setPeers(new Map(peersRef.current));
+        console.log('📺 Stream stored for peer:', socketId);
       }
+    });
+    
+    peer.on('track', (track, stream) => {
+      console.log('🎬 New track received from:', socketId, 'Kind:', track.kind, 'Label:', track.label);
     });
 
     peer.on('error', (err) => {
@@ -430,15 +461,29 @@ export const MeetingRoom: React.FC = () => {
         
         // Replace camera track with screen track in all peer connections
         const screenTrack = stream.getVideoTracks()[0];
-        peersRef.current.forEach(({ peer }) => {
-          const sender = peer._pc.getSenders().find((s: any) => s.track?.kind === 'video');
-          if (sender) {
-            sender.replaceTrack(screenTrack);
+        console.log('Screen track obtained:', screenTrack.id, 'Replacing in', peersRef.current.size, 'peer connections');
+        
+        let replacedCount = 0;
+        peersRef.current.forEach(({ peer }, socketId) => {
+          try {
+            const sender = peer._pc.getSenders().find((s: any) => s.track?.kind === 'video');
+            if (sender) {
+              sender.replaceTrack(screenTrack).then(() => {
+                console.log('✅ Screen track replaced for peer:', socketId);
+                replacedCount++;
+              }).catch((err: any) => {
+                console.error('❌ Failed to replace track for peer:', socketId, err);
+              });
+            } else {
+              console.warn('⚠️ No video sender found for peer:', socketId);
+            }
+          } catch (err) {
+            console.error('❌ Error replacing track for peer:', socketId, err);
           }
         });
         
         socket?.emit('start-screen-share', { meetingId: lectureId });
-        console.log('Screen sharing started and sent to all peers');
+        console.log(`🖥️ Screen sharing started! Replaced track in ${replacedCount} peer connections`);
 
         // Handle screen share stop (when user clicks "Stop Sharing" in browser)
         screenTrack.onended = () => {
@@ -603,12 +648,14 @@ export const MeetingRoom: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Video Grid */}
         <div className={`p-4 overflow-auto ${isHost && activeTab === 'whiteboard' ? 'w-1/2' : 'flex-1'}`}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Screen Share Display - Shows when anyone is sharing */}
-            {(screenSharing || participants.some(p => p.screen)) && (
-              <div className="col-span-full mb-4">
-                <Card className="bg-gray-800 border-green-500 border-2">
-                  <CardContent className="p-4">
+          {/* Check if anyone is sharing screen */}
+          {(screenSharing || participants.some(p => p.screen)) ? (
+            // Screen Share Layout - Large screen + small videos
+            <div className="flex flex-col gap-4 h-full">
+              {/* Large Screen Share Area */}
+              <div className="flex-1">
+                <Card className="bg-gray-800 border-green-500 border-2 h-full">
+                  <CardContent className="p-4 h-full flex flex-col">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Monitor className="w-5 h-5 text-green-500" />
@@ -623,18 +670,83 @@ export const MeetingRoom: React.FC = () => {
                         </Button>
                       )}
                     </div>
-                    {screenSharing && (
-                      <video
-                        ref={screenVideoRef}
-                        autoPlay
-                        playsInline
-                        className="w-full h-auto rounded bg-black"
-                      />
-                    )}
+                    <div className="flex-1 bg-black rounded flex items-center justify-center">
+                      {screenSharing ? (
+                        <video
+                          ref={screenVideoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="w-full h-full object-contain rounded"
+                        />
+                      ) : (
+                        // Show remote user's screen
+                        Array.from(peers.entries()).map(([socketId, { stream }]) => {
+                          const participant = participants.find(p => p.socketId === socketId && p.screen);
+                          if (participant) {
+                            return (
+                              <video
+                                key={socketId}
+                                autoPlay
+                                playsInline
+                                ref={(video) => {
+                                  if (video && stream) {
+                                    video.srcObject = stream;
+                                  }
+                                }}
+                                className="w-full h-full object-contain rounded"
+                              />
+                            );
+                          }
+                          return null;
+                        })
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
-            )}
+
+              {/* Small Video Grid Below */}
+              <div className="h-32">
+                <div className="flex gap-2 overflow-x-auto">
+                  {/* Local Video - Small */}
+                  <Card className="bg-gray-800 border-gray-700 flex-shrink-0 w-48">
+                    <CardContent className="p-2 relative h-full">
+                      <video
+                        ref={localVideoRef}
+                        autoPlay
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover rounded"
+                      />
+                      <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-white text-xs">
+                        You {isHost && '(Host)'}
+                      </div>
+                      {!videoEnabled && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-700 rounded">
+                          <VideoOff className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Remote Videos - Small */}
+                  {Array.from(peers.entries()).map(([socketId, { stream }]) => {
+                    const participant = participants.find(p => p.socketId === socketId);
+                    return (
+                      <Card key={socketId} className="bg-gray-800 border-gray-700 flex-shrink-0 w-48">
+                        <CardContent className="p-2 relative h-full">
+                          <RemoteVideo stream={stream} participant={participant} />
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Normal Grid Layout - No screen sharing
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
             {/* Local Video */}
             <Card className="bg-gray-800 border-gray-700">
@@ -668,7 +780,8 @@ export const MeetingRoom: React.FC = () => {
                 </Card>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Sidebar */}

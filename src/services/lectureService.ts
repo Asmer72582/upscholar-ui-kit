@@ -1,3 +1,5 @@
+import { API_URL } from '@/config/env';
+
 export interface Lecture {
   id: string;
   title: string;
@@ -96,7 +98,7 @@ export interface LectureStats {
   totalRevenue: number;
 }
 
-const API_URL = 'http://localhost:3000/api/lectures';
+const LECTURE_API_URL = `${API_URL}/lectures`;
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('upscholer_token');
@@ -129,7 +131,7 @@ class LectureService {
         }
       });
 
-      const response = await fetch(`${API_URL}?${queryParams.toString()}`, {
+      const response = await fetch(`${LECTURE_API_URL}?${queryParams.toString()}`, {
         ...fetchConfig,
         method: 'GET',
       });
@@ -153,7 +155,7 @@ class LectureService {
 
   async getLectureById(id: string): Promise<Lecture> {
     try {
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await fetch(`${LECTURE_API_URL}/${id}`, {
         ...fetchConfig,
         method: 'GET',
       });
@@ -195,7 +197,7 @@ class LectureService {
 
   async updateLecture(id: string, lectureData: Partial<CreateLectureData>): Promise<Lecture> {
     try {
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await fetch(`${LECTURE_API_URL}/${id}`, {
         ...fetchConfig,
         method: 'PUT',
         headers: getAuthHeaders(),
@@ -217,7 +219,7 @@ class LectureService {
 
   async deleteLecture(id: string): Promise<void> {
     try {
-      const response = await fetch(`${API_URL}/${id}`, {
+      const response = await fetch(`${LECTURE_API_URL}/${id}`, {
         ...fetchConfig,
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -235,7 +237,7 @@ class LectureService {
 
   async enrollInLecture(id: string): Promise<{ message: string; enrolledCount: number }> {
     try {
-      const response = await fetch(`${API_URL}/${id}/enroll`, {
+      const response = await fetch(`${LECTURE_API_URL}/${id}/enroll`, {
         ...fetchConfig,
         method: 'POST',
         headers: getAuthHeaders(),
@@ -255,7 +257,7 @@ class LectureService {
 
   async unenrollFromLecture(id: string): Promise<{ message: string; enrolledCount: number }> {
     try {
-      const response = await fetch(`${API_URL}/${id}/enroll`, {
+      const response = await fetch(`${LECTURE_API_URL}/${id}/enroll`, {
         ...fetchConfig,
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -275,7 +277,7 @@ class LectureService {
 
   async getMyLectures(): Promise<Lecture[]> {
     try {
-      const response = await fetch(`${API_URL}/my/lectures`, {
+      const response = await fetch(`${LECTURE_API_URL}/my/lectures`, {
         ...fetchConfig,
         method: 'GET',
         headers: getAuthHeaders(),
@@ -296,7 +298,7 @@ class LectureService {
 
   async getLecturesByTrainer(trainerId: string): Promise<Lecture[]> {
     try {
-      const response = await fetch(`${API_URL}/trainer/${trainerId}`, {
+      const response = await fetch(`${LECTURE_API_URL}/trainer/${trainerId}`, {
         ...fetchConfig,
         method: 'GET',
       });
@@ -316,7 +318,7 @@ class LectureService {
 
   async getLectureStats(): Promise<LectureStats> {
     try {
-      const response = await fetch(`${API_URL}/stats/overview`, {
+      const response = await fetch(`${LECTURE_API_URL}/stats/overview`, {
         ...fetchConfig,
         method: 'GET',
         headers: getAuthHeaders(),
@@ -336,7 +338,7 @@ class LectureService {
 
   async submitReview(id: string, reviewData: { rating: number; comment: string }): Promise<{ message: string; review: any; averageRating: number }> {
     try {
-      const response = await fetch(`${API_URL}/${id}/review`, {
+      const response = await fetch(`${LECTURE_API_URL}/${id}/review`, {
         ...fetchConfig,
         method: 'POST',
         headers: getAuthHeaders(),
@@ -357,7 +359,7 @@ class LectureService {
 
   async completeLecture(id: string): Promise<{ message: string; lecture: Lecture }> {
     try {
-      const response = await fetch(`${API_URL}/${id}/complete`, {
+      const response = await fetch(`${LECTURE_API_URL}/${id}/complete`, {
         ...fetchConfig,
         method: 'PATCH',
         headers: getAuthHeaders(),

@@ -11,8 +11,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { GraduationCap, UserCheck, Users, Shield, Mail, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-
-const API_URL = 'http://localhost:3000/api';
+import { API_URL } from '@/config/env';
 
 const roleOptions = [
   {

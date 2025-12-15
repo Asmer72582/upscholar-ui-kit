@@ -22,15 +22,38 @@ import { useNavigate } from 'react-router-dom';
 import { lectureService, CreateLectureData } from '@/services/lectureService';
 
 const categories = [
+  // Basic 10th Class Subjects
+  'Mathematics',
+  'Science',
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'English',
+  'Hindi',
+  'Social Studies',
+  'History',
+  'Geography',
+  'Civics',
+  'Economics',
+  
+  // Additional Subjects
+  'Computer Science',
   'Programming',
   'Web Development',
   'Mobile Development',
   'Data Science',
   'Machine Learning',
-  'DevOps',
-  'Design',
-  'Business',
-  'Marketing',
+  'Artificial Intelligence',
+  'Accountancy',
+  'Business Studies',
+  'Commerce',
+  'Arts & Crafts',
+  'Music',
+  'Physical Education',
+  'Sanskrit',
+  'Other Languages',
+  'Competitive Exams',
+  'Test Preparation',
   'Other',
 ];
 
@@ -83,49 +106,95 @@ export const ScheduleLecture: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const validateFormForDraft = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.title.trim()) newErrors.title = 'Title is required';
+    if (!formData.description.trim()) newErrors.description = 'Description is required';
+    if (!formData.category) newErrors.category = 'Category is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent, isDraft: boolean = false) => {
     e.preventDefault();
     
-    if (!validateForm()) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields correctly.',
-        variant: 'destructive',
-      });
-      return;
+    // For drafts, only validate basic fields
+    if (isDraft) {
+      if (!validateFormForDraft()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please fill in title, description, and category.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else {
+      // For publishing, validate all fields
+      if (!validateForm()) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please fill in all required fields correctly.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
       // Prepare lecture data
-      const scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
+      let scheduledAt: Date;
       
-      const lectureData: CreateLectureData = {
+      if (isDraft) {
+        // For drafts, use current date/time
+        scheduledAt = new Date();
+      } else {
+        // For publishing, use the scheduled date/time
+        scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
+      }
+      
+      // Build lecture data with conditional fields
+      // For drafts, use minimum valid values; for published, use actual values
+      const lectureData: any = {
         title: formData.title,
         description: formData.description,
         category: formData.category,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        price: parseFloat(formData.price),
-        duration: parseInt(formData.duration),
+        price: formData.price ? parseFloat(formData.price) : (isDraft ? 1 : 0),
+        duration: formData.duration ? parseInt(formData.duration) : (isDraft ? 30 : 0),
+        maxStudents: formData.maxStudents ? parseInt(formData.maxStudents) : 50,
         scheduledAt: scheduledAt.toISOString(),
-        maxStudents: parseInt(formData.maxStudents),
-        meetingLink: formData.meetingLink || undefined,
+        isPublished: !isDraft,
       };
+
+      // Add optional fields if they have values
+      if (formData.meetingLink) {
+        lectureData.meetingLink = formData.meetingLink;
+      }
 
       await lectureService.createLecture(lectureData);
 
-      toast({
-        title: 'Lecture Scheduled Successfully!',
-        description: `"${formData.title}" has been scheduled for ${formData.scheduledDate} at ${formData.scheduledTime}.`,
-      });
+      if (isDraft) {
+        toast({
+          title: 'Draft Saved Successfully!',
+          description: `"${formData.title}" has been saved as a draft.`,
+        });
+      } else {
+        toast({
+          title: 'Lecture Scheduled Successfully!',
+          description: `"${formData.title}" has been scheduled for ${formData.scheduledDate} at ${formData.scheduledTime}.`,
+        });
+      }
       
       navigate('/trainer/manage-lectures');
     } catch (error: any) {
-      console.error('Error scheduling lecture:', error);
+      console.error('Error saving lecture:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to schedule lecture. Please try again.',
+        description: error.message || 'Failed to save lecture. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -146,9 +215,9 @@ export const ScheduleLecture: React.FC = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          <h1 className="text-3xl font-bold mb-2">List New Lecture</h1>
+          <h1 className="text-3xl font-bold mb-2">Create New Lecture</h1>
           <p className="text-muted-foreground">
-            Create and list a new lecture for your students
+            Create a new lecture and save as draft or publish it for your students
           </p>
         </div>
       </div>
@@ -375,7 +444,25 @@ export const ScheduleLecture: React.FC = () => {
             >
               Cancel
             </Button>
-            <Button type="submit" className="btn-primary" disabled={loading}>
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={(e) => handleSubmit(e as any, true)}
+              disabled={loading}
+            >
+              {loading ? (
+                <LoadingSpinner size="sm" className="mr-2" />
+              ) : (
+                <BookOpen className="w-4 h-4 mr-2" />
+              )}
+              Save as Draft
+            </Button>
+            <Button 
+              type="submit" 
+              className="btn-primary" 
+              disabled={loading}
+              onClick={(e) => handleSubmit(e as any, false)}
+            >
               {loading ? (
                 <LoadingSpinner size="sm" className="mr-2" />
               ) : (

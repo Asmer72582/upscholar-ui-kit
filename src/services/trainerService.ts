@@ -328,6 +328,7 @@ class TrainerService {
     message: string;
   }> {
     try {
+      console.log('Making password change request to:', `${API_URL}/trainer/change-password`);
       const response = await fetch(`${API_URL}/trainer/change-password`, {
         method: 'PUT',
         headers: getAuthHeaders(),
@@ -335,12 +336,17 @@ class TrainerService {
         ...fetchConfig,
       });
 
+      console.log('Password change response status:', response.status);
+      
       if (!response.ok) {
         const error = await response.json();
+        console.error('Password change error response:', error);
         throw new Error(error.message || 'Failed to change password');
       }
 
-      return await response.json();
+      const result = await response.json();
+      console.log('Password change successful result:', result);
+      return result;
     } catch (error) {
       console.error('Error changing password:', error);
       throw error;

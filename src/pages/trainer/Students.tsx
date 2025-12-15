@@ -325,102 +325,119 @@ export const Students: React.FC = () => {
                   </Select>
                 </div>
 
-                {/* Students Table */}
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Student</TableHead>
-                      <TableHead>Course</TableHead>
-                      <TableHead>Progress</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Last Active</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredStudents.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No students found matching your filters.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      filteredStudents.map((student) => (
-                        <TableRow key={student.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <Avatar className="w-8 h-8">
+                {/* Students Cards */}
+                <div className="space-y-4">
+                  {filteredStudents.length === 0 ? (
+                    <Card className="card-elevated">
+                      <CardContent className="text-center py-12">
+                        <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                          {searchTerm ? 'No matching students found' : 'No students found'}
+                        </h3>
+                        <p className="text-muted-foreground mb-4">
+                          {searchTerm 
+                            ? `No students match "${searchTerm}". Try adjusting your search.`
+                            : selectedCourse !== 'all' 
+                            ? "No students enrolled in this course."
+                            : selectedStatus !== 'all'
+                            ? `No students with ${selectedStatus} status.`
+                            : "You don't have any enrolled students yet."
+                          }
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {filteredStudents.map((student) => (
+                        <Card key={student.id} className="card-elevated hover-lift">
+                          <CardContent className="p-6">
+                            {/* Student Header */}
+                            <div className="flex items-center gap-4 mb-4">
+                              <Avatar className="w-12 h-12">
                                 <AvatarImage src={student.avatar} />
                                 <AvatarFallback>{student.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                               </Avatar>
-                              <div>
-                                <p className="font-medium">{student.name}</p>
-                                <p className="text-sm text-muted-foreground">{student.email}</p>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-lg truncate">{student.name}</h3>
+                                <p className="text-sm text-muted-foreground truncate">{student.email}</p>
+                              </div>
+                              {getStatusBadge(student.status)}
+                            </div>
+
+                            {/* Course Info */}
+                            <div className="space-y-3 mb-4">
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Enrolled Courses</span>
+                                <span className="font-semibold">{student.enrolledCourses.length}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Completed Lectures</span>
+                                <span className="font-semibold">{student.completedLectures}/{student.totalLectures}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Last Active</span>
+                                <span className="font-semibold">{new Date(student.lastActive).toLocaleDateString()}</span>
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="group relative">
-                              <p className="font-medium">
-                                {student.enrolledCourses.length} {student.enrolledCourses.length === 1 ? 'Course' : 'Courses'}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {student.completedLectures}/{student.totalLectures} lectures
-                              </p>
-                              {student.enrolledCourses.length > 0 && (
-                                <div className="absolute left-0 top-full mt-2 hidden group-hover:block z-10 bg-popover border rounded-lg shadow-lg p-3 min-w-[200px]">
-                                  <p className="text-xs font-semibold mb-2">Enrolled Courses:</p>
-                                  <ul className="space-y-1">
-                                    {student.enrolledCourses.map((course, idx) => (
-                                      <li key={idx} className="text-xs flex items-center gap-2">
-                                        <BookOpen className="w-3 h-3" />
-                                        <span className="truncate">{course.lectureTitle}</span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="space-y-1">
-                              <div className="flex justify-between text-sm">
-                                <span>{student.progress}%</span>
+
+                            {/* Progress Bar */}
+                            <div className="mb-4">
+                              <div className="flex justify-between text-sm mb-2">
+                                <span className="text-muted-foreground">Overall Progress</span>
+                                <span className="font-semibold">{student.progress}%</span>
                               </div>
-                              <div className="w-24 bg-gray-200 rounded-full h-2">
+                              <div className="w-full bg-gray-200 rounded-full h-2">
                                 <div 
-                                  className={`h-2 rounded-full ${getProgressColor(student.progress)}`}
+                                  className={`h-2 rounded-full ${getProgressColor(student.progress)} transition-all duration-300`}
                                   style={{ width: `${student.progress}%` }}
                                 />
                               </div>
                             </div>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(student.status)}</TableCell>
-                          <TableCell>{new Date(student.lastActive).toLocaleDateString()}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleOpenEmailModal(student)}>
-                                  <Mail className="w-4 h-4 mr-2" />
-                                  Send Email
-                                </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <MessageCircle className="w-4 h-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+
+                            {/* Course List (if any) */}
+                            {student.enrolledCourses.length > 0 && (
+                              <div className="mb-4">
+                                <p className="text-sm font-medium mb-2">Enrolled Courses:</p>
+                                <div className="space-y-1 max-h-20 overflow-y-auto">
+                                  {student.enrolledCourses.slice(0, 3).map((course, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 text-xs p-2 bg-muted rounded">
+                                      <BookOpen className="w-3 h-3 flex-shrink-0" />
+                                      <span className="truncate">{course.lectureTitle}</span>
+                                      <Badge variant="outline" className="ml-auto text-xs">
+                                        {course.status}
+                                      </Badge>
+                                    </div>
+                                  ))}
+                                  {student.enrolledCourses.length > 3 && (
+                                    <p className="text-xs text-muted-foreground text-center">
+                                      +{student.enrolledCourses.length - 3} more
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                className="flex-1"
+                                onClick={() => handleOpenEmailModal(student)}
+                              >
+                                <Mail className="w-3 h-3 mr-1" />
+                                Email
+                              </Button>
+                              <Button size="sm" variant="outline" className="flex-1">
+                                <MessageCircle className="w-3 h-3 mr-1" />
+                                Details
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

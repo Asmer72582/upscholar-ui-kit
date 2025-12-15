@@ -31,7 +31,7 @@ export interface Lecture {
     enrolledAt: string;
     attended: boolean;
   }>;
-  status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  status: 'pending' | 'scheduled' | 'live' | 'completed' | 'cancelled';
   meetingLink?: string;
   recordingUrl?: string;
   materials: Array<{
@@ -76,6 +76,7 @@ export interface CreateLectureData {
     url: string;
     type: 'pdf' | 'video' | 'link' | 'document' | 'other';
   }>;
+  isPublished?: boolean;
 }
 
 export interface LectureFilters {
@@ -175,7 +176,7 @@ class LectureService {
 
   async createLecture(lectureData: CreateLectureData): Promise<Lecture> {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(LECTURE_API_URL, {
         ...fetchConfig,
         method: 'POST',
         headers: getAuthHeaders(),
@@ -183,8 +184,20 @@ class LectureService {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create lecture');
+        let errorBody: any = null;
+        try {
+          errorBody = await response.json();
+        } catch (parseError) {
+          console.error('Failed to parse createLecture error response:', parseError);
+        }
+
+        console.error('Create lecture validation error response:', errorBody);
+
+        const message =
+          (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) ||
+          'Failed to create lecture';
+
+        throw new Error(message);
       }
 
       const data = await response.json();

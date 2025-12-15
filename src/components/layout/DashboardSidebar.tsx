@@ -39,7 +39,6 @@ export const DashboardSidebar: React.FC = () => {
           { title: 'My Lectures', href: '/student/my-lectures', icon: GraduationCap },
           { title: 'Wallet', href: '/student/wallet', icon: Wallet },
           { title: 'Buy UpCoins', href: '/student/buy-upcoins', icon: CreditCard },
-          { title: 'Support', href: '/student/support', icon: MessageSquare },
         ];
       case 'trainer':
         return [
@@ -58,7 +57,6 @@ export const DashboardSidebar: React.FC = () => {
           { title: 'Manage Lectures', href: '/admin/manage-lectures', icon: BookOpen },
           { title: 'Manage Courses', href: '/admin/manage-courses', icon: ClipboardList },
           { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-          { title: 'Support', href: '/admin/support', icon: MessageSquare },
           { title: 'Settings', href: '/admin/settings', icon: Settings },
         ];
       default:

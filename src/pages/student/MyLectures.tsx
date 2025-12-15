@@ -202,41 +202,63 @@ export const MyLectures: React.FC = () => {
     return matchesTab && matchesSearch;
   });
 
+  const getStatusCardColor = (status: string) => {
+    switch (status) {
+      case 'upcoming':
+        return 'bg-blue-50 border-blue-200 hover:bg-blue-100';
+      case 'completed':
+        return 'bg-green-50 border-green-200 hover:bg-green-100';
+      case 'missed':
+        return 'bg-red-50 border-red-200 hover:bg-red-100';
+      case 'cancelled':
+        return 'bg-orange-50 border-orange-200 hover:bg-orange-100';
+      default:
+        return 'bg-muted/50 hover:bg-muted';
+    }
+  };
+
+  const formatScheduledTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const LectureCard = ({ lecture }: { lecture: Lecture }) => {
     const status = getLectureStatus(lecture);
     const trainerName = `${lecture.trainer.firstname} ${lecture.trainer.lastname}`;
     const trainerAvatar = lecture.trainer.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lecture.trainer.firstname}`;
-    const thumbnail = `https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=300&fit=crop&seed=${lecture.id}`;
     const canUnenroll = status === 'upcoming' && new Date(lecture.scheduledAt).getTime() - new Date().getTime() > 2 * 60 * 60 * 1000; // 2 hours before
 
     return (
-      <Card className="card-elevated hover-lift">
-        <div className="relative">
-          <img 
-            src={thumbnail} 
-            alt={lecture.title}
-            className="w-full h-48 object-cover rounded-t-2xl cursor-pointer"
-            onClick={() => navigate(`/student/lecture/${lecture.id}`)}
-          />
-          <div className="absolute top-3 left-3">
+      <Card className={cn("card-elevated hover-lift transition-all duration-300", getStatusCardColor(status))}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between mb-2">
             <Badge className={cn("text-xs border", getStatusColor(status))}>
               {getStatusIcon(status)}
               <span className="ml-1 capitalize">{status}</span>
             </Badge>
-          </div>
-          <div className="absolute top-3 right-3">
             <Badge variant="secondary" className="text-xs">
               {lecture.category}
             </Badge>
           </div>
-          {status === 'completed' && (
-            <div className="absolute bottom-3 right-3">
-              <div className="bg-green-600/90 backdrop-blur-sm rounded-full p-2">
-                <CheckCircle className="w-6 h-6 text-white" />
-              </div>
-            </div>
-          )}
-        </div>
+          <CardTitle className="line-clamp-2 cursor-pointer hover:text-primary" 
+                     onClick={() => navigate(`/student/lecture/${lecture.id}`)}>
+            {lecture.title}
+          </CardTitle>
+          <CardDescription className="flex items-center space-x-2">
+            <Avatar className="w-5 h-5">
+              <AvatarImage src={trainerAvatar} />
+              <AvatarFallback className="text-xs">
+                {lecture.trainer.firstname[0]}{lecture.trainer.lastname[0]}
+              </AvatarFallback>
+            </Avatar>
+            <span>by {trainerName}</span>
+          </CardDescription>
+        </CardHeader>
         
         <CardHeader className="pb-3">
           <CardTitle className="line-clamp-2 cursor-pointer hover:text-primary" 
@@ -256,31 +278,20 @@ export const MyLectures: React.FC = () => {
         
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center">
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center text-muted-foreground">
                 <Calendar className="w-4 h-4 mr-1" />
-                {new Date(lecture.scheduledAt).toLocaleDateString()}
+                {formatScheduledTime(lecture.scheduledAt)}
               </div>
-              <div className="flex items-center">
-                <Timer className="w-4 h-4 mr-1" />
-                {new Date(lecture.scheduledAt).toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit' 
-                })}
-              </div>
-              <div className="flex items-center">
+              <div className="flex items-center text-muted-foreground">
                 <Clock className="w-4 h-4 mr-1" />
                 {lecture.duration} min
-              </div>
-              <div className="flex items-center">
-                <Users className="w-4 h-4 mr-1" />
-                {lecture.enrolledCount} enrolled
               </div>
             </div>
 
             {status === 'completed' && lecture.averageRating > 0 && (
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Average Rating:</span>
+              <div className="flex items-center justify-between p-3 bg-white/50 rounded-lg border">
+                <span className="text-sm font-medium">Your Rating:</span>
                 <div className="flex items-center space-x-1">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                   <span className="font-medium">{lecture.averageRating.toFixed(1)}</span>
@@ -288,51 +299,51 @@ export const MyLectures: React.FC = () => {
               </div>
             )}
 
+            {lecture.description && (
+              <p className="text-sm text-muted-foreground line-clamp-2">
+                {lecture.description}
+              </p>
+            )}
+
             <div className="flex gap-2">
               {status === 'upcoming' && (
-                <>
-                  <Button size="sm" className="flex-1 btn-primary"
-                          onClick={() => window.open(lecture.meetingLink || '#', '_blank')}>
-                    <PlayCircle className="w-4 h-4 mr-1" />
-                    Join Lecture
-                  </Button>
-                  <Button size="sm" variant="outline"
-                          onClick={() => navigate(`/student/lecture/${lecture.id}`)}>
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                </>
+                <Button size="sm" className="flex-1 btn-primary"
+                        onClick={() => window.open(lecture.meetingLink || '#', '_blank')}>
+                  <PlayCircle className="w-4 h-4 mr-1" />
+                  Join Lecture
+                </Button>
               )}
               
               {status === 'completed' && (
-                <>
-                  <Button size="sm" variant="outline" className="flex-1"
-                          onClick={() => window.open(lecture.recordingUrl || '#', '_blank')}>
-                    <Video className="w-4 h-4 mr-1" />
-                    Recording
-                  </Button>
-                  <Button size="sm" variant="outline"
-                          onClick={() => {
-                            setSelectedLecture(lecture);
-                            setShowFeedbackDialog(true);
-                          }}>
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
-                </>
+                <Button size="sm" variant="outline" className="flex-1"
+                        onClick={() => window.open(lecture.recordingUrl || '#', '_blank')}>
+                  <Video className="w-4 h-4 mr-1" />
+                  Watch Recording
+                </Button>
+              )}
+              
+              {status === 'completed' && (
+                <Button size="sm" variant="ghost"
+                        onClick={() => {
+                          setSelectedLecture(lecture);
+                          setShowFeedbackDialog(true);
+                        }}>
+                  <Star className="w-4 h-4" />
+                </Button>
               )}
               
               {status === 'missed' && (
-                <>
-                  <Button size="sm" variant="outline" className="flex-1"
-                          onClick={() => window.open(lecture.recordingUrl || '#', '_blank')}>
-                    <Video className="w-4 h-4 mr-1" />
-                    Recording
-                  </Button>
-                  <Button size="sm" variant="outline"
-                          onClick={() => navigate(`/student/lecture/${lecture.id}`)}>
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                </>
+                <Button size="sm" variant="outline" className="flex-1"
+                        onClick={() => window.open(lecture.recordingUrl || '#', '_blank')}>
+                  <Video className="w-4 h-4 mr-1" />
+                  Watch Recording
+                </Button>
               )}
+
+              <Button size="sm" variant="ghost"
+                      onClick={() => navigate(`/student/lecture/${lecture.id}`)}>
+                <Eye className="w-4 h-4" />
+              </Button>
 
               {canUnenroll && (
                 <Button size="sm" variant="destructive" 
@@ -343,12 +354,12 @@ export const MyLectures: React.FC = () => {
             </div>
 
             {lecture.materials.length > 0 && (
-              <div className="pt-3 border-t">
+              <div className="pt-3 border-t border-white/50">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Materials:</span>
+                  <span className="text-sm font-medium">Materials:</span>
                   <div className="flex items-center space-x-1">
                     <FileText className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">{lecture.materials.length} files</span>
+                    <span className="text-sm font-medium">{lecture.materials.length}</span>
                   </div>
                 </div>
               </div>
@@ -378,15 +389,22 @@ export const MyLectures: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <Card key={i} className="card-elevated">
-              <div className="h-48 bg-muted rounded-t-2xl animate-pulse" />
               <CardHeader>
+                <div className="flex justify-between mb-2">
+                  <div className="h-5 w-16 bg-muted rounded animate-pulse" />
+                  <div className="h-5 w-12 bg-muted rounded animate-pulse" />
+                </div>
                 <div className="h-6 bg-muted rounded animate-pulse mb-2" />
                 <div className="h-4 bg-muted rounded animate-pulse w-2/3" />
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                    <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+                  </div>
                   <div className="h-4 bg-muted rounded animate-pulse" />
-                  <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+                  <div className="h-8 bg-muted rounded animate-pulse w-full" />
                 </div>
               </CardContent>
             </Card>

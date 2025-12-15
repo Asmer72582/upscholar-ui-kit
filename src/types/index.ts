@@ -11,7 +11,7 @@ export interface User {
   avatar?: string;
   createdAt: string;
   isApproved: boolean;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'suspended' | 'active';
   // Wallet fields
   walletBalance?: number;
   totalEarned?: number;

@@ -156,7 +156,7 @@ export const TrainerApplicationSuccess: React.FC = () => {
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-500 mr-2">💬</span>
-                    Contact support@upscholer.com if you have questions
+                    Contact us if you have questions
                   </li>
                 </ul>
               </div>
@@ -171,16 +171,13 @@ export const TrainerApplicationSuccess: React.FC = () => {
                 </Button>
               </div>
 
-              {/* Contact Support */}
+              {/* Contact */}
               <div className="text-center pt-4 border-t">
                 <p className="text-sm text-gray-600">
                   Have questions about your application?{" "}
-                  <a
-                    href="mailto:support@upscholer.com"
-                    className="text-primary hover:underline font-medium"
-                  >
-                    Contact Support
-                  </a>
+                  <span className="text-primary font-medium">
+                    Contact us
+                  </span>
                 </p>
               </div>
             </CardContent>

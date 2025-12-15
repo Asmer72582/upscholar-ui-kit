@@ -165,7 +165,9 @@ export const Settings: React.FC = () => {
 
     try {
       setChangingPassword(true);
-      await trainerService.changePassword(currentPassword, newPassword);
+      console.log('Attempting to change password...');
+      const result = await trainerService.changePassword(currentPassword, newPassword);
+      console.log('Password change result:', result);
 
       toast({
         title: 'Success',
@@ -177,6 +179,7 @@ export const Settings: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (error) {
+      console.error('Password change error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to change password';
       toast({
         title: 'Error',

@@ -504,12 +504,7 @@ export const AdminDashboard: React.FC = () => {
                   <span className="text-sm">View Analytics</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
-                <Link to="/admin/support">
-                  <MessageSquare className="w-6 h-6" />
-                  <span className="text-sm">Support Center</span>
-                </Link>
-              </Button>
+
             </div>
           </CardContent>
         </Card>

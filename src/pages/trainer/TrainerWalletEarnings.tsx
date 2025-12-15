@@ -169,9 +169,7 @@ export const TrainerWalletEarnings: React.FC = () => {
     }
   };
 
-  const handleBuyUpCoins = () => {
-    navigate('/trainer/buy-upcoins');
-  };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

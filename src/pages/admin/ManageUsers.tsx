@@ -15,6 +15,17 @@ import { User } from '@/types';
 import { adminService, UserStats, PendingTrainer } from '@/services/adminService';
 import { UserDetailsModal } from '@/components/admin/UserDetailsModal';
 import { RejectTrainerModal } from '@/components/admin/RejectTrainerModal';
+import { SuspendUserModal } from '@/components/admin/SuspendUserModal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export const ManageUsers: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -36,6 +47,10 @@ export const ManageUsers: React.FC = () => {
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [trainerToReject, setTrainerToReject] = useState<PendingTrainer | null>(null);
+  const [isSuspendModalOpen, setIsSuspendModalOpen] = useState(false);
+  const [isActivateDialogOpen, setIsActivateDialogOpen] = useState(false);
+  const [userToSuspend, setUserToSuspend] = useState<User | null>(null);
+  const [userToActivate, setUserToActivate] = useState<User | null>(null);
 
   // Load data on component mount
   useEffect(() => {
@@ -114,20 +129,60 @@ export const ManageUsers: React.FC = () => {
     }
   };
 
-  const handleSuspendUser = async (userId: string) => {
-    // This would need a new API endpoint for user suspension
-    toast({
-      title: 'Feature Coming Soon',
-      description: 'User suspension feature will be available soon.',
-    });
+  const openSuspendModal = (user: User) => {
+    setUserToSuspend(user);
+    setIsSuspendModalOpen(true);
   };
 
-  const handleActivateUser = async (userId: string) => {
-    // This would need a new API endpoint for user activation
-    toast({
-      title: 'Feature Coming Soon',
-      description: 'User activation feature will be available soon.',
-    });
+  const openActivateDialog = (user: User) => {
+    setUserToActivate(user);
+    setIsActivateDialogOpen(true);
+  };
+
+  const handleSuspendUser = async (reason: string) => {
+    if (!userToSuspend) return;
+
+    try {
+      const result = await adminService.suspendUser(userToSuspend.id, reason);
+      toast({
+        title: 'Success',
+        description: result.message,
+      });
+      loadData(); // Refresh data
+      setIsSuspendModalOpen(false);
+      setUserToSuspend(null);
+      setIsUserModalOpen(false);
+    } catch (error) {
+      console.error('Error suspending user:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to suspend user. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleActivateUser = async () => {
+    if (!userToActivate) return;
+
+    try {
+      const result = await adminService.activateUser(userToActivate.id);
+      toast({
+        title: 'Success',
+        description: result.message,
+      });
+      loadData(); // Refresh data
+      setIsActivateDialogOpen(false);
+      setUserToActivate(null);
+      setIsUserModalOpen(false);
+    } catch (error) {
+      console.error('Error activating user:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to activate user. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleDownloadReport = async () => {
@@ -401,23 +456,23 @@ export const ManageUsers: React.FC = () => {
                                 <Mail className="w-4 h-4 mr-2" />
                                 Send Email
                               </DropdownMenuItem>
-                              {user.status === 'approved' ? (
+                              {user.status === 'approved' || user.status === 'active' ? (
                                 <DropdownMenuItem 
                                   className="text-red-600"
-                                  onClick={() => handleSuspendUser(user.id)}
+                                  onClick={() => openSuspendModal(user)}
                                 >
                                   <Ban className="w-4 h-4 mr-2" />
                                   Suspend User
                                 </DropdownMenuItem>
-                              ) : (
+                              ) : user.status === 'suspended' ? (
                                 <DropdownMenuItem 
                                   className="text-green-600"
-                                  onClick={() => handleActivateUser(user.id)}
+                                  onClick={() => openActivateDialog(user)}
                                 >
                                   <UserCheck className="w-4 h-4 mr-2" />
                                   Activate User
                                 </DropdownMenuItem>
-                              )}
+                              ) : null}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -650,8 +705,14 @@ export const ManageUsers: React.FC = () => {
             openRejectModal(trainer);
           }
         }}
-        onSuspend={handleSuspendUser}
-        onActivate={handleActivateUser}
+        onSuspend={(userId) => {
+          const user = users.find(u => u.id === userId);
+          if (user) openSuspendModal(user);
+        }}
+        onActivate={(userId) => {
+          const user = users.find(u => u.id === userId);
+          if (user) openActivateDialog(user);
+        }}
       />
 
       <RejectTrainerModal
@@ -667,6 +728,46 @@ export const ManageUsers: React.FC = () => {
         }}
         trainerName={trainerToReject ? `${trainerToReject.firstName} ${trainerToReject.lastName}` : ''}
       />
+
+      <SuspendUserModal
+        isOpen={isSuspendModalOpen}
+        onClose={() => {
+          setIsSuspendModalOpen(false);
+          setUserToSuspend(null);
+        }}
+        onConfirm={handleSuspendUser}
+        userName={userToSuspend ? `${userToSuspend.firstName} ${userToSuspend.lastName}` : ''}
+        userEmail={userToSuspend?.email || ''}
+      />
+
+      <AlertDialog open={isActivateDialogOpen} onOpenChange={setIsActivateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Activate User Account</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to activate the account for{' '}
+              <strong>
+                {userToActivate?.firstName} {userToActivate?.lastName}
+              </strong>{' '}
+              ({userToActivate?.email})?
+              <br />
+              <br />
+              This will restore their access to the platform and send them an email notification.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToActivate(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleActivateUser}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Activate User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

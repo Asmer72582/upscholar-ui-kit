@@ -34,15 +34,38 @@ import { toast } from "@/hooks/use-toast";
 import { lectureService, Lecture } from "@/services/lectureService";
 
 const categories = [
+  // Basic 10th Class Subjects
+  "Mathematics",
+  "Science",
+  "Physics",
+  "Chemistry",
+  "Biology",
+  "English",
+  "Hindi",
+  "Social Studies",
+  "History",
+  "Geography",
+  "Civics",
+  "Economics",
+  
+  // Additional Subjects
+  "Computer Science",
   "Programming",
   "Web Development",
   "Mobile Development",
   "Data Science",
   "Machine Learning",
-  "DevOps",
-  "Design",
-  "Business",
-  "Marketing",
+  "Artificial Intelligence",
+  "Accountancy",
+  "Business Studies",
+  "Commerce",
+  "Arts & Crafts",
+  "Music",
+  "Physical Education",
+  "Sanskrit",
+  "Other Languages",
+  "Competitive Exams",
+  "Test Preparation",
   "Other",
 ];
 

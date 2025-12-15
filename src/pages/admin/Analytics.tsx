@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,54 +6,112 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Users, DollarSign, BookOpen, TrendingUp, Video, Calendar, Target, Award } from 'lucide-react';
-
-const analyticsData = {
-  overview: {
-    totalUsers: 1250,
-    totalRevenue: 45800,
-    totalCourses: 89,
-    totalLectures: 324,
-    growthRate: 12.5,
-    conversionRate: 8.2
-  },
-  userMetrics: {
-    newUsers: 156,
-    activeUsers: 892,
-    retentionRate: 78,
-    avgSessionTime: 45
-  },
-  courseMetrics: {
-    topCourses: [
-      { name: 'Complete React Masterclass', enrollments: 456, revenue: 12500 },
-      { name: 'UI/UX Design Fundamentals', enrollments: 324, revenue: 8900 },
-      { name: 'Advanced TypeScript', enrollments: 289, revenue: 7200 }
-    ],
-    categoryDistribution: [
-      { category: 'Programming', percentage: 45 },
-      { category: 'Design', percentage: 25 },
-      { category: 'Business', percentage: 20 },
-      { category: 'Marketing', percentage: 10 }
-    ]
-  },
-  revenueMetrics: {
-    monthlyRevenue: [
-      { month: 'Jan', revenue: 3200 },
-      { month: 'Feb', revenue: 4100 },
-      { month: 'Mar', revenue: 3800 },
-      { month: 'Apr', revenue: 5200 },
-      { month: 'May', revenue: 4900 },
-      { month: 'Jun', revenue: 5800 }
-    ],
-    revenueBySource: [
-      { source: 'Course Sales', amount: 28500, percentage: 62 },
-      { source: 'Lecture Fees', amount: 12800, percentage: 28 },
-      { source: 'Subscriptions', amount: 4500, percentage: 10 }
-    ]
-  }
-};
+import { adminService } from '@/services/adminService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const Analytics: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [userStats, setUserStats] = useState<any>(null);
+  const [lectureStats, setLectureStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch all required data
+        const [dashboardData, userData, lectureData] = await Promise.all([
+          adminService.getDashboardStats(),
+          adminService.getUserStats(),
+          adminService.getLectureStats()
+        ]);
+
+        setDashboardStats(dashboardData);
+        setUserStats(userData);
+        setLectureStats(lectureData);
+      } catch (err) {
+        console.error('Error fetching analytics data:', err);
+        setError('Failed to load analytics data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+            <p className="text-muted-foreground">Platform insights and performance metrics</p>
+          </div>
+          <Skeleton className="w-32 h-10" />
+        </div>
+        
+        {/* Loading skeletons */}
+        <div className="grid md:grid-cols-6 gap-4 mb-6">
+          {[...Array(6)].map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-20 mb-2" />
+                <Skeleton className="h-8 w-16 mb-2" />
+                <Skeleton className="h-3 w-24" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <div className="grid lg:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-32 mb-2" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-32 w-full" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+            <p className="text-muted-foreground">Platform insights and performance metrics</p>
+          </div>
+        </div>
+        
+        <Card className="border-red-200">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <div className="text-red-600 text-lg font-semibold mb-2">Error Loading Analytics</div>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
+              >
+                Refresh Page
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -83,8 +141,8 @@ export const Analytics: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Users</p>
-                  <p className="text-2xl font-bold">{analyticsData.overview.totalUsers}</p>
-                  <p className="text-xs text-green-600">+{analyticsData.userMetrics.newUsers} this month</p>
+                  <p className="text-2xl font-bold">{dashboardStats?.users?.total || 0}</p>
+                  <p className="text-xs text-green-600">+{dashboardStats?.users?.newThisMonth || 0} this month</p>
                 </div>
                 <Users className="w-8 h-8 text-primary" />
               </div>
@@ -96,8 +154,8 @@ export const Analytics: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Revenue</p>
-                  <p className="text-2xl font-bold">${analyticsData.overview.totalRevenue}</p>
-                  <p className="text-xs text-green-600">+{analyticsData.overview.growthRate}% growth</p>
+                  <p className="text-2xl font-bold">${dashboardStats?.revenue?.total || 0}</p>
+                  <p className="text-xs text-green-600">+{dashboardStats?.revenue?.growth || 0}% growth</p>
                 </div>
                 <DollarSign className="w-8 h-8 text-green-600" />
               </div>
@@ -108,22 +166,9 @@ export const Analytics: React.FC = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Courses</p>
-                  <p className="text-2xl font-bold">{analyticsData.overview.totalCourses}</p>
-                  <p className="text-xs text-muted-foreground">Published</p>
-                </div>
-                <BookOpen className="w-8 h-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Live Lectures</p>
-                  <p className="text-2xl font-bold">{analyticsData.overview.totalLectures}</p>
-                  <p className="text-xs text-muted-foreground">Total conducted</p>
+                  <p className="text-sm text-muted-foreground">Total Lectures</p>
+                  <p className="text-2xl font-bold">{lectureStats?.total || 0}</p>
+                  <p className="text-xs text-muted-foreground">{lectureStats?.approved || 0} approved</p>
                 </div>
                 <Video className="w-8 h-8 text-purple-600" />
               </div>
@@ -134,9 +179,22 @@ export const Analytics: React.FC = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Conversion Rate</p>
-                  <p className="text-2xl font-bold">{analyticsData.overview.conversionRate}%</p>
-                  <p className="text-xs text-green-600">+2.1% improvement</p>
+                  <p className="text-sm text-muted-foreground">Pending Lectures</p>
+                  <p className="text-2xl font-bold">{lectureStats?.pending || 0}</p>
+                  <p className="text-xs text-muted-foreground">Awaiting approval</p>
+                </div>
+                <Calendar className="w-8 h-8 text-blue-600" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Active Users</p>
+                  <p className="text-2xl font-bold">{userStats?.active || 0}</p>
+                  <p className="text-xs text-green-600">{userStats?.total ? Math.round((userStats.active / userStats.total) * 100) : 0}% of total</p>
                 </div>
                 <Target className="w-8 h-8 text-orange-600" />
               </div>
@@ -147,9 +205,9 @@ export const Analytics: React.FC = () => {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Retention Rate</p>
-                  <p className="text-2xl font-bold">{analyticsData.userMetrics.retentionRate}%</p>
-                  <p className="text-xs text-muted-foreground">30-day retention</p>
+                  <p className="text-sm text-muted-foreground">Pending Users</p>
+                  <p className="text-2xl font-bold">{userStats?.pending || 0}</p>
+                  <p className="text-xs text-muted-foreground">Awaiting approval</p>
                 </div>
                 <Award className="w-8 h-8 text-indigo-600" />
               </div>
@@ -176,45 +234,61 @@ export const Analytics: React.FC = () => {
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm">Active Users</span>
-                      <span className="font-semibold">{analyticsData.userMetrics.activeUsers}</span>
+                      <span className="font-semibold">{userStats?.active || 0}</span>
                     </div>
-                    <Progress value={71} className="h-2" />
+                    <Progress value={userStats?.total ? Math.round((userStats.active / userStats.total) * 100) : 0} className="h-2" />
                     
                     <div className="flex justify-between items-center">
                       <span className="text-sm">New Users (This Month)</span>
-                      <span className="font-semibold">{analyticsData.userMetrics.newUsers}</span>
+                      <span className="font-semibold">{dashboardStats?.users?.newThisMonth || 0}</span>
                     </div>
-                    <Progress value={62} className="h-2" />
+                    <Progress value={dashboardStats?.users?.newThisMonth ? Math.round((dashboardStats.users.newThisMonth / userStats?.total) * 100) : 0} className="h-2" />
                     
                     <div className="flex justify-between items-center">
-                      <span className="text-sm">Retention Rate</span>
-                      <span className="font-semibold">{analyticsData.userMetrics.retentionRate}%</span>
+                      <span className="text-sm">Students</span>
+                      <span className="font-semibold">{userStats?.students || 0}</span>
                     </div>
-                    <Progress value={analyticsData.userMetrics.retentionRate} className="h-2" />
+                    <Progress value={userStats?.total ? Math.round((userStats.students / userStats.total) * 100) : 0} className="h-2" />
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">Trainers</span>
+                      <span className="font-semibold">{userStats?.trainers || 0}</span>
+                    </div>
+                    <Progress value={userStats?.total ? Math.round((userStats.trainers / userStats.total) * 100) : 0} className="h-2" />
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>User Engagement</CardTitle>
-                  <CardDescription>How users interact with the platform</CardDescription>
+                  <CardTitle>User Distribution</CardTitle>
+                  <CardDescription>Breakdown of user types and status</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-primary">{analyticsData.userMetrics.avgSessionTime}min</p>
-                      <p className="text-sm text-muted-foreground">Average Session Time</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-2xl font-bold text-blue-600">{userStats?.students || 0}</p>
+                        <p className="text-sm text-blue-800">Students</p>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <p className="text-2xl font-bold text-green-600">{userStats?.trainers || 0}</p>
+                        <p className="text-sm text-green-800">Trainers</p>
+                      </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-4 mt-6">
+                    <div className="grid grid-cols-3 gap-2 mt-4">
                       <div className="text-center">
-                        <p className="text-xl font-bold">892</p>
-                        <p className="text-xs text-muted-foreground">Daily Active Users</p>
+                        <p className="text-lg font-bold text-green-600">{userStats?.active || 0}</p>
+                        <p className="text-xs text-muted-foreground">Active</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-xl font-bold">2.3</p>
-                        <p className="text-xs text-muted-foreground">Pages per Session</p>
+                        <p className="text-lg font-bold text-orange-600">{userStats?.pending || 0}</p>
+                        <p className="text-xs text-muted-foreground">Pending</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-lg font-bold text-red-600">{userStats?.suspended || 0}</p>
+                        <p className="text-xs text-muted-foreground">Suspended</p>
                       </div>
                     </div>
                   </div>
@@ -227,47 +301,74 @@ export const Analytics: React.FC = () => {
             <div className="grid lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Top Performing Courses</CardTitle>
-                  <CardDescription>Most popular courses by enrollment</CardDescription>
+                  <CardTitle>Lecture Status Overview</CardTitle>
+                  <CardDescription>Current state of all lectures</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Course</TableHead>
-                        <TableHead>Enrollments</TableHead>
-                        <TableHead>Revenue</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {analyticsData.courseMetrics.topCourses.map((course, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">{course.name}</TableCell>
-                          <TableCell>{course.enrollments}</TableCell>
-                          <TableCell>${course.revenue}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Approved</span>
+                        <span className="text-sm">{lectureStats?.approved || 0}</span>
+                      </div>
+                      <Progress value={lectureStats?.total ? Math.round((lectureStats.approved / lectureStats.total) * 100) : 0} className="h-2" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Pending</span>
+                        <span className="text-sm">{lectureStats?.pending || 0}</span>
+                      </div>
+                      <Progress value={lectureStats?.total ? Math.round((lectureStats.pending / lectureStats.total) * 100) : 0} className="h-2" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Completed</span>
+                        <span className="text-sm">{lectureStats?.completed || 0}</span>
+                      </div>
+                      <Progress value={lectureStats?.total ? Math.round((lectureStats.completed / lectureStats.total) * 100) : 0} className="h-2" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Rejected</span>
+                        <span className="text-sm">{lectureStats?.rejected || 0}</span>
+                      </div>
+                      <Progress value={lectureStats?.total ? Math.round((lectureStats.rejected / lectureStats.total) * 100) : 0} className="h-2" />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Course Categories</CardTitle>
-                  <CardDescription>Distribution by subject category</CardDescription>
+                  <CardTitle>Lecture Statistics</CardTitle>
+                  <CardDescription>Key metrics for lectures</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {analyticsData.courseMetrics.categoryDistribution.map((category, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium">{category.category}</span>
-                          <span className="text-sm">{category.percentage}%</span>
-                        </div>
-                        <Progress value={category.percentage} className="h-2" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-2xl font-bold text-blue-600">{lectureStats?.total || 0}</p>
+                        <p className="text-sm text-blue-800">Total Lectures</p>
                       </div>
-                    ))}
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <p className="text-2xl font-bold text-green-600">{lectureStats?.approved || 0}</p>
+                        <p className="text-sm text-green-800">Approved</p>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <p className="text-2xl font-bold text-orange-600">{lectureStats?.pending || 0}</p>
+                        <p className="text-sm text-orange-800">Pending</p>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <p className="text-2xl font-bold text-purple-600">{lectureStats?.completed || 0}</p>
+                        <p className="text-sm text-purple-800">Completed</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -278,45 +379,58 @@ export const Analytics: React.FC = () => {
             <div className="grid lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Revenue Sources</CardTitle>
-                  <CardDescription>Breakdown of revenue by source</CardDescription>
+                  <CardTitle>Revenue Overview</CardTitle>
+                  <CardDescription>Platform revenue statistics</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {analyticsData.revenueMetrics.revenueBySource.map((source, index) => (
-                      <div key={index} className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm font-medium">{source.source}</span>
-                          <span className="text-sm">${source.amount}</span>
-                        </div>
-                        <Progress value={source.percentage} className="h-2" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <p className="text-2xl font-bold text-green-600">${dashboardStats?.totalRevenue || 0}</p>
+                        <p className="text-sm text-green-800">Total Revenue</p>
                       </div>
-                    ))}
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-2xl font-bold text-blue-600">${dashboardStats?.monthlyRevenue || 0}</p>
+                        <p className="text-sm text-blue-800">Monthly Revenue</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Revenue Growth</span>
+                        <span className="text-sm">{dashboardStats?.revenueGrowth || 0}%</span>
+                      </div>
+                      <Progress value={dashboardStats?.revenueGrowth || 0} className="h-2" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Monthly Revenue Trend</CardTitle>
-                  <CardDescription>Revenue performance over time</CardDescription>
+                  <CardTitle>User Activity</CardTitle>
+                  <CardDescription>Platform engagement metrics</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
-                    {analyticsData.revenueMetrics.monthlyRevenue.map((month, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <span className="text-sm">{month.month}</span>
-                        <div className="flex items-center gap-2">
-                          <div className="w-20 bg-secondary rounded-full h-2">
-                            <div 
-                              className="bg-primary h-2 rounded-full"
-                              style={{ width: `${(month.revenue / 6000) * 100}%` }}
-                            />
-                          </div>
-                          <span className="text-sm font-medium">${month.revenue}</span>
-                        </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <p className="text-2xl font-bold text-purple-600">{dashboardStats?.activeUsers || 0}</p>
+                        <p className="text-sm text-purple-800">Active Users</p>
                       </div>
-                    ))}
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <p className="text-2xl font-bold text-orange-600">{dashboardStats?.newUsersThisMonth || 0}</p>
+                        <p className="text-sm text-orange-800">New This Month</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">User Growth</span>
+                        <span className="text-sm">{dashboardStats?.userGrowth || 0}%</span>
+                      </div>
+                      <Progress value={dashboardStats?.userGrowth || 0} className="h-2" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -327,36 +441,66 @@ export const Analytics: React.FC = () => {
             <div className="grid lg:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Lecture Attendance</CardTitle>
+                  <CardTitle>Platform Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-primary">85%</p>
-                    <p className="text-sm text-muted-foreground">Average Attendance Rate</p>
+                    <p className="text-3xl font-bold text-primary">{dashboardStats?.totalUsers || 0}</p>
+                    <p className="text-sm text-muted-foreground">Total Users</p>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-center">
+                      <p className="font-semibold text-green-600">{userStats?.students || 0}</p>
+                      <p className="text-muted-foreground">Students</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-blue-600">{userStats?.trainers || 0}</p>
+                      <p className="text-muted-foreground">Trainers</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Course Completion</CardTitle>
+                  <CardTitle>Content Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-green-600">72%</p>
-                    <p className="text-sm text-muted-foreground">Completion Rate</p>
+                    <p className="text-3xl font-bold text-green-600">{lectureStats?.total || 0}</p>
+                    <p className="text-sm text-muted-foreground">Total Lectures</p>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-center">
+                      <p className="font-semibold text-green-600">{lectureStats?.approved || 0}</p>
+                      <p className="text-muted-foreground">Approved</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-orange-600">{lectureStats?.pending || 0}</p>
+                      <p className="text-muted-foreground">Pending</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>User Satisfaction</CardTitle>
+                  <CardTitle>Platform Health</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-center">
-                    <p className="text-3xl font-bold text-blue-600">4.7</p>
-                    <p className="text-sm text-muted-foreground">Average Rating</p>
+                    <p className="text-3xl font-bold text-blue-600">{dashboardStats?.activeUsers || 0}</p>
+                    <p className="text-sm text-muted-foreground">Active Users</p>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+                    <div className="text-center">
+                      <p className="font-semibold text-green-600">{dashboardStats?.userGrowth || 0}%</p>
+                      <p className="text-muted-foreground">User Growth</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-blue-600">{dashboardStats?.revenueGrowth || 0}%</p>
+                      <p className="text-muted-foreground">Revenue Growth</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

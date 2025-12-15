@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,83 +8,85 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Clock, Download, Video, Users, Calendar } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Clock, Download, Video, Users, Calendar, RefreshCw } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { adminService } from '@/services/adminService';
 
-const lectures = [
-  {
-    id: 1,
-    title: 'Introduction to React Hooks',
-    trainer: 'Jane Smith',
-    date: '2024-01-20',
-    time: '2:00 PM',
-    duration: 90,
-    price: 50,
-    status: 'approved',
-    enrollments: 25,
-    maxStudents: 50,
-    category: 'Programming',
-    thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=300&fit=crop'
-  },
-  {
-    id: 2,
-    title: 'Advanced TypeScript Patterns',
-    trainer: 'Mike Johnson',
-    date: '2024-01-22',
-    time: '3:00 PM',
-    duration: 120,
-    price: 75,
-    status: 'pending',
-    enrollments: 0,
-    maxStudents: 30,
-    category: 'Programming',
-    thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop'
-  },
-  {
-    id: 3,
-    title: 'UI/UX Design Principles',
-    trainer: 'Sarah Wilson',
-    date: '2024-01-18',
-    time: '1:00 PM',
-    duration: 105,
-    price: 60,
-    status: 'completed',
-    enrollments: 45,
-    maxStudents: 50,
-    category: 'Design',
-    thumbnail: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=300&fit=crop'
-  },
-  {
-    id: 4,
-    title: 'Digital Marketing Strategies',
-    trainer: 'Alex Brown',
-    date: '2024-01-25',
-    time: '4:00 PM',
-    duration: 90,
-    price: 45,
-    status: 'rejected',
-    enrollments: 0,
-    maxStudents: 40,
-    category: 'Marketing',
-    thumbnail: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop'
-  }
-];
+interface LectureData {
+  id: string;
+  title: string;
+  trainer: {
+    name: string;
+    email: string;
+  };
+  scheduledAt: string;
+  duration: number;
+  price: number;
+  status: string;
+  enrolledStudents: any[];
+  maxStudents: number;
+  category: string;
+  thumbnail?: string;
+  createdAt: string;
+}
 
-const lectureStats = {
-  total: 156,
-  pending: 12,
-  approved: 98,
-  completed: 34,
-  rejected: 12
-};
+interface LectureStats {
+  total: number;
+  pending: number;
+  approved: number;
+  completed: number;
+  rejected: number;
+  scheduled: number;
+  live: number;
+}
 
 export const ManageLectures: React.FC = () => {
+  const navigate = useNavigate();
+  const [lectures, setLectures] = useState<LectureData[]>([]);
+  const [lectureStats, setLectureStats] = useState<LectureStats>({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    completed: 0,
+    rejected: 0,
+    scheduled: 0,
+    live: 0
+  });
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [lecturesData, statsData] = await Promise.all([
+        adminService.getAllLectures(),
+        adminService.getLectureStats()
+      ]);
+      setLectures(lecturesData);
+      setLectureStats(statsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load lectures data',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredLectures = lectures.filter(lecture => {
     const matchesSearch = lecture.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         lecture.trainer.toLowerCase().includes(searchTerm.toLowerCase());
+                         lecture.trainer.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || lecture.category === selectedCategory;
     const matchesStatus = selectedStatus === 'all' || lecture.status === selectedStatus;
     
@@ -105,19 +108,74 @@ export const ManageLectures: React.FC = () => {
     }
   };
 
-  const approveLecture = (lectureId: number) => {
-    console.log('Approving lecture:', lectureId);
+  const approveLecture = async (lectureId: string) => {
+    try {
+      setActionLoading(lectureId);
+      await adminService.approveLecture(lectureId);
+      toast({
+        title: 'Success',
+        description: 'Lecture approved successfully',
+      });
+      loadData();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to approve lecture',
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const rejectLecture = (lectureId: number) => {
-    console.log('Rejecting lecture:', lectureId);
+  const rejectLecture = async (lectureId: string) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) return;
+
+    try {
+      setActionLoading(lectureId);
+      await adminService.rejectLecture(lectureId, reason);
+      toast({
+        title: 'Success',
+        description: 'Lecture rejected successfully',
+      });
+      loadData();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to reject lecture',
+        variant: 'destructive',
+      });
+    } finally {
+      setActionLoading(null);
+    }
   };
+
+  const viewLectureDetails = (lectureId: string) => {
+    navigate(`/admin/lectures/${lectureId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-center h-64">
+          <LoadingSpinner size="lg" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Manage Lectures</h1>
-        <p className="text-muted-foreground">Review and manage lecture submissions</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold">Manage Lectures</h1>
+          <p className="text-muted-foreground">Review and manage lecture submissions</p>
+        </div>
+        <Button variant="outline" onClick={loadData}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       <div className="space-y-6">
@@ -176,10 +234,16 @@ export const ManageLectures: React.FC = () => {
                     <CardTitle>Lecture Management</CardTitle>
                     <CardDescription>View and manage all lecture submissions</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
-                    <Download className="w-4 h-4 mr-1" />
-                    Export
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={loadData}>
+                      <RefreshCw className="w-4 h-4 mr-1" />
+                      Refresh
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      <Download className="w-4 h-4 mr-1" />
+                      Export
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -200,10 +264,15 @@ export const ManageLectures: React.FC = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="Mathematics">Mathematics</SelectItem>
+                      <SelectItem value="Science">Science</SelectItem>
                       <SelectItem value="Programming">Programming</SelectItem>
                       <SelectItem value="Design">Design</SelectItem>
                       <SelectItem value="Marketing">Marketing</SelectItem>
                       <SelectItem value="Business">Business</SelectItem>
+                      <SelectItem value="English">English</SelectItem>
+                      <SelectItem value="Physics">Physics</SelectItem>
+                      <SelectItem value="Chemistry">Chemistry</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -214,6 +283,8 @@ export const ManageLectures: React.FC = () => {
                       <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="live">Live</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="rejected">Rejected</SelectItem>
                     </SelectContent>
@@ -238,11 +309,9 @@ export const ManageLectures: React.FC = () => {
                       <TableRow key={lecture.id}>
                         <TableCell>
                           <div className="flex items-center gap-3">
-                            <img 
-                              src={lecture.thumbnail} 
-                              alt={lecture.title}
-                              className="w-12 h-12 object-cover rounded"
-                            />
+                            <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                              <Video className="w-6 h-6 text-muted-foreground" />
+                            </div>
                             <div>
                               <p className="font-medium">{lecture.title}</p>
                               <p className="text-sm text-muted-foreground">{lecture.category}</p>
@@ -250,24 +319,32 @@ export const ManageLectures: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium">{lecture.trainer}</p>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p>{lecture.date}</p>
-                            <p className="text-muted-foreground">{lecture.time} ({lecture.duration}min)</p>
+                          <div>
+                            <p className="font-medium">{lecture.trainer.name}</p>
+                            <p className="text-sm text-muted-foreground">{lecture.trainer.email}</p>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium">{lecture.price} Upcoins</p>
+                          <div className="text-sm">
+                            <p>{new Date(lecture.scheduledAt).toLocaleDateString()}</p>
+                            <p className="text-muted-foreground">
+                              {new Date(lecture.scheduledAt).toLocaleTimeString([], { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              })} ({lecture.duration}min)
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium">{lecture.price} UC</p>
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            <p>{lecture.enrollments}/{lecture.maxStudents}</p>
+                            <p>{lecture.enrolledStudents.length}/{lecture.maxStudents}</p>
                             <div className="w-16 bg-gray-200 rounded-full h-1 mt-1">
                               <div 
                                 className="bg-primary h-1 rounded-full"
-                                style={{ width: `${(lecture.enrollments / lecture.maxStudents) * 100}%` }}
+                                style={{ width: `${(lecture.enrolledStudents.length / lecture.maxStudents) * 100}%` }}
                               />
                             </div>
                           </div>
@@ -281,7 +358,7 @@ export const ManageLectures: React.FC = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => viewLectureDetails(lecture.id)}>
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
@@ -290,16 +367,18 @@ export const ManageLectures: React.FC = () => {
                                   <DropdownMenuItem 
                                     className="text-green-600"
                                     onClick={() => approveLecture(lecture.id)}
+                                    disabled={actionLoading === lecture.id}
                                   >
                                     <CheckCircle className="w-4 h-4 mr-2" />
-                                    Approve
+                                    {actionLoading === lecture.id ? 'Approving...' : 'Approve'}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
                                     className="text-red-600"
                                     onClick={() => rejectLecture(lecture.id)}
+                                    disabled={actionLoading === lecture.id}
                                   >
                                     <XCircle className="w-4 h-4 mr-2" />
-                                    Reject
+                                    {actionLoading === lecture.id ? 'Rejecting...' : 'Reject'}
                                   </DropdownMenuItem>
                                 </>
                               )}
@@ -323,37 +402,37 @@ export const ManageLectures: React.FC = () => {
               <CardContent>
                 <div className="grid md:grid-cols-2 gap-4">
                   {filteredLectures.filter(l => l.status === 'pending').map((lecture) => (
-                    <Card key={lecture.id}>
+                    <Card key={lecture.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => viewLectureDetails(lecture.id)}>
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <img 
-                            src={lecture.thumbnail} 
-                            alt={lecture.title}
-                            className="w-16 h-16 object-cover rounded"
-                          />
+                          <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+                            <Video className="w-8 h-8 text-muted-foreground" />
+                          </div>
                           <div className="flex-1">
                             <h4 className="font-medium">{lecture.title}</h4>
-                            <p className="text-sm text-muted-foreground">by {lecture.trainer}</p>
+                            <p className="text-sm text-muted-foreground">by {lecture.trainer.name}</p>
                             <p className="text-sm text-muted-foreground mt-1">
-                              {lecture.date} at {lecture.time}
+                              {new Date(lecture.scheduledAt).toLocaleDateString()} at {new Date(lecture.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </p>
-                            <div className="flex gap-2 mt-3">
+                            <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                               <Button 
                                 size="sm" 
                                 className="flex-1"
                                 onClick={() => approveLecture(lecture.id)}
+                                disabled={actionLoading === lecture.id}
                               >
                                 <CheckCircle className="w-3 h-3 mr-1" />
-                                Approve
+                                {actionLoading === lecture.id ? 'Approving...' : 'Approve'}
                               </Button>
                               <Button 
                                 size="sm" 
                                 variant="destructive" 
                                 className="flex-1"
                                 onClick={() => rejectLecture(lecture.id)}
+                                disabled={actionLoading === lecture.id}
                               >
                                 <XCircle className="w-3 h-3 mr-1" />
-                                Reject
+                                {actionLoading === lecture.id ? 'Rejecting...' : 'Reject'}
                               </Button>
                             </div>
                           </div>
@@ -370,11 +449,39 @@ export const ManageLectures: React.FC = () => {
           <TabsContent value="approved" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Approved Lectures</CardTitle>
+                <CardTitle>Approved Lectures ({lectureStats.approved})</CardTitle>
                 <CardDescription>Successfully approved lectures</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Approved lectures list would go here...</p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredLectures.filter(l => l.status === 'approved').map((lecture) => (
+                    <Card key={lecture.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => viewLectureDetails(lecture.id)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                            <Video className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm">{lecture.title}</h4>
+                            <p className="text-xs text-muted-foreground">by {lecture.trainer.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(lecture.scheduledAt).toLocaleDateString()}
+                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs font-medium">{lecture.price} UC</span>
+                              <span className="text-xs text-muted-foreground">
+                                {lecture.enrolledStudents.length}/{lecture.maxStudents}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                {filteredLectures.filter(l => l.status === 'approved').length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">No approved lectures found</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -382,11 +489,37 @@ export const ManageLectures: React.FC = () => {
           <TabsContent value="completed" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Completed Lectures</CardTitle>
+                <CardTitle>Completed Lectures ({lectureStats.completed})</CardTitle>
                 <CardDescription>Lectures that have been conducted</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Completed lectures list would go here...</p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredLectures.filter(l => l.status === 'completed').map((lecture) => (
+                    <Card key={lecture.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => viewLectureDetails(lecture.id)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                            <CheckCircle className="w-6 h-6 text-green-500" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm">{lecture.title}</h4>
+                            <p className="text-xs text-muted-foreground">by {lecture.trainer.name}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(lecture.scheduledAt).toLocaleDateString()}
+                            </p>
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-xs font-medium">{lecture.price} UC</span>
+                              <span className="text-xs text-green-600 font-medium">Completed</span>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                {filteredLectures.filter(l => l.status === 'completed').length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">No completed lectures found</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

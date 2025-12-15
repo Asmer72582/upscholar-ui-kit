@@ -38,7 +38,35 @@ export const BrowseLectures: React.FC = () => {
     limit: 20
   });
 
-  const categories = ['all', 'Programming', 'Design', 'Data Science', 'Marketing', 'Technology', 'Business', 'Science'];
+  const categories = [
+    'all',
+    // Basic 10th Class Subjects
+    'Mathematics',
+    'Science',
+    'Physics',
+    'Chemistry',
+    'Biology',
+    'English',
+    'Hindi',
+    'Social Studies',
+    'History',
+    'Geography',
+    'Civics',
+    'Economics',
+    // Additional Subjects
+    'Computer Science',
+    'Programming',
+    'Web Development',
+    'Data Science',
+    'Machine Learning',
+    'Accountancy',
+    'Business Studies',
+    'Commerce',
+    'Arts & Crafts',
+    'Music',
+    'Competitive Exams',
+    'Other'
+  ];
   const levels = ['all', 'Beginner', 'Intermediate', 'Advanced'];
 
   const fetchLectures = async () => {
@@ -67,49 +95,77 @@ export const BrowseLectures: React.FC = () => {
     fetchLectures();
   }, [searchTerm, selectedCategory, selectedLevel, sortBy, pagination.current]);
 
-  const filteredLectures = lectures;
+  // Filter out completed lectures from main feed
+  const filteredLectures = lectures.filter(lecture => lecture.status !== 'completed');
 
   const LectureCard = ({ lecture, isListView = false }: { lecture: Lecture; isListView?: boolean }) => {
     const trainerName = `${lecture.trainer.firstname} ${lecture.trainer.lastname}`;
     const trainerAvatar = lecture.trainer.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lecture.trainer.firstname}`;
-    const thumbnail = `https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=300&fit=crop&seed=${lecture.id}`;
+    
+    // Get status-based styling
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'live':
+          return 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950';
+        case 'scheduled':
+          return 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950';
+        case 'upcoming':
+          return 'border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950';
+        default:
+          return '';
+      }
+    };
+    
+    // Format scheduled time
+    const formatScheduledTime = (dateString: string) => {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffTime = date.getTime() - now.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 0) return 'Started';
+      if (diffDays === 0) return 'Today';
+      if (diffDays === 1) return 'Tomorrow';
+      if (diffDays <= 7) return `In ${diffDays} days`;
+      return date.toLocaleDateString();
+    };
     
     return (
       <Card 
         className={cn(
-          "card-elevated overflow-hidden transition-all cursor-pointer hover:shadow-medium",
+          "card-elevated hover-lift transition-all cursor-pointer",
+          getStatusColor(lecture.status),
           isListView ? "flex flex-row" : ""
         )}
         onClick={() => navigate(`/student/lecture/${lecture.id}`)}    
       >
-        <div className={cn("relative", isListView ? "w-48 flex-shrink-0" : "")}>
-          <img 
-            src={thumbnail} 
-            alt={lecture.title}
-            className={cn("object-cover", isListView ? "w-full h-full" : "w-full h-48")}
-          />
-          <Badge className="absolute top-3 right-3 bg-accent text-accent-foreground">
-            {lecture.price} UC
-          </Badge>
-          <div className="absolute bottom-3 left-3">
-            <Badge variant="secondary" className="text-xs">
-              {lecture.status}
-            </Badge>
-          </div>
-        </div>
-        
         <div className="flex-1">
           <CardHeader className={cn(isListView ? "pb-2" : "")}>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <Badge variant="outline" className="mb-2 text-xs">
-                  {lecture.category}
-                </Badge>
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className="text-xs">
+                    {lecture.category}
+                  </Badge>
+                  <Badge 
+                    className={cn(
+                      "text-xs",
+                      lecture.status === 'live' && "bg-green-500 text-white",
+                      lecture.status === 'scheduled' && "bg-blue-500 text-white",
+                      lecture.status === 'upcoming' && "bg-purple-500 text-white"
+                    )}
+                  >
+                    {lecture.status.toUpperCase()}
+                  </Badge>
+                </div>
                 <CardTitle className={cn("line-clamp-2", isListView ? "text-lg" : "")}>{lecture.title}</CardTitle>
                 <CardDescription className="line-clamp-2 mt-1">
                   by {trainerName}
                 </CardDescription>
               </div>
+              <Badge className="bg-accent text-accent-foreground ml-2">
+                {lecture.price} UC
+              </Badge>
             </div>
           </CardHeader>
           
@@ -138,7 +194,7 @@ export const BrowseLectures: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="text-xs text-muted-foreground">
                 <Calendar className="w-3 h-3 inline mr-1" />
-                {new Date(lecture.scheduledAt).toLocaleDateString()}
+                {formatScheduledTime(lecture.scheduledAt)}
               </div>
               <Button 
                 size="sm" 

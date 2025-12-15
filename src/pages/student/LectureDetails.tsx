@@ -440,10 +440,10 @@ export const LectureDetails: React.FC = () => {
                       </p>
                     </div>
 
-                    {getLectureStatus() === 'upcoming' && (
+                    {(getLectureStatus() === 'upcoming' || getLectureStatus() === 'completed') && lecture.meetingLink && (
                       <Button 
-                        className="w-full" 
-                        onClick={() => window.open(lecture.meetingLink || '#', '_blank')}
+                        className="w-full bg-green-600 hover:bg-green-700" 
+                        onClick={() => window.open(lecture.meetingLink, '_blank')}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
                         Join Lecture

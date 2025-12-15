@@ -27,7 +27,6 @@ export const API_CONFIG = {
 export const APP_CONFIG = {
   APP_NAME: 'UpScholar',
   APP_VERSION: '1.0.0',
-  SUPPORT_EMAIL: 'support@upscholar.com',
 };
 
 // Feature Flags

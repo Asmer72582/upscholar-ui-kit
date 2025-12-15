@@ -90,9 +90,7 @@ export const TrainerWallet: React.FC = () => {
     }
   };
 
-  const handleBuyUpCoins = () => {
-    navigate('/trainer/buy-upcoins');
-  };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -171,11 +169,6 @@ export const TrainerWallet: React.FC = () => {
             <RefreshCw className="w-4 h-4" />
             Refresh
           </Button>
-          
-          <Button className="gap-2" onClick={handleBuyUpCoins}>
-            <Plus className="w-4 h-4" />
-            Buy UpCoins
-          </Button>
         </div>
       </div>
 
@@ -248,7 +241,6 @@ export const TrainerWallet: React.FC = () => {
               <ul className="text-sm text-blue-800 space-y-1">
                 <li>• <strong>Course Creation:</strong> Costs 50 UpCoins per lecture</li>
                 <li>• <strong>Student Enrollments:</strong> Earn 90% of lecture price (10% platform fee)</li>
-                <li>• <strong>Buy UpCoins:</strong> Purchase more via UPI/Card/NetBanking</li>
                 <li>• <strong>Track Everything:</strong> View all earnings and expenses</li>
               </ul>
             </div>
@@ -273,15 +265,7 @@ export const TrainerWallet: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  variant="outline"
-                  className="h-auto p-4 flex-col space-y-2"
-                  onClick={handleBuyUpCoins}
-                >
-                  <Plus className="w-6 h-6" />
-                  <span>Buy UpCoins</span>
-                </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
                   variant="outline"
                   className="h-auto p-4 flex-col space-y-2"
@@ -366,9 +350,6 @@ export const TrainerWallet: React.FC = () => {
                   <p className="text-muted-foreground mb-4">
                     Your transaction history will appear here
                   </p>
-                  <Button onClick={handleBuyUpCoins}>
-                    Buy Your First UpCoins
-                  </Button>
                 </div>
               )}
             </CardContent>
@@ -431,9 +412,6 @@ export const TrainerWallet: React.FC = () => {
                   <p className="text-muted-foreground mb-4">
                     Start creating lectures and earning UpCoins!
                   </p>
-                  <Button onClick={handleBuyUpCoins}>
-                    Buy UpCoins
-                  </Button>
                 </div>
               )}
             </CardContent>

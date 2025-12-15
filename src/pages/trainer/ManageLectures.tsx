@@ -152,6 +152,8 @@ export const ManageLectures: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending Approval</Badge>;
       case 'scheduled':
         return <Badge className="bg-blue-100 text-blue-800">Scheduled</Badge>;
       case 'live':
@@ -167,6 +169,7 @@ export const ManageLectures: React.FC = () => {
 
   const calculateStats = () => {
     const totalLectures = lectures.length;
+    const pendingLectures = lectures.filter(l => l.status === 'pending').length;
     const scheduledLectures = lectures.filter(l => l.status === 'scheduled').length;
     const completedLectures = lectures.filter(l => l.status === 'completed').length;
     const totalStudents = lectures.reduce((sum, l) => sum + l.enrolledCount, 0);
@@ -177,6 +180,7 @@ export const ManageLectures: React.FC = () => {
 
     return {
       totalLectures,
+      pendingLectures,
       scheduledLectures,
       completedLectures,
       totalStudents,
@@ -228,6 +232,13 @@ export const ManageLectures: React.FC = () => {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
+              <Clock className="w-6 h-6 mx-auto mb-2 text-yellow-600" />
+              <p className="text-2xl font-bold">{stats.pendingLectures}</p>
+              <p className="text-xs text-muted-foreground">Pending Approval</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
               <Clock className="w-6 h-6 mx-auto mb-2 text-blue-600" />
               <p className="text-2xl font-bold">{stats.scheduledLectures}</p>
               <p className="text-xs text-muted-foreground">Scheduled</p>
@@ -266,6 +277,7 @@ export const ManageLectures: React.FC = () => {
         <Tabs defaultValue="all">
           <TabsList>
             <TabsTrigger value="all">All Lectures ({lectures.length})</TabsTrigger>
+            <TabsTrigger value="pending">Pending ({stats.pendingLectures})</TabsTrigger>
             <TabsTrigger value="scheduled">Scheduled ({stats.scheduledLectures})</TabsTrigger>
             <TabsTrigger value="completed">Completed ({stats.completedLectures})</TabsTrigger>
           </TabsList>
@@ -318,7 +330,7 @@ export const ManageLectures: React.FC = () => {
                   </Select>
                 </div>
 
-                {/* Lectures Table */}
+                {/* Lectures Grid */}
                 {filteredLectures.length === 0 ? (
                   <div className="text-center py-8">
                     <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
@@ -337,105 +349,154 @@ export const ManageLectures: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Lecture</TableHead>
-                        <TableHead>Schedule</TableHead>
-                        <TableHead>Students</TableHead>
-                        <TableHead>Earnings</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredLectures.map((lecture) => (
-                        <TableRow key={lecture.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{lecture.title}</p>
-                              <p className="text-sm text-muted-foreground">{lecture.category}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredLectures.map((lecture) => (
+                      <Card 
+                        key={lecture.id} 
+                        className={`hover-lift cursor-pointer transition-all duration-200 hover:shadow-lg ${
+                          lecture.status === 'live' ? 'border-green-200 bg-green-50/50' :
+                          lecture.status === 'scheduled' ? 'border-blue-200 bg-blue-50/50' :
+                          lecture.status === 'pending' ? 'border-yellow-200 bg-yellow-50/50' :
+                          lecture.status === 'completed' ? 'border-gray-200 bg-gray-50/50' :
+                          lecture.status === 'cancelled' ? 'border-red-200 bg-red-50/50' :
+                          ''
+                        }`}
+                        onClick={() => navigate(`/trainer/lectures/${lecture.id}/details`)}
+                      >
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg line-clamp-2">{lecture.title}</h3>
+                              <p className="text-sm text-muted-foreground mt-1">{lecture.category}</p>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <p>{new Date(lecture.scheduledAt).toLocaleDateString()}</p>
-                              <p className="text-muted-foreground">
-                                {new Date(lecture.scheduledAt).toLocaleTimeString()} • {lecture.duration}min
-                              </p>
+                            {getStatusBadge(lecture.status)}
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent className="space-y-4">
+                          {/* Schedule Info */}
+                          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                            <Calendar className="w-4 h-4" />
+                            <span>{new Date(lecture.scheduledAt).toLocaleDateString()}</span>
+                            <span>•</span>
+                            <Clock className="w-4 h-4" />
+                            <span>{new Date(lecture.scheduledAt).toLocaleTimeString()}</span>
+                          </div>
+                          
+                          {/* Duration and Price */}
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center space-x-1">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span>{lecture.duration} min</span>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <p>{lecture.enrolledCount}/{lecture.maxStudents}</p>
-                              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                                <div 
-                                  className="bg-primary h-2 rounded-full" 
-                                  style={{ width: `${(lecture.enrolledCount / lecture.maxStudents) * 100}%` }}
-                                />
+                            <div className="font-semibold text-primary">
+                              {lecture.price} UC
+                            </div>
+                          </div>
+                          
+                          {/* Students Progress */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center space-x-2">
+                                <Users className="w-4 h-4 text-muted-foreground" />
+                                <span>{lecture.enrolledCount}/{lecture.maxStudents} students</span>
                               </div>
+                              <span className="text-xs text-muted-foreground">
+                                {Math.round((lecture.enrolledCount / lecture.maxStudents) * 100)}% full
+                              </span>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="text-sm">
-                              <p className="font-medium">{lecture.totalEarnings} UC</p>
-                              <p className="text-muted-foreground">{lecture.price} UC each</p>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-primary h-2 rounded-full transition-all duration-300" 
+                                style={{ width: `${(lecture.enrolledCount / lecture.maxStudents) * 100}%` }}
+                              />
                             </div>
-                          </TableCell>
-                          <TableCell>{getStatusBadge(lecture.status)}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => navigate(`/trainer/lectures/${lecture.id}/details`)}>
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
-                                
-                                {(lecture.status === 'scheduled' || lecture.status === 'live') && (
-                                  <DropdownMenuItem onClick={() => handleEditLecture(lecture.id)}>
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Edit Lecture
-                                  </DropdownMenuItem>
-                                )}
-                                
-                                {lecture.status === 'scheduled' && (
-                                  <DropdownMenuItem onClick={() => handleStartMeeting(lecture.id, lecture.title)}>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Start Meeting
-                                  </DropdownMenuItem>
-                                )}
-                                
-                                {(lecture.status === 'scheduled' || lecture.status === 'live') && (
-                                  <DropdownMenuItem 
-                                    onClick={() => handleCompleteLecture(lecture.id, lecture.title)}
-                                    className="text-green-600"
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Complete Lecture
-                                  </DropdownMenuItem>
-                                )}
-                                
-                                {lecture.canBeCancelled && (
-                                  <DropdownMenuItem 
-                                    className="text-red-600"
-                                    onClick={() => handleDeleteLecture(lecture.id)}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Cancel Lecture
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                          </div>
+                          
+                          {/* Earnings */}
+                          <div className="flex items-center justify-between pt-2 border-t">
+                            <span className="text-sm text-muted-foreground">Earnings</span>
+                            <span className="font-semibold">{lecture.totalEarnings} UC</span>
+                          </div>
+                          
+                          {/* Quick Actions */}
+                          <div className="flex space-x-2 pt-2">
+                            {lecture.status === 'scheduled' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStartMeeting(lecture.id, lecture.title);
+                                }}
+                              >
+                                <Play className="w-3 h-3 mr-1" />
+                                Start
+                              </Button>
+                            )}
+                            
+                            {(lecture.status === 'scheduled' || lecture.status === 'live') && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditLecture(lecture.id);
+                                }}
+                              >
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit
+                              </Button>
+                            )}
+                            
+                            {(lecture.status === 'scheduled' || lecture.status === 'live') && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1 text-green-600 hover:text-green-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCompleteLecture(lecture.id, lecture.title);
+                                }}
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Complete
+                              </Button>
+                            )}
+
+                            {lecture.status === 'pending' && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1 text-yellow-600 hover:text-yellow-700 cursor-not-allowed"
+                                disabled
+                              >
+                                <Clock className="w-3 h-3 mr-1" />
+                                Pending Approval
+                              </Button>
+                            )}
+                            
+                            {lecture.canBeCancelled && (
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1 text-red-600 hover:text-red-700"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteLecture(lecture.id);
+                                }}
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Cancel
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -473,6 +534,47 @@ export const ManageLectures: React.FC = () => {
                           <div className="text-right">
                             <p className="text-sm font-medium">{lecture.enrolledCount}/{lecture.maxStudents} students</p>
                             <p className="text-sm text-muted-foreground">{lecture.price} UC</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pending" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Approval</CardTitle>
+                <CardDescription>Lectures waiting for admin approval</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {lectures.filter(l => l.status === 'pending').length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No pending lectures</h3>
+                    <p className="text-muted-foreground mb-4">You don't have any lectures waiting for approval.</p>
+                    <Button onClick={() => navigate('/trainer/schedule-lecture')}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Schedule a New Lecture
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {lectures.filter(l => l.status === 'pending').map((lecture) => (
+                      <div key={lecture.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">{lecture.title}</h3>
+                            <p className="text-sm text-muted-foreground">{lecture.category}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Scheduled for {new Date(lecture.scheduledAt).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            {getStatusBadge(lecture.status)}
                           </div>
                         </div>
                       </div>

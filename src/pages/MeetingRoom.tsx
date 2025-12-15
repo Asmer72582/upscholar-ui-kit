@@ -87,6 +87,7 @@ const RemoteVideo: React.FC<{ stream?: MediaStream; participant?: Participant }>
 };
 
 export const MeetingRoom: React.FC = () => {
+  console.log('MeetingRoom component loaded'); // Force inclusion in build
   const { lectureId } = useParams<{ lectureId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();

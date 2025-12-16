@@ -275,16 +275,19 @@ export const MeetingRoom: React.FC = () => {
         setMessages(chat);
         
         // Connect to existing participants with proper timing
-        setTimeout(() => {
+        const connectToExisting = () => {
           if (localStream) {
+            console.log('Connecting to existing participants:', existingParticipants.length);
             existingParticipants.forEach((participant: Participant) => {
               console.log('Creating peer connection to:', participant.userName);
               createPeer(participant.socketId, newSocket, localStream, true);
             });
           } else {
-            console.warn('Local stream not available when connecting to existing participants');
+            console.warn('Local stream not available when connecting to existing participants, retrying...');
+            setTimeout(connectToExisting, 1000);
           }
-        }, 1000); // Wait 1 second to ensure stream is ready
+        };
+        setTimeout(connectToExisting, 1000); // Wait 1 second to ensure stream is ready
 
         // Restore whiteboard
         if (whiteboard && canvasRef.current) {
@@ -304,14 +307,16 @@ export const MeetingRoom: React.FC = () => {
         setParticipants(prev => [...prev, { socketId, userId, userName, userRole, video: true, audio: true, screen: false }]);
         
         // Small delay to ensure socket is ready
-        setTimeout(() => {
+        const createPeerForNewUser = () => {
           if (localStream) {
             console.log('Creating peer for new user:', userName);
             createPeer(socketId, newSocket, localStream, true);
           } else {
-            console.warn('Local stream not available for new user:', userName);
+            console.warn('Local stream not available for new user:', userName, ', retrying...');
+            setTimeout(createPeerForNewUser, 500);
           }
-        }, 500);
+        };
+        setTimeout(createPeerForNewUser, 500);
         
         toast.info(`${userName} joined the meeting`);
       });
@@ -328,11 +333,15 @@ export const MeetingRoom: React.FC = () => {
 
       newSocket.on('offer', ({ from, offer }) => {
         console.log('Received offer from:', from);
-        if (localStream) {
-          createPeer(from, newSocket, localStream, false, offer);
-        } else {
-          console.warn('Local stream not available for offer from:', from);
-        }
+        const handleOffer = () => {
+          if (localStream) {
+            createPeer(from, newSocket, localStream, false, offer);
+          } else {
+            console.warn('Local stream not available for offer from:', from, ', retrying...');
+            setTimeout(handleOffer, 500);
+          }
+        };
+        handleOffer();
       });
 
       newSocket.on('answer', ({ from, answer }) => {
@@ -443,13 +452,26 @@ export const MeetingRoom: React.FC = () => {
       stream,
       config: {
         iceServers: [
+          // Google STUN servers
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
           { urls: 'stun:stun2.l.google.com:19302' },
           { urls: 'stun:stun3.l.google.com:19302' },
           { urls: 'stun:stun4.l.google.com:19302' },
-          // Add TURN server for better NAT traversal (you can get free TURN servers from various providers)
-          // { urls: 'turn:your-turn-server.com:3478', username: 'username', credential: 'password' }
+          // Additional STUN servers for better reliability
+          { urls: 'stun:stun.services.mozilla.com' },
+          { urls: 'stun:stunserver.org:3478' },
+          // TURN servers for better NAT traversal (free public servers)
+          {
+            urls: 'turn:openrelay.metered.ca:80',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          },
+          {
+            urls: 'turn:openrelay.metered.ca:443',
+            username: 'openrelayproject',
+            credential: 'openrelayproject'
+          }
         ],
         iceCandidatePoolSize: 10,
         bundlePolicy: 'max-bundle',
@@ -482,10 +504,21 @@ export const MeetingRoom: React.FC = () => {
         setPeers(new Map(peersRef.current));
         console.log('📺 Stream stored for peer:', socketId);
         
-        // Force update to ensure UI re-renders
+        // Force multiple updates to ensure UI re-renders
         setTimeout(() => {
           setPeers(new Map(peersRef.current));
         }, 100);
+        
+        setTimeout(() => {
+          setPeers(new Map(peersRef.current));
+        }, 500);
+        
+        // Final update after 1 second
+        setTimeout(() => {
+          setPeers(new Map(peersRef.current));
+        }, 1000);
+      } else {
+        console.warn('⚠️ Peer connection not found for stream from:', socketId);
       }
     });
     
@@ -496,15 +529,61 @@ export const MeetingRoom: React.FC = () => {
     peer.on('error', (err) => {
       console.error('❌ Peer connection error with', socketId, ':', err);
       console.error('Error code:', err.code, 'Error message:', err.message);
+      
+      // Log additional error details for debugging
+      if (err.stack) {
+        console.error('Error stack:', err.stack);
+      }
+      
+      // Handle specific error types
+      if (err.code === 'ERR_WEBRTC_SUPPORT') {
+        toast.error('WebRTC not supported in this browser');
+      } else if (err.code === 'ERR_CREATE_OFFER') {
+        toast.error('Failed to create WebRTC offer');
+      } else if (err.code === 'ERR_CREATE_ANSWER') {
+        toast.error('Failed to create WebRTC answer');
+      } else if (err.code === 'ERR_SET_LOCAL_DESCRIPTION') {
+        toast.error('Failed to set local description');
+      } else if (err.code === 'ERR_SET_REMOTE_DESCRIPTION') {
+        toast.error('Failed to set remote description');
+      } else if (err.code === 'ERR_ADD_ICE_CANDIDATE') {
+        toast.error('Failed to add ICE candidate');
+      } else {
+        toast.error(`Connection error: ${err.message}`);
+      }
+      
+      // Clean up the failed peer connection
+      setTimeout(() => {
+        const failedPeer = peersRef.current.get(socketId);
+        if (failedPeer) {
+          failedPeer.peer.destroy();
+          peersRef.current.delete(socketId);
+          setPeers(new Map(peersRef.current));
+        }
+      }, 1000);
     });
 
     peer.on('close', () => {
       console.log('🔴 Peer connection closed:', socketId);
+      // Clean up the peer from our maps
+      peersRef.current.delete(socketId);
+      setPeers(new Map(peersRef.current));
     });
 
     peer.on('connect', () => {
       console.log('🟢 Peer connected:', socketId);
       console.log('Connection state:', peer.connected);
+      toast.success(`Connected to ${socketId}`);
+    });
+
+    // Monitor connection state changes
+    peer.on('ready', () => {
+      console.log('🟡 Peer ready for connection:', socketId);
+    });
+
+    // Log signaling state changes
+    peer.on('signal', (signal) => {
+      console.log(`📡 Signal ${signal.type} sent for:`, socketId);
     });
 
     if (offer) {

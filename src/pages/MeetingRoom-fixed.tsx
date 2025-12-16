@@ -44,18 +44,47 @@ interface ChatMessage {
   timestamp: string;
 }
 
-interface WhiteboardData {
-  x: number;
-  y: number;
-  color: string;
-  width: number;
-  type: 'eraser' | 'draw';
-}
-
 interface PeerConnection {
   peer: Peer.Instance;
   stream?: MediaStream;
 }
+
+// Remote Video Component with proper stream handling
+const RemoteVideo: React.FC<{ stream?: MediaStream; participant?: Participant }> = ({ stream, participant }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+      // Ensure video plays
+      videoRef.current.play().catch(err => console.error('Error playing video:', err));
+    }
+  }, [stream]);
+
+  return (
+    <div className="relative">
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        className="w-full h-auto rounded"
+      />
+      <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-2 py-1 rounded text-white text-sm">
+        {participant?.userName || 'Unknown'}
+      </div>
+      {!participant?.video && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-700 rounded">
+          <VideoOff className="w-12 h-12 text-gray-400" />
+        </div>
+      )}
+      {!participant?.audio && (
+        <div className="absolute top-2 right-2 bg-red-600 p-1 rounded">
+          <MicOff className="w-4 h-4 text-white" />
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const MeetingRoom: React.FC = () => {
   console.log('MeetingRoom component loaded'); // Force inclusion in build
@@ -158,9 +187,8 @@ export const MeetingRoom: React.FC = () => {
         console.log('✅ Got local stream with video:', stream.id);
         console.log('📹 Video tracks:', stream.getVideoTracks().length);
         console.log('🎤 Audio tracks:', stream.getAudioTracks().length);
-      } catch (videoError: unknown) {
-        const videoErrorObj = videoError as Error;
-        console.warn('⚠️ Video not available, trying audio only:', videoErrorObj.name, videoErrorObj.message);
+      } catch (videoError: any) {
+        console.warn('⚠️ Video not available, trying audio only:', videoError.name, videoError.message);
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: false,
@@ -173,9 +201,8 @@ export const MeetingRoom: React.FC = () => {
           console.log('✅ Got local stream with audio only:', stream.id);
           setVideoEnabled(false);
           toast.info('Joined with audio only (camera not available)');
-        } catch (audioError: unknown) {
-          const audioErrorObj = audioError as Error;
-          console.error('❌ No media available:', audioErrorObj.name, audioErrorObj.message);
+        } catch (audioError: any) {
+          console.error('❌ No media available:', audioError.name, audioError.message);
           toast.error('Could not access camera or microphone. Please check permissions.');
           return;
         }
@@ -213,7 +240,7 @@ export const MeetingRoom: React.FC = () => {
 
       newSocket.emit('join-meeting', {
         meetingId: lectureId,
-        userId: user.id,
+        userId: (user as any).id || (user as any)._id,
         userName: `${user.firstName} ${user.lastName}`,
         userRole: user.role
       });
@@ -234,7 +261,7 @@ export const MeetingRoom: React.FC = () => {
         if (whiteboard && canvasRef.current) {
           const ctx = canvasRef.current.getContext('2d');
           if (ctx) {
-            whiteboard.forEach((data: WhiteboardData) => {
+            whiteboard.forEach((data: any) => {
               drawOnCanvas(ctx, data);
             });
           }
@@ -307,10 +334,9 @@ export const MeetingRoom: React.FC = () => {
         ));
       });
 
-    } catch (error: unknown) {
-      const errorObj = error as Error;
-      console.error('❌ Meeting initialization error:', errorObj);
-      toast.error(`Failed to initialize meeting: ${errorObj.message}`);
+    } catch (error: any) {
+      console.error('❌ Meeting initialization error:', error);
+      toast.error(`Failed to initialize meeting: ${error.message}`);
     }
   };
 
@@ -319,7 +345,7 @@ export const MeetingRoom: React.FC = () => {
     socket: Socket,
     stream: MediaStream,
     initiator: boolean,
-    offer?: Peer.SignalData
+    offer?: any
   ) => {
     console.log(`🔧 Creating peer connection - socketId: ${socketId}, initiator: ${initiator}`);
     
@@ -391,10 +417,9 @@ export const MeetingRoom: React.FC = () => {
       
       console.log('✅ Peer connection created successfully for:', socketId);
 
-    } catch (error: unknown) {
-      const errorObj = error as Error;
-      console.error('❌ Failed to create peer connection for', socketId, ':', errorObj.message);
-      toast.error(`Failed to connect to participant: ${errorObj.message}`);
+    } catch (error: any) {
+      console.error('❌ Failed to create peer connection for', socketId, ':', error.message);
+      toast.error(`Failed to connect to participant: ${error.message}`);
     }
   };
 
@@ -415,10 +440,9 @@ export const MeetingRoom: React.FC = () => {
       } else {
         toast.error('No video track available');
       }
-    } catch (error: unknown) {
-      const errorObj = error as Error;
-      console.error('❌ Error toggling video:', errorObj);
-      toast.error(`Failed to toggle video: ${errorObj.message}`);
+    } catch (error: any) {
+      console.error('❌ Error toggling video:', error);
+      toast.error(`Failed to toggle video: ${error.message}`);
     }
   };
 
@@ -439,10 +463,9 @@ export const MeetingRoom: React.FC = () => {
       } else {
         toast.error('No audio track available');
       }
-    } catch (error: unknown) {
-      const errorObj = error as Error;
-      console.error('❌ Error toggling audio:', errorObj);
-      toast.error(`Failed to toggle audio: ${errorObj.message}`);
+    } catch (error: any) {
+      console.error('❌ Error toggling audio:', error);
+      toast.error(`Failed to toggle audio: ${error.message}`);
     }
   };
 
@@ -489,10 +512,9 @@ export const MeetingRoom: React.FC = () => {
       } else {
         stopScreenShare();
       }
-    } catch (error: unknown) {
-      const errorObj = error as Error;
-      console.error('❌ Error toggling screen share:', errorObj);
-      toast.error(`Failed to share screen: ${errorObj.message}`);
+    } catch (error: any) {
+      console.error('❌ Error toggling screen share:', error);
+      toast.error(`Failed to share screen: ${error.message}`);
     }
   };
 
@@ -535,10 +557,9 @@ export const MeetingRoom: React.FC = () => {
       }).catch(error => {
         console.error('❌ Error getting camera stream back:', error);
       });
-    } catch (error: unknown) {
-      const errorObj = error as Error;
-      console.error('❌ Error stopping screen share:', errorObj);
-      toast.error(`Failed to stop screen share: ${errorObj.message}`);
+    } catch (error: any) {
+      console.error('❌ Error stopping screen share:', error);
+      toast.error(`Failed to stop screen share: ${error.message}`);
     }
   };
 
@@ -618,7 +639,7 @@ export const MeetingRoom: React.FC = () => {
     setIsDrawing(false);
   };
 
-  const drawOnCanvas = (ctx: CanvasRenderingContext2D, data: WhiteboardData) => {
+  const drawOnCanvas = (ctx: CanvasRenderingContext2D, data: any) => {
     if (data.type === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.lineWidth = data.width * 5;
@@ -719,30 +740,7 @@ export const MeetingRoom: React.FC = () => {
                 <div key={socketId} className="relative">
                   <Card className="h-full bg-gray-800">
                     <CardContent className="p-4 h-full">
-                      <video
-                        ref={(video) => {
-                          if (video && stream) {
-                            video.srcObject = stream;
-                            video.play().catch(err => console.error('Error playing video:', err));
-                          }
-                        }}
-                        autoPlay
-                        playsInline
-                        className="w-full h-full object-cover rounded"
-                      />
-                      <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 px-2 py-1 rounded text-white text-sm">
-                        {participant?.userName || 'Unknown'}
-                      </div>
-                      {!participant?.video && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-700 rounded">
-                          <VideoOff className="w-16 h-16 text-gray-400" />
-                        </div>
-                      )}
-                      {!participant?.audio && (
-                        <div className="absolute top-2 right-2 bg-red-600 p-1 rounded">
-                          <MicOff className="w-4 h-4 text-white" />
-                        </div>
-                      )}
+                      <RemoteVideo stream={stream} participant={participant} />
                     </CardContent>
                   </Card>
                 </div>

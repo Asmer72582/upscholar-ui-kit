@@ -194,231 +194,211 @@ export const MeetingRoom: React.FC = () => {
         localVideoRef.current.srcObject = stream;
       }
 
-      // Connect to socket
-      console.log('Connecting to Socket.io server...');
-      console.log('Socket URL:', SOCKET_URL);
+      // Wait for stream to be fully initialized before connecting
+      console.log('✅ Local stream established, waiting for initialization...');
       
-      const newSocket = io(SOCKET_URL, {
-        transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
-        timeout: 10000, // 10 second timeout
-        forceNew: true, // Force new connection
-        reconnectionAttempts: 3, // Try to reconnect 3 times
-        reconnectionDelay: 1000, // Wait 1 second between attempts
-      });
-      
-      setSocket(newSocket);
-
-      // Socket connection events
-      newSocket.on('connect', () => {
-        console.log('✅ Socket.io connected successfully!');
-        console.log('Socket ID:', newSocket.id);
+      // Give stream time to fully initialize
+      setTimeout(() => {
+        console.log('Connecting to Socket.io server...');
+        console.log('Socket URL:', SOCKET_URL);
         
-        // Join meeting after successful connection
-        newSocket.emit('join-meeting', {
-          meetingId: lectureId,
-          userId: user.id,
-          userName: `${user.firstName} ${user.lastName}`,
-          userRole: user.role
+        const newSocket = io(SOCKET_URL, {
+          transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+          timeout: 10000, // 10 second timeout
+          forceNew: true, // Force new connection
+          reconnectionAttempts: 3, // Try to reconnect 3 times
+          reconnectionDelay: 1000, // Wait 1 second between attempts
         });
-      });
-
-      newSocket.on('connect_error', (error) => {
-        console.error('❌ Socket.io connection error:', error);
-        console.error('Error details:', error.message);
-        toast.error('Failed to connect to meeting server');
-      });
-
-      newSocket.on('connect_timeout', () => {
-        console.error('❌ Socket.io connection timeout');
-        toast.error('Connection to meeting server timed out');
-      });
-
-      newSocket.on('error', (error) => {
-        console.error('❌ Socket.io error:', error);
-        toast.error('Meeting connection error');
-      });
-
-      newSocket.on('disconnect', (reason) => {
-        console.warn('⚠️ Socket.io disconnected:', reason);
-        if (reason === 'io server disconnect') {
-          toast.warning('Disconnected from meeting server');
-        } else if (reason === 'io client disconnect') {
-          toast.info('You left the meeting');
-        } else {
-          toast.warning('Connection lost');
-        }
-      });
-
-      newSocket.on('reconnect', (attemptNumber) => {
-        console.log('🔄 Socket.io reconnected after', attemptNumber, 'attempts');
-        toast.success('Reconnected to meeting');
         
-        // Rejoin meeting after reconnection
-        newSocket.emit('join-meeting', {
-          meetingId: lectureId,
-          userId: user.id,
-          userName: `${user.firstName} ${user.lastName}`,
-          userRole: user.role
+        setSocket(newSocket);
+
+        // Socket connection events
+        newSocket.on('connect', () => {
+          console.log('✅ Socket.io connected successfully!');
+          console.log('Socket ID:', newSocket.id);
+          
+          // Join meeting after successful connection
+          newSocket.emit('join-meeting', {
+            meetingId: lectureId,
+            userId: user.id,
+            userName: `${user.firstName} ${user.lastName}`,
+            userRole: user.role
+          });
         });
-      });
 
-      newSocket.on('reconnect_failed', () => {
-        console.error('❌ Socket.io reconnection failed');
-        toast.error('Failed to reconnect to meeting');
-        navigate('/');
-      });
+        newSocket.on('connect_error', (error) => {
+          console.error('❌ Socket.io connection error:', error);
+          console.error('Error details:', error.message);
+          toast.error('Failed to connect to meeting server');
+        });
 
-      newSocket.on('meeting-joined', ({ participants: existingParticipants, whiteboard, chat, isHost: host }) => {
-        console.log('Meeting joined! Existing participants:', existingParticipants.length);
-        setParticipants(existingParticipants);
-        setIsHost(host);
-        setMessages(chat);
-        
-        // Connect to existing participants with proper timing
-        const connectToExisting = () => {
-          if (localStream) {
-            console.log('Connecting to existing participants:', existingParticipants.length);
-            existingParticipants.forEach((participant: Participant) => {
-              console.log('Creating peer connection to:', participant.userName);
-              createPeer(participant.socketId, newSocket, localStream, true);
-            });
-          } else {
-            console.warn('Local stream not available when connecting to existing participants, retrying...');
-            setTimeout(connectToExisting, 1000);
+        newSocket.on('connect_timeout', () => {
+          console.error('❌ Socket.io connection timeout');
+          toast.error('Connection to meeting server timed out');
+        });
+
+        newSocket.on('error', (error) => {
+          console.error('❌ Socket.io error:', error);
+          toast.error('Meeting connection error');
+        });
+
+        newSocket.on('disconnect', (reason) => {
+          console.warn('⚠️ Socket.io disconnected:', reason);
+          if (reason === 'io server disconnect') {
+            toast.warning('Disconnected from meeting server');
           }
-        };
-        setTimeout(connectToExisting, 1000); // Wait 1 second to ensure stream is ready
+        });
 
-        // Restore whiteboard
-        if (whiteboard && canvasRef.current) {
-          const ctx = canvasRef.current.getContext('2d');
-          if (ctx) {
-            whiteboard.forEach((data) => {
+        newSocket.on('meeting-joined', ({ participants: existingParticipants, whiteboard, chat, isHost: host }) => {
+          console.log('Meeting joined! Existing participants:', existingParticipants.length);
+          setParticipants(existingParticipants);
+          setIsHost(host);
+          setMessages(chat);
+          
+          // Connect to existing participants with proper timing
+          const connectToExisting = () => {
+            const maxRetries = 10;
+            let retryCount = 0;
+            
+            const attemptConnection = () => {
+              console.log(`Attempting to connect to existing participants (retry ${retryCount + 1}/${maxRetries})`);
+              
+              if (localStream && localStream.getTracks().length > 0) {
+                console.log('✅ Local stream ready, connecting to existing participants:', existingParticipants.length);
+                existingParticipants.forEach((participant: Participant) => {
+                  console.log('Creating peer connection to:', participant.userName);
+                  createPeer(participant.socketId, newSocket, localStream, true);
+                });
+              } else if (retryCount < maxRetries) {
+                console.warn(`Local stream not ready, retrying in 1 second... (${retryCount + 1}/${maxRetries})`);
+                retryCount++;
+                setTimeout(attemptConnection, 1000);
+              } else {
+                console.error('❌ Failed to connect to existing participants after maximum retries');
+                toast.error('Could not connect to existing participants - stream initialization failed');
+              }
+            };
+            
+            attemptConnection();
+          };
+          
+          // Wait longer before attempting connections to ensure stream is fully ready
+          setTimeout(connectToExisting, 3000); // Wait 3 seconds after joining meeting
+
+          // Restore whiteboard
+          if (whiteboard && canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+              whiteboard.forEach((data) => {
+                drawOnCanvas(ctx, data);
+              });
+            }
+          }
+
+          toast.success('Joined meeting successfully!');
+        });
+
+        newSocket.on('user-joined', ({ socketId, userId, userName, userRole }) => {
+          console.log('New user joined:', userName, 'socketId:', socketId);
+          setParticipants(prev => [...prev, { socketId, userId, userName, userRole, video: true, audio: true, screen: false }]);
+          
+          // Small delay to ensure socket is ready
+          setTimeout(() => {
+            if (localStream && localStream.getTracks().length > 0) {
+              createPeer(socketId, newSocket, localStream, false);
+            } else {
+              console.warn('Local stream not available for new user connection');
+            }
+          }, 1000);
+        });
+
+        newSocket.on('user-left', ({ socketId }) => {
+          console.log('User left:', socketId);
+          setParticipants(prev => prev.filter(p => p.socketId !== socketId));
+          
+          // Clean up peer connection
+          const peerConnection = peersRef.current.get(socketId);
+          if (peerConnection) {
+            peerConnection.peer.destroy();
+            peersRef.current.delete(socketId);
+            setPeers(new Map(peersRef.current));
+          }
+        });
+
+        newSocket.on('receive-signal', ({ from, signal }) => {
+          console.log('📡 Received signal from:', from);
+          const peerConnection = peersRef.current.get(from);
+          if (peerConnection) {
+            peerConnection.peer.signal(signal);
+          } else {
+            console.warn('No peer connection found for signal from:', from);
+          }
+        });
+
+        newSocket.on('whiteboard-update', ({ data }) => {
+          if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
               drawOnCanvas(ctx, data);
-            });
+            }
           }
-        }
+        });
 
-        toast.success('Joined meeting successfully!');
-      });
-
-      newSocket.on('user-joined', ({ socketId, userId, userName, userRole }) => {
-        console.log('New user joined:', userName, 'socketId:', socketId);
-        setParticipants(prev => [...prev, { socketId, userId, userName, userRole, video: true, audio: true, screen: false }]);
-        
-        // Small delay to ensure socket is ready
-        const createPeerForNewUser = () => {
-          if (localStream) {
-            console.log('Creating peer for new user:', userName);
-            createPeer(socketId, newSocket, localStream, true);
-          } else {
-            console.warn('Local stream not available for new user:', userName, ', retrying...');
-            setTimeout(createPeerForNewUser, 500);
+        newSocket.on('whiteboard-clear', () => {
+          if (canvasRef.current) {
+            const ctx = canvasRef.current.getContext('2d');
+            if (ctx) {
+              ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            }
           }
-        };
-        setTimeout(createPeerForNewUser, 500);
-        
-        toast.info(`${userName} joined the meeting`);
-      });
+        });
 
-      newSocket.on('user-left', ({ socketId }) => {
-        setParticipants(prev => prev.filter(p => p.socketId !== socketId));
-        const peerConnection = peersRef.current.get(socketId);
-        if (peerConnection) {
-          peerConnection.peer.destroy();
-          peersRef.current.delete(socketId);
-          setPeers(new Map(peersRef.current));
-        }
-      });
+        newSocket.on('chat-message', ({ message, sender, timestamp }) => {
+          const newMessage: ChatMessage = {
+            id: Date.now(),
+            userName: sender,
+            message,
+            timestamp
+          };
+          setMessages(prev => [...prev, newMessage]);
+        });
 
-      newSocket.on('offer', ({ from, offer }) => {
-        console.log('Received offer from:', from);
-        const handleOffer = () => {
-          if (localStream) {
-            createPeer(from, newSocket, localStream, false, offer);
-          } else {
-            console.warn('Local stream not available for offer from:', from, ', retrying...');
-            setTimeout(handleOffer, 500);
-          }
-        };
-        handleOffer();
-      });
+        newSocket.on('toggle-video', ({ socketId, video }) => {
+          setParticipants(prev => prev.map(p => p.socketId === socketId ? { ...p, video } : p));
+        });
 
-      newSocket.on('answer', ({ from, answer }) => {
-        console.log('Received answer from:', from);
-        const peerConnection = peersRef.current.get(from);
-        if (peerConnection) {
-          peerConnection.peer.signal(answer);
-        } else {
-          console.warn('No peer connection found for:', from);
-        }
-      });
+        newSocket.on('toggle-audio', ({ socketId, audio }) => {
+          setParticipants(prev => prev.map(p => p.socketId === socketId ? { ...p, audio } : p));
+        });
 
-      newSocket.on('ice-candidate', ({ from, candidate }) => {
-        console.log('Received ICE candidate from:', from);
-        const peerConnection = peersRef.current.get(from);
-        if (peerConnection) {
-          peerConnection.peer.signal(candidate);
-        } else {
-          console.warn('No peer connection found for ICE candidate from:', from);
-        }
-      });
+        newSocket.on('toggle-screen', ({ socketId, screen }) => {
+          setParticipants(prev => prev.map(p => p.socketId === socketId ? { ...p, screen } : p));
+        });
 
-      // Media toggles
-      newSocket.on('user-video-toggle', ({ socketId, enabled }) => {
-        setParticipants(prev => prev.map(p => 
-          p.socketId === socketId ? { ...p, video: enabled } : p
-        ));
-      });
+        newSocket.on('meeting-ended', () => {
+          toast.info('Meeting has ended');
+          navigate('/');
+        });
 
-      newSocket.on('user-audio-toggle', ({ socketId, enabled }) => {
-        setParticipants(prev => prev.map(p => 
-          p.socketId === socketId ? { ...p, audio: enabled } : p
-        ));
-      });
+        newSocket.on('reconnect', (attemptNumber) => {
+          console.log('🔄 Socket.io reconnected after', attemptNumber, 'attempts');
+          toast.success('Reconnected to meeting');
+          
+          // Rejoin meeting after reconnection
+          newSocket.emit('join-meeting', {
+            meetingId: lectureId,
+            userId: user.id,
+            userName: `${user.firstName} ${user.lastName}`,
+            userRole: user.role
+          });
+        });
 
-      // Whiteboard
-      newSocket.on('whiteboard-draw', (data: WhiteboardData) => {
-        if (canvasRef.current) {
-          const ctx = canvasRef.current.getContext('2d');
-          if (ctx) {
-            drawOnCanvas(ctx, data);
-          }
-        }
-      });
-
-      newSocket.on('whiteboard-clear', () => {
-        if (canvasRef.current) {
-          const ctx = canvasRef.current.getContext('2d');
-          if (ctx) {
-            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-          }
-        }
-      });
-
-      newSocket.on('whiteboard-sync', (whiteboard) => {
-        if (canvasRef.current) {
-          const ctx = canvasRef.current.getContext('2d');
-          if (ctx) {
-            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            whiteboard.forEach((data: WhiteboardData) => {
-              drawOnCanvas(ctx, data);
-            });
-          }
-        }
-      });
-
-      // Chat
-      newSocket.on('new-message', (message: ChatMessage) => {
-        setMessages(prev => [...prev, message]);
-      });
-
-      // Meeting ended
-      newSocket.on('meeting-ended', () => {
-        toast.info('Meeting has been ended by the host');
-        cleanup();
-        navigate('/');
-      });
+        newSocket.on('reconnect_failed', () => {
+          console.error('❌ Socket.io reconnection failed');
+          toast.error('Failed to reconnect to meeting');
+          navigate('/');
+        });
+      }, 2000); // Wait 2 seconds for stream to stabilize
 
     } catch (error) {
       console.error('Error initializing meeting:', error);

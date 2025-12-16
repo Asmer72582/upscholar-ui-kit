@@ -323,6 +323,33 @@ export const MeetingRoom: React.FC = () => {
   ) => {
     console.log(`🔧 Creating peer connection - socketId: ${socketId}, initiator: ${initiator}`);
     
+    // Validate socket parameter
+    if (!socket) {
+      console.error('❌ Socket is undefined in createPeer');
+      toast.error('Connection error: Socket not available');
+      return;
+    }
+    
+    // Validate stream parameter
+    if (!stream) {
+      console.error('❌ Stream is undefined in createPeer');
+      toast.error('Connection error: Media stream not available');
+      return;
+    }
+    
+    // Validate stream tracks
+    if (!stream.getTracks || typeof stream.getTracks !== 'function') {
+      console.error('❌ Stream.getTracks is not a function');
+      toast.error('Connection error: Invalid media stream');
+      return;
+    }
+    
+    const tracks = stream.getTracks();
+    console.log('📹 Stream tracks:', tracks.length);
+    tracks.forEach((track, index) => {
+      console.log(`  - Track ${index}:`, track.kind, 'enabled:', track.enabled);
+    });
+    
     // Check if peer already exists
     if (peersRef.current.has(socketId)) {
       console.log('⚠️ Peer already exists for:', socketId);
@@ -330,6 +357,17 @@ export const MeetingRoom: React.FC = () => {
     }
 
     try {
+      console.log('🚀 Creating new Peer instance...');
+      console.log('  - Initiator:', initiator);
+      console.log('  - Stream available:', !!stream);
+      console.log('  - Stream tracks:', stream.getTracks().length);
+      console.log('  - Peer constructor available:', typeof Peer);
+      
+      // Check if Peer is available
+      if (typeof Peer !== 'function') {
+        throw new Error('Peer constructor not available - simple-peer library may not be loaded');
+      }
+      
       const peer = new Peer({
         initiator,
         trickle: true,
@@ -341,13 +379,20 @@ export const MeetingRoom: React.FC = () => {
           ]
         }
       });
+      
+      console.log('✅ Peer instance created successfully');
 
       peer.on('signal', (signal) => {
         console.log(`📡 Sending ${initiator ? 'offer' : 'answer'} to:`, socketId);
-        if (initiator) {
-          socket.emit('offer', { to: socketId, offer: signal });
-        } else {
-          socket.emit('answer', { to: socketId, answer: signal });
+        try {
+          if (initiator) {
+            socket.emit('offer', { to: socketId, offer: signal });
+          } else {
+            socket.emit('answer', { to: socketId, answer: signal });
+          }
+        } catch (emitError: unknown) {
+          const errorObj = emitError as Error;
+          console.error('❌ Failed to emit signal:', errorObj.message);
         }
       });
 
@@ -382,7 +427,13 @@ export const MeetingRoom: React.FC = () => {
       // Handle incoming offer
       if (offer) {
         console.log('📨 Processing incoming offer for:', socketId);
-        peer.signal(offer);
+        try {
+          peer.signal(offer);
+          console.log('✅ Offer processed successfully');
+        } catch (signalError: unknown) {
+          const errorObj = signalError as Error;
+          console.error('❌ Failed to process offer:', errorObj.message);
+        }
       }
 
       // Store peer connection
@@ -394,6 +445,14 @@ export const MeetingRoom: React.FC = () => {
     } catch (error: unknown) {
       const errorObj = error as Error;
       console.error('❌ Failed to create peer connection for', socketId, ':', errorObj.message);
+      console.error('❌ Error details:', errorObj);
+      console.error('❌ Error stack:', errorObj.stack);
+      
+      // Check for specific error types
+      if (errorObj.message.includes('Cannot read properties of undefined')) {
+        console.error('❌ This might be a simple-peer library issue or missing dependency');
+      }
+      
       toast.error(`Failed to connect to participant: ${errorObj.message}`);
     }
   };

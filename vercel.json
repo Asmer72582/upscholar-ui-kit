@@ -26,10 +26,5 @@
                 "value": "no-cache, no-store, must-revalidate"
             }]
         }
-    ],
-    "functions": {
-        "app/api/**/*.ts": {
-            "maxDuration": 30
-        }
-    }
+    ]
 }

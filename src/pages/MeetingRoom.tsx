@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User } from '@/types';
 import {
   Mic,
   MicOff,
@@ -48,21 +47,6 @@ interface ChatMessage {
 interface PeerConnection {
   peer: Peer.Instance;
   stream?: MediaStream;
-}
-
-interface WhiteboardData {
-  x: number;
-  y: number;
-  prevX: number;
-  prevY: number;
-  color: string;
-  width: number;
-  tool: 'pen' | 'eraser';
-}
-
-interface RTCSender {
-  track?: MediaStreamTrack | null;
-  replaceTrack(track: MediaStreamTrack): Promise<void>;
 }
 
 // Remote Video Component with proper stream handling
@@ -106,7 +90,7 @@ export const MeetingRoom: React.FC = () => {
   console.log('MeetingRoom component loaded'); // Force inclusion in build
   const { lectureId } = useParams<{ lectureId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth() as { user: User | null };
+  const { user } = useAuth();
 
   // Socket and WebRTC
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -194,211 +178,146 @@ export const MeetingRoom: React.FC = () => {
         localVideoRef.current.srcObject = stream;
       }
 
-      // Wait for stream to be fully initialized before connecting
-      console.log('✅ Local stream established, waiting for initialization...');
-      
-      // Give stream time to fully initialize
-      setTimeout(() => {
-        console.log('Connecting to Socket.io server...');
-        console.log('Socket URL:', SOCKET_URL);
+      // Connect to socket
+      console.log('Connecting to Socket.io server...');
+      const newSocket = io(SOCKET_URL);
+      setSocket(newSocket);
+
+      newSocket.emit('join-meeting', {
+        meetingId: lectureId,
+        userId: (user as any).id || (user as any)._id,
+        userName: `${user.firstName} ${user.lastName}`,
+        userRole: user.role
+      });
+
+      newSocket.on('meeting-joined', ({ participants: existingParticipants, whiteboard, chat, isHost: host }) => {
+        console.log('Meeting joined! Existing participants:', existingParticipants.length);
+        setParticipants(existingParticipants);
+        setIsHost(host);
+        setMessages(chat);
         
-        const newSocket = io(SOCKET_URL, {
-          transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
-          timeout: 10000, // 10 second timeout
-          forceNew: true, // Force new connection
-          reconnectionAttempts: 3, // Try to reconnect 3 times
-          reconnectionDelay: 1000, // Wait 1 second between attempts
-        });
-        
-        setSocket(newSocket);
-
-        // Socket connection events
-        newSocket.on('connect', () => {
-          console.log('✅ Socket.io connected successfully!');
-          console.log('Socket ID:', newSocket.id);
-          
-          // Join meeting after successful connection
-          newSocket.emit('join-meeting', {
-            meetingId: lectureId,
-            userId: user.id,
-            userName: `${user.firstName} ${user.lastName}`,
-            userRole: user.role
-          });
+        // Connect to existing participants
+        existingParticipants.forEach((participant: Participant) => {
+          console.log('Creating peer connection to:', participant.userName);
+          createPeer(participant.socketId, newSocket, stream, true);
         });
 
-        newSocket.on('connect_error', (error) => {
-          console.error('❌ Socket.io connection error:', error);
-          console.error('Error details:', error.message);
-          toast.error('Failed to connect to meeting server');
-        });
-
-        newSocket.on('connect_timeout', () => {
-          console.error('❌ Socket.io connection timeout');
-          toast.error('Connection to meeting server timed out');
-        });
-
-        newSocket.on('error', (error) => {
-          console.error('❌ Socket.io error:', error);
-          toast.error('Meeting connection error');
-        });
-
-        newSocket.on('disconnect', (reason) => {
-          console.warn('⚠️ Socket.io disconnected:', reason);
-          if (reason === 'io server disconnect') {
-            toast.warning('Disconnected from meeting server');
-          }
-        });
-
-        newSocket.on('meeting-joined', ({ participants: existingParticipants, whiteboard, chat, isHost: host }) => {
-          console.log('Meeting joined! Existing participants:', existingParticipants.length);
-          setParticipants(existingParticipants);
-          setIsHost(host);
-          setMessages(chat);
-          
-          // Connect to existing participants with proper timing
-          const connectToExisting = () => {
-            const maxRetries = 10;
-            let retryCount = 0;
-            
-            const attemptConnection = () => {
-              console.log(`Attempting to connect to existing participants (retry ${retryCount + 1}/${maxRetries})`);
-              
-              if (localStream && localStream.getTracks().length > 0) {
-                console.log('✅ Local stream ready, connecting to existing participants:', existingParticipants.length);
-                existingParticipants.forEach((participant: Participant) => {
-                  console.log('Creating peer connection to:', participant.userName);
-                  createPeer(participant.socketId, newSocket, localStream, true);
-                });
-              } else if (retryCount < maxRetries) {
-                console.warn(`Local stream not ready, retrying in 1 second... (${retryCount + 1}/${maxRetries})`);
-                retryCount++;
-                setTimeout(attemptConnection, 1000);
-              } else {
-                console.error('❌ Failed to connect to existing participants after maximum retries');
-                toast.error('Could not connect to existing participants - stream initialization failed');
-              }
-            };
-            
-            attemptConnection();
-          };
-          
-          // Wait longer before attempting connections to ensure stream is fully ready
-          setTimeout(connectToExisting, 3000); // Wait 3 seconds after joining meeting
-
-          // Restore whiteboard
-          if (whiteboard && canvasRef.current) {
-            const ctx = canvasRef.current.getContext('2d');
-            if (ctx) {
-              whiteboard.forEach((data) => {
-                drawOnCanvas(ctx, data);
-              });
-            }
-          }
-
-          toast.success('Joined meeting successfully!');
-        });
-
-        newSocket.on('user-joined', ({ socketId, userId, userName, userRole }) => {
-          console.log('New user joined:', userName, 'socketId:', socketId);
-          setParticipants(prev => [...prev, { socketId, userId, userName, userRole, video: true, audio: true, screen: false }]);
-          
-          // Small delay to ensure socket is ready
-          setTimeout(() => {
-            if (localStream && localStream.getTracks().length > 0) {
-              createPeer(socketId, newSocket, localStream, false);
-            } else {
-              console.warn('Local stream not available for new user connection');
-            }
-          }, 1000);
-        });
-
-        newSocket.on('user-left', ({ socketId }) => {
-          console.log('User left:', socketId);
-          setParticipants(prev => prev.filter(p => p.socketId !== socketId));
-          
-          // Clean up peer connection
-          const peerConnection = peersRef.current.get(socketId);
-          if (peerConnection) {
-            peerConnection.peer.destroy();
-            peersRef.current.delete(socketId);
-            setPeers(new Map(peersRef.current));
-          }
-        });
-
-        newSocket.on('receive-signal', ({ from, signal }) => {
-          console.log('📡 Received signal from:', from);
-          const peerConnection = peersRef.current.get(from);
-          if (peerConnection) {
-            peerConnection.peer.signal(signal);
-          } else {
-            console.warn('No peer connection found for signal from:', from);
-          }
-        });
-
-        newSocket.on('whiteboard-update', ({ data }) => {
-          if (canvasRef.current) {
-            const ctx = canvasRef.current.getContext('2d');
-            if (ctx) {
+        // Restore whiteboard
+        if (whiteboard && canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) {
+            whiteboard.forEach((data: any) => {
               drawOnCanvas(ctx, data);
-            }
+            });
           }
-        });
+        }
 
-        newSocket.on('whiteboard-clear', () => {
-          if (canvasRef.current) {
-            const ctx = canvasRef.current.getContext('2d');
-            if (ctx) {
-              ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            }
+        toast.success('Joined meeting successfully!');
+      });
+
+      newSocket.on('user-joined', ({ socketId, userId, userName, userRole }) => {
+        console.log('New user joined:', userName, 'socketId:', socketId);
+        setParticipants(prev => [...prev, { socketId, userId, userName, userRole, video: true, audio: true, screen: false }]);
+        
+        // Small delay to ensure socket is ready
+        setTimeout(() => {
+          console.log('Creating peer for new user:', userName);
+          createPeer(socketId, newSocket, stream, true);
+        }, 500);
+        
+        toast.info(`${userName} joined the meeting`);
+      });
+
+      newSocket.on('user-left', ({ socketId }) => {
+        setParticipants(prev => prev.filter(p => p.socketId !== socketId));
+        const peerConnection = peersRef.current.get(socketId);
+        if (peerConnection) {
+          peerConnection.peer.destroy();
+          peersRef.current.delete(socketId);
+          setPeers(new Map(peersRef.current));
+        }
+      });
+
+      newSocket.on('offer', ({ from, offer }) => {
+        console.log('Received offer from:', from);
+        createPeer(from, newSocket, stream, false, offer);
+      });
+
+      newSocket.on('answer', ({ from, answer }) => {
+        console.log('Received answer from:', from);
+        const peerConnection = peersRef.current.get(from);
+        if (peerConnection) {
+          peerConnection.peer.signal(answer);
+        } else {
+          console.warn('No peer connection found for:', from);
+        }
+      });
+
+      newSocket.on('ice-candidate', ({ from, candidate }) => {
+        console.log('Received ICE candidate from:', from);
+        const peerConnection = peersRef.current.get(from);
+        if (peerConnection) {
+          peerConnection.peer.signal(candidate);
+        } else {
+          console.warn('No peer connection found for ICE candidate from:', from);
+        }
+      });
+
+      // Media toggles
+      newSocket.on('user-video-toggle', ({ socketId, enabled }) => {
+        setParticipants(prev => prev.map(p => 
+          p.socketId === socketId ? { ...p, video: enabled } : p
+        ));
+      });
+
+      newSocket.on('user-audio-toggle', ({ socketId, enabled }) => {
+        setParticipants(prev => prev.map(p => 
+          p.socketId === socketId ? { ...p, audio: enabled } : p
+        ));
+      });
+
+      // Whiteboard
+      newSocket.on('whiteboard-draw', (data) => {
+        if (canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) {
+            drawOnCanvas(ctx, data);
           }
-        });
+        }
+      });
 
-        newSocket.on('chat-message', ({ message, sender, timestamp }) => {
-          const newMessage: ChatMessage = {
-            id: Date.now(),
-            userName: sender,
-            message,
-            timestamp
-          };
-          setMessages(prev => [...prev, newMessage]);
-        });
+      newSocket.on('whiteboard-clear', () => {
+        if (canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          }
+        }
+      });
 
-        newSocket.on('toggle-video', ({ socketId, video }) => {
-          setParticipants(prev => prev.map(p => p.socketId === socketId ? { ...p, video } : p));
-        });
+      newSocket.on('whiteboard-sync', (whiteboard) => {
+        if (canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+            whiteboard.forEach((data: any) => {
+              drawOnCanvas(ctx, data);
+            });
+          }
+        }
+      });
 
-        newSocket.on('toggle-audio', ({ socketId, audio }) => {
-          setParticipants(prev => prev.map(p => p.socketId === socketId ? { ...p, audio } : p));
-        });
+      // Chat
+      newSocket.on('new-message', (message: ChatMessage) => {
+        setMessages(prev => [...prev, message]);
+      });
 
-        newSocket.on('toggle-screen', ({ socketId, screen }) => {
-          setParticipants(prev => prev.map(p => p.socketId === socketId ? { ...p, screen } : p));
-        });
-
-        newSocket.on('meeting-ended', () => {
-          toast.info('Meeting has ended');
-          navigate('/');
-        });
-
-        newSocket.on('reconnect', (attemptNumber) => {
-          console.log('🔄 Socket.io reconnected after', attemptNumber, 'attempts');
-          toast.success('Reconnected to meeting');
-          
-          // Rejoin meeting after reconnection
-          newSocket.emit('join-meeting', {
-            meetingId: lectureId,
-            userId: user.id,
-            userName: `${user.firstName} ${user.lastName}`,
-            userRole: user.role
-          });
-        });
-
-        newSocket.on('reconnect_failed', () => {
-          console.error('❌ Socket.io reconnection failed');
-          toast.error('Failed to reconnect to meeting');
-          navigate('/');
-        });
-      }, 2000); // Wait 2 seconds for stream to stabilize
+      // Meeting ended
+      newSocket.on('meeting-ended', () => {
+        toast.info('Meeting has been ended by the host');
+        cleanup();
+        navigate('/');
+      });
 
     } catch (error) {
       console.error('Error initializing meeting:', error);
@@ -411,20 +330,15 @@ export const MeetingRoom: React.FC = () => {
     socket: Socket,
     stream: MediaStream,
     initiator: boolean,
-    offer?: string
+    offer?: any
   ) => {
-    console.log(`Creating peer connection - socketId: ${socketId}, initiator: ${initiator}, stream tracks: ${stream.getTracks().length}`);
+    console.log(`Creating peer connection - socketId: ${socketId}, initiator: ${initiator}`);
     
     // Check if peer already exists
     if (peersRef.current.has(socketId)) {
       console.log('Peer already exists for:', socketId);
       return;
     }
-    
-    // Log stream details
-    stream.getTracks().forEach(track => {
-      console.log(`  - Local ${track.kind} track:`, track.id, 'enabled:', track.enabled, 'label:', track.label);
-    });
 
     const peer = new Peer({
       initiator,
@@ -432,39 +346,14 @@ export const MeetingRoom: React.FC = () => {
       stream,
       config: {
         iceServers: [
-          // Google STUN servers
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-          { urls: 'stun:stun3.l.google.com:19302' },
-          { urls: 'stun:stun4.l.google.com:19302' },
-          // Additional STUN servers for better reliability
-          { urls: 'stun:stun.services.mozilla.com' },
-          { urls: 'stun:stunserver.org:3478' },
-          // TURN servers for better NAT traversal (free public servers)
-          {
-            urls: 'turn:openrelay.metered.ca:80',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          },
-          {
-            urls: 'turn:openrelay.metered.ca:443',
-            username: 'openrelayproject',
-            credential: 'openrelayproject'
-          }
-        ],
-        iceCandidatePoolSize: 10,
-        bundlePolicy: 'max-bundle',
-        rtcpMuxPolicy: 'require'
-      },
-      offerOptions: {
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true
+        ]
       }
     });
 
     peer.on('signal', (signal) => {
-      console.log(`Sending ${initiator ? 'offer' : 'answer'} to:`, socketId, 'Signal type:', signal.type);
+      console.log(`Sending ${initiator ? 'offer' : 'answer'} to:`, socketId);
       if (initiator) {
         socket.emit('offer', { to: socketId, offer: signal });
       } else {
@@ -483,22 +372,6 @@ export const MeetingRoom: React.FC = () => {
         peerConnection.stream = remoteStream;
         setPeers(new Map(peersRef.current));
         console.log('📺 Stream stored for peer:', socketId);
-        
-        // Force multiple updates to ensure UI re-renders
-        setTimeout(() => {
-          setPeers(new Map(peersRef.current));
-        }, 100);
-        
-        setTimeout(() => {
-          setPeers(new Map(peersRef.current));
-        }, 500);
-        
-        // Final update after 1 second
-        setTimeout(() => {
-          setPeers(new Map(peersRef.current));
-        }, 1000);
-      } else {
-        console.warn('⚠️ Peer connection not found for stream from:', socketId);
       }
     });
     
@@ -508,73 +381,20 @@ export const MeetingRoom: React.FC = () => {
 
     peer.on('error', (err) => {
       console.error('❌ Peer connection error with', socketId, ':', err);
-      console.error('Error code:', err.code, 'Error message:', err.message);
-      
-      // Log additional error details for debugging
-      if (err.stack) {
-        console.error('Error stack:', err.stack);
-      }
-      
-      // Handle specific error types
-      if (err.code === 'ERR_WEBRTC_SUPPORT') {
-        toast.error('WebRTC not supported in this browser');
-      } else if (err.code === 'ERR_CREATE_OFFER') {
-        toast.error('Failed to create WebRTC offer');
-      } else if (err.code === 'ERR_CREATE_ANSWER') {
-        toast.error('Failed to create WebRTC answer');
-      } else if (err.code === 'ERR_SET_LOCAL_DESCRIPTION') {
-        toast.error('Failed to set local description');
-      } else if (err.code === 'ERR_SET_REMOTE_DESCRIPTION') {
-        toast.error('Failed to set remote description');
-      } else if (err.code === 'ERR_ADD_ICE_CANDIDATE') {
-        toast.error('Failed to add ICE candidate');
-      } else {
-        toast.error(`Connection error: ${err.message}`);
-      }
-      
-      // Clean up the failed peer connection
-      setTimeout(() => {
-        const failedPeer = peersRef.current.get(socketId);
-        if (failedPeer) {
-          failedPeer.peer.destroy();
-          peersRef.current.delete(socketId);
-          setPeers(new Map(peersRef.current));
-        }
-      }, 1000);
     });
 
     peer.on('close', () => {
       console.log('🔴 Peer connection closed:', socketId);
-      // Clean up the peer from our maps
-      peersRef.current.delete(socketId);
-      setPeers(new Map(peersRef.current));
     });
 
     peer.on('connect', () => {
       console.log('🟢 Peer connected:', socketId);
-      console.log('Connection state:', peer.connected);
-      toast.success(`Connected to ${socketId}`);
-    });
-
-    // Monitor connection state changes
-    peer.on('ready', () => {
-      console.log('🟡 Peer ready for connection:', socketId);
-    });
-
-    // Log signaling state changes
-    peer.on('signal', (signal) => {
-      console.log(`📡 Signal ${signal.type} sent for:`, socketId);
     });
 
     if (offer) {
       console.log('Signaling with offer from:', socketId);
       peer.signal(offer);
     }
-
-    // Add event listener for when peer is ready to connect
-    peer.on('ready', () => {
-      console.log('🟡 Peer ready for connection:', socketId);
-    });
 
     const peerConnection: PeerConnection = { peer };
     peersRef.current.set(socketId, peerConnection);
@@ -618,7 +438,7 @@ export const MeetingRoom: React.FC = () => {
         if (localStream) {
           const videoTrack = localStream.getVideoTracks()[0];
           peersRef.current.forEach(({ peer }) => {
-            const sender = peer._pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video');
+            const sender = peer._pc.getSenders().find((s: any) => s.track?.kind === 'video');
             if (sender && videoTrack) {
               sender.replaceTrack(videoTrack);
             }
@@ -631,7 +451,7 @@ export const MeetingRoom: React.FC = () => {
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: false
-        });
+        } as any);
         
         setScreenStream(stream);
         setScreenSharing(true);
@@ -647,12 +467,12 @@ export const MeetingRoom: React.FC = () => {
         let replacedCount = 0;
         peersRef.current.forEach(({ peer }, socketId) => {
           try {
-            const sender = peer._pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video');
+            const sender = peer._pc.getSenders().find((s: any) => s.track?.kind === 'video');
             if (sender) {
               sender.replaceTrack(screenTrack).then(() => {
                 console.log('✅ Screen track replaced for peer:', socketId);
                 replacedCount++;
-              }).catch((err: Error) => {
+              }).catch((err: any) => {
                 console.error('❌ Failed to replace track for peer:', socketId, err);
               });
             } else {
@@ -676,7 +496,7 @@ export const MeetingRoom: React.FC = () => {
           if (localStream) {
             const videoTrack = localStream.getVideoTracks()[0];
             peersRef.current.forEach(({ peer }) => {
-              const sender = peer._pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video');
+              const sender = peer._pc.getSenders().find((s: any) => s.track?.kind === 'video');
               if (sender && videoTrack) {
                 sender.replaceTrack(videoTrack);
               }
@@ -754,7 +574,7 @@ export const MeetingRoom: React.FC = () => {
     setIsDrawing(false);
   };
 
-  const drawOnCanvas = (ctx: CanvasRenderingContext2D, data: WhiteboardData) => {
+  const drawOnCanvas = (ctx: CanvasRenderingContext2D, data: any) => {
     ctx.strokeStyle = data.color;
     ctx.lineWidth = data.width;
     ctx.lineCap = 'round';

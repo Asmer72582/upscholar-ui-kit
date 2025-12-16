@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Connection Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .container { display: flex; gap: 20px; }
+        .video-container { flex: 1; }
+        .log-container { flex: 1; max-height: 600px; overflow-y: auto; }
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; }
+        video { width: 100%; height: 200px; background: #000; border-radius: 8px; }
+        .log { margin: 5px 0; padding: 8px; border-radius: 4px; font-size: 12px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button { padding: 10px 20px; margin: 5px; font-size: 14px; cursor: pointer; border-radius: 4px; border: none; }
+        .primary { background-color: #007bff; color: white; }
+        .danger { background-color: #dc3545; color: white; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; font-weight: bold; }
+        .connected { background-color: #28a745; color: white; }
+        .disconnected { background-color: #dc3545; color: white; }
+        h1, h2 { margin-top: 0; }
+    </style>
+</head>
+<body>
+    <h1>🎥 WebRTC Connection Test</h1>
+    
+    <div class="status" id="connectionStatus">Disconnected</div>
+    
+    <div>
+        <button class="primary" onclick="startTest()">Start Test</button>
+        <button class="danger" onclick="stopTest()">Stop Test</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+
+    <div class="container">
+        <div class="video-container">
+            <h2>Video Streams</h2>
+            <div class="video-grid" id="videoGrid">
+                <!-- Videos will be added here -->
+            </div>
+        </div>
+        
+        <div class="log-container">
+            <h2>Connection Logs</h2>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let localStream = null;
+        let peers = new Map();
+        let meetingId = 'test-meeting-123';
+        let userName = 'TestUser-' + Math.random().toString(36).substr(2, 9);
+
+        function addLog(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusDiv = document.getElementById('connectionStatus');
+            statusDiv.textContent = connected ? 'Connected' : 'Disconnected';
+            statusDiv.className = connected ? 'status connected' : 'status disconnected';
+        }
+
+        function addVideoStream(stream, isLocal = false, peerId = null) {
+            const videoGrid = document.getElementById('videoGrid');
+            const videoContainer = document.createElement('div');
+            videoContainer.style.position = 'relative';
+            
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = isLocal;
+            
+            const label = document.createElement('div');
+            label.style.position = 'absolute';
+            label.style.bottom = '10px';
+            label.style.left = '10px';
+            label.style.backgroundColor = 'rgba(0,0,0,0.7)';
+            label.style.color = 'white';
+            label.style.padding = '5px 10px';
+            label.style.borderRadius = '4px';
+            label.style.fontSize = '12px';
+            label.textContent = isLocal ? 'Local Stream' : `Peer: ${peerId || 'Unknown'}`;
+            
+            videoContainer.appendChild(video);
+            videoContainer.appendChild(label);
+            videoGrid.appendChild(videoContainer);
+            
+            return videoContainer;
+        }
+
+        async function startTest() {
+            addLog('Starting WebRTC test...', 'info');
+            
+            try {
+                // Get user media
+                addLog('Requesting camera/microphone access...', 'info');
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: 640, height: 480 }, 
+                    audio: true 
+                });
+                
+                addLog(`✅ Got local stream with ${localStream.getTracks().length} tracks`, 'success');
+                localStream.getTracks().forEach(track => {
+                    addLog(`  - ${track.kind} track: ${track.id} (${track.enabled ? 'enabled' : 'disabled'})`, 'info');
+                });
+                
+                // Display local stream
+                addVideoStream(localStream, true);
+                
+                // Connect to socket.io
+                const socketUrl = 'https://upscholar-backend.onrender.com';
+                addLog(`Connecting to socket.io at ${socketUrl}...`, 'info');
+                
+                socket = io(socketUrl, {
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000,
+                    forceNew: true,
+                    reconnectionAttempts: 3,
+                    reconnectionDelay: 1000,
+                });
+
+                setupSocketListeners();
+                
+            } catch (error) {
+                addLog(`❌ Error starting test: ${error.message}`, 'error');
+                console.error('Start test error:', error);
+            }
+        }
+
+        function setupSocketListeners() {
+            socket.on('connect', () => {
+                addLog(`✅ Connected to socket.io! ID: ${socket.id}`, 'success');
+                updateConnectionStatus(true);
+                
+                // Join meeting
+                addLog(`Joining meeting: ${meetingId}`, 'info');
+                socket.emit('join-meeting', {
+                    meetingId: meetingId,
+                    userId: socket.id,
+                    userName: userName,
+                    userRole: 'student'
+                });
+            });
+
+            socket.on('connect_error', (error) => {
+                addLog(`❌ Connection error: ${error.message}`, 'error');
+                updateConnectionStatus(false);
+            });
+
+            socket.on('disconnect', (reason) => {
+                addLog(`🔌 Disconnected: ${reason}`, 'warning');
+                updateConnectionStatus(false);
+            });
+
+            socket.on('meeting-joined', (data) => {
+                addLog(`✅ Meeting joined! ${data.participants.length} existing participants`, 'success');
+                addLog(`Is host: ${data.isHost}`, 'info');
+                
+                // Connect to existing participants
+                data.participants.forEach(participant => {
+                    addLog(`Connecting to existing participant: ${participant.userName}`, 'info');
+                    createPeerConnection(participant.socketId, true);
+                });
+            });
+
+            socket.on('user-joined', ({ socketId, userName }) => {
+                addLog(`👤 User joined: ${userName}`, 'info');
+                setTimeout(() => {
+                    createPeerConnection(socketId, true);
+                }, 1000);
+            });
+
+            socket.on('user-left', ({ socketId }) => {
+                addLog(`👋 User left: ${socketId}`, 'info');
+                removePeer(socketId);
+            });
+
+            socket.on('offer', ({ from, offer }) => {
+                addLog(`📨 Received offer from ${from}`, 'info');
+                handleOffer(from, offer);
+            });
+
+            socket.on('answer', ({ from, answer }) => {
+                addLog(`📤 Received answer from ${from}`, 'info');
+                handleAnswer(from, answer);
+            });
+
+            socket.on('ice-candidate', ({ from, candidate }) => {
+                addLog(`🧊 Received ICE candidate from ${from}`, 'info');
+                handleIceCandidate(from, candidate);
+            });
+        }
+
+        function createPeerConnection(peerId, initiator = false) {
+            if (peers.has(peerId)) {
+                addLog(`Peer ${peerId} already exists`, 'warning');
+                return;
+            }
+
+            addLog(`Creating peer connection to ${peerId} (initiator: ${initiator})`, 'info');
+
+            // Simple Peer configuration
+            const config = {
+                initiator: initiator,
+                trickle: true,
+                stream: localStream,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun3.l.google.com:19302' },
+                        { urls: 'stun:stun4.l.google.com:19302' }
+                    ],
+                    iceCandidatePoolSize: 10,
+                    bundlePolicy: 'max-bundle',
+                    rtcpMuxPolicy: 'require'
+                },
+                offerOptions: {
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: true
+                }
+            };
+
+            // For this test, we'll use a simple WebRTC implementation
+            createSimplePeerConnection(peerId, initiator);
+        }
+
+        async function createSimplePeerConnection(peerId, initiator) {
+            try {
+                const configuration = {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                };
+
+                const peerConnection = new RTCPeerConnection(configuration);
+                peers.set(peerId, peerConnection);
+
+                // Add local stream tracks
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                    addLog(`Added ${track.kind} track to peer connection`, 'info');
+                });
+
+                // Handle remote stream
+                peerConnection.ontrack = (event) => {
+                    addLog(`🎬 Received remote stream from ${peerId}`, 'success');
+                    addLog(`  - Stream has ${event.streams[0].getTracks().length} tracks`, 'info');
+                    event.streams[0].getTracks().forEach(track => {
+                        addLog(`    - ${track.kind} track: ${track.id}`, 'info');
+                    });
+                    
+                    // Display remote video
+                    addVideoStream(event.streams[0], false, peerId);
+                };
+
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        addLog(`Sending ICE candidate to ${peerId}`, 'info');
+                        socket.emit('ice-candidate', {
+                            to: peerId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                // Handle connection state changes
+                peerConnection.onconnectionstatechange = () => {
+                    addLog(`Connection state with ${peerId}: ${peerConnection.connectionState}`, 'info');
+                };
+
+                peerConnection.oniceconnectionstatechange = () => {
+                    addLog(`ICE connection state with ${peerId}: ${peerConnection.iceConnectionState}`, 'info');
+                };
+
+                if (initiator) {
+                    // Create offer
+                    const offer = await peerConnection.createOffer();
+                    await peerConnection.setLocalDescription(offer);
+                    addLog(`Sending offer to ${peerId}`, 'info');
+                    socket.emit('offer', { to: peerId, offer: offer });
+                }
+
+            } catch (error) {
+                addLog(`❌ Error creating peer connection: ${error.message}`, 'error');
+                console.error('Peer connection error:', error);
+            }
+        }
+
+        async function handleOffer(from, offer) {
+            try {
+                const peerConnection = new RTCPeerConnection({
+                    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                });
+                
+                peers.set(from, peerConnection);
+
+                // Add local stream tracks
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+
+                // Handle remote stream
+                peerConnection.ontrack = (event) => {
+                    addLog(`🎬 Received remote stream from ${from} (offer handler)`, 'success');
+                    addVideoStream(event.streams[0], false, from);
+                };
+
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice-candidate', {
+                            to: from,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                // Set remote description and create answer
+                await peerConnection.setRemoteDescription(offer);
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                addLog(`Sending answer to ${from}`, 'info');
+                socket.emit('answer', { to: from, answer: answer });
+
+            } catch (error) {
+                addLog(`❌ Error handling offer: ${error.message}`, 'error');
+            }
+        }
+
+        async function handleAnswer(from, answer) {
+            try {
+                const peerConnection = peers.get(from);
+                if (peerConnection) {
+                    await peerConnection.setRemoteDescription(answer);
+                    addLog(`✅ Set remote description for ${from}`, 'success');
+                } else {
+                    addLog(`No peer connection found for answer from ${from}`, 'warning');
+                }
+            } catch (error) {
+                addLog(`❌ Error handling answer: ${error.message}`, 'error');
+            }
+        }
+
+        async function handleIceCandidate(from, candidate) {
+            try {
+                const peerConnection = peers.get(from);
+                if (peerConnection) {
+                    await peerConnection.addIceCandidate(candidate);
+                    addLog(`✅ Added ICE candidate from ${from}`, 'success');
+                } else {
+                    addLog(`No peer connection found for ICE candidate from ${from}`, 'warning');
+                }
+            } catch (error) {
+                addLog(`❌ Error handling ICE candidate: ${error.message}`, 'error');
+            }
+        }
+
+        function removePeer(peerId) {
+            const peerConnection = peers.get(peerId);
+            if (peerConnection) {
+                peerConnection.close();
+                peers.delete(peerId);
+                addLog(`Removed peer connection for ${peerId}`, 'info');
+            }
+        }
+
+        function stopTest() {
+            addLog('Stopping test...', 'info');
+            
+            // Close all peer connections
+            peers.forEach((peerConnection, peerId) => {
+                peerConnection.close();
+                addLog(`Closed peer connection to ${peerId}`, 'info');
+            });
+            peers.clear();
+
+            // Stop local stream
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                addLog('Stopped local stream', 'info');
+            }
+
+            // Disconnect socket
+            if (socket) {
+                socket.disconnect();
+                addLog('Disconnected from socket.io', 'info');
+                updateConnectionStatus(false);
+            }
+
+            // Clear video grid
+            document.getElementById('videoGrid').innerHTML = '';
+            
+            addLog('Test stopped', 'success');
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Auto-start test on page load
+        window.addEventListener('load', () => {
+            addLog('WebRTC test page loaded', 'info');
+            addLog('Click "Start Test" to begin testing WebRTC connections', 'info');
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (socket && socket.connected) {
+                stopTest();
+            }
+        });
+    </script>
+</body>
+</html>

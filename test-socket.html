@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.io Connection Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .log { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 10px 0; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Socket.io Connection Test</h1>
+    <button onclick="testConnection()">Test Connection</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    <div id="logs"></div>
+
+    <script>
+        function addLog(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logsDiv.appendChild(logEntry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function testConnection() {
+            addLog('Starting socket.io connection test...', 'info');
+            
+            // Test backend connection
+            const backendUrl = 'https://upscholar-backend.onrender.com';
+            addLog(`Attempting to connect to: ${backendUrl}`, 'info');
+            
+            const socket = io(backendUrl, {
+                transports: ['websocket', 'polling'],
+                timeout: 10000,
+                forceNew: true,
+                reconnectionAttempts: 3,
+                reconnectionDelay: 1000,
+            });
+
+            socket.on('connect', () => {
+                addLog(`✅ Successfully connected to ${backendUrl}!`, 'success');
+                addLog(`Socket ID: ${socket.id}`, 'success');
+                
+                // Test joining a meeting
+                const testMeetingId = '692fa3c9c8538d7aaf91b71f';
+                const testUser = {
+                    meetingId: testMeetingId,
+                    userId: 'test-user-123',
+                    userName: 'Test User',
+                    userRole: 'student'
+                };
+                
+                addLog(`Joining test meeting: ${testMeetingId}`, 'info');
+                socket.emit('join-meeting', testUser);
+            });
+
+            socket.on('connect_error', (error) => {
+                addLog(`❌ Connection error: ${error.message}`, 'error');
+                addLog(`Error details: ${JSON.stringify(error)}`, 'error');
+            });
+
+            socket.on('connect_timeout', () => {
+                addLog('❌ Connection timeout after 10 seconds', 'error');
+            });
+
+            socket.on('disconnect', (reason) => {
+                addLog(`Disconnected: ${reason}`, 'error');
+            });
+
+            socket.on('reconnect_attempt', (attemptNumber) => {
+                addLog(`Reconnection attempt ${attemptNumber}`, 'info');
+            });
+
+            socket.on('reconnect_failed', () => {
+                addLog('❌ Reconnection failed after all attempts', 'error');
+            });
+
+            // Meeting-specific events
+            socket.on('meeting-joined', (data) => {
+                addLog(`✅ Meeting joined successfully! Participants: ${data.participants.length}`, 'success');
+                addLog(`Is host: ${data.isHost}`, 'success');
+            });
+
+            socket.on('user-joined', (data) => {
+                addLog(`👤 User joined: ${data.userName} (${data.userRole})`, 'info');
+            });
+
+            socket.on('user-left', (data) => {
+                addLog(`👋 User left: ${data.userName}`, 'info');
+            });
+
+            socket.on('error', (error) => {
+                addLog(`❌ Socket error: ${JSON.stringify(error)}`, 'error');
+            });
+
+            // Auto-disconnect after 30 seconds
+            setTimeout(() => {
+                if (socket.connected) {
+                    addLog('Disconnecting after 30 seconds...', 'info');
+                    socket.disconnect();
+                }
+            }, 30000);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        // Test connection on page load
+        window.addEventListener('load', () => {
+            addLog('Socket.io test page loaded', 'info');
+        });
+    </script>
+</body>
+</html>

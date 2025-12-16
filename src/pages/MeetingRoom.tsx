@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { User } from '@/types';
 import {
   Mic,
   MicOff,
@@ -47,6 +48,21 @@ interface ChatMessage {
 interface PeerConnection {
   peer: Peer.Instance;
   stream?: MediaStream;
+}
+
+interface WhiteboardData {
+  x: number;
+  y: number;
+  prevX: number;
+  prevY: number;
+  color: string;
+  width: number;
+  tool: 'pen' | 'eraser';
+}
+
+interface RTCSender {
+  track?: MediaStreamTrack | null;
+  replaceTrack(track: MediaStreamTrack): Promise<void>;
 }
 
 // Remote Video Component with proper stream handling
@@ -90,7 +106,7 @@ export const MeetingRoom: React.FC = () => {
   console.log('MeetingRoom component loaded'); // Force inclusion in build
   const { lectureId } = useParams<{ lectureId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: User | null };
 
   // Socket and WebRTC
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -180,14 +196,76 @@ export const MeetingRoom: React.FC = () => {
 
       // Connect to socket
       console.log('Connecting to Socket.io server...');
-      const newSocket = io(SOCKET_URL);
+      console.log('Socket URL:', SOCKET_URL);
+      
+      const newSocket = io(SOCKET_URL, {
+        transports: ['websocket', 'polling'], // Try websocket first, fallback to polling
+        timeout: 10000, // 10 second timeout
+        forceNew: true, // Force new connection
+        reconnectionAttempts: 3, // Try to reconnect 3 times
+        reconnectionDelay: 1000, // Wait 1 second between attempts
+      });
+      
       setSocket(newSocket);
 
-      newSocket.emit('join-meeting', {
-        meetingId: lectureId,
-        userId: (user as any).id || (user as any)._id,
-        userName: `${user.firstName} ${user.lastName}`,
-        userRole: user.role
+      // Socket connection events
+      newSocket.on('connect', () => {
+        console.log('✅ Socket.io connected successfully!');
+        console.log('Socket ID:', newSocket.id);
+        
+        // Join meeting after successful connection
+        newSocket.emit('join-meeting', {
+          meetingId: lectureId,
+          userId: user.id,
+          userName: `${user.firstName} ${user.lastName}`,
+          userRole: user.role
+        });
+      });
+
+      newSocket.on('connect_error', (error) => {
+        console.error('❌ Socket.io connection error:', error);
+        console.error('Error details:', error.message);
+        toast.error('Failed to connect to meeting server');
+      });
+
+      newSocket.on('connect_timeout', () => {
+        console.error('❌ Socket.io connection timeout');
+        toast.error('Connection to meeting server timed out');
+      });
+
+      newSocket.on('error', (error) => {
+        console.error('❌ Socket.io error:', error);
+        toast.error('Meeting connection error');
+      });
+
+      newSocket.on('disconnect', (reason) => {
+        console.warn('⚠️ Socket.io disconnected:', reason);
+        if (reason === 'io server disconnect') {
+          toast.warning('Disconnected from meeting server');
+        } else if (reason === 'io client disconnect') {
+          toast.info('You left the meeting');
+        } else {
+          toast.warning('Connection lost');
+        }
+      });
+
+      newSocket.on('reconnect', (attemptNumber) => {
+        console.log('🔄 Socket.io reconnected after', attemptNumber, 'attempts');
+        toast.success('Reconnected to meeting');
+        
+        // Rejoin meeting after reconnection
+        newSocket.emit('join-meeting', {
+          meetingId: lectureId,
+          userId: user.id,
+          userName: `${user.firstName} ${user.lastName}`,
+          userRole: user.role
+        });
+      });
+
+      newSocket.on('reconnect_failed', () => {
+        console.error('❌ Socket.io reconnection failed');
+        toast.error('Failed to reconnect to meeting');
+        navigate('/');
       });
 
       newSocket.on('meeting-joined', ({ participants: existingParticipants, whiteboard, chat, isHost: host }) => {
@@ -196,17 +274,23 @@ export const MeetingRoom: React.FC = () => {
         setIsHost(host);
         setMessages(chat);
         
-        // Connect to existing participants
-        existingParticipants.forEach((participant: Participant) => {
-          console.log('Creating peer connection to:', participant.userName);
-          createPeer(participant.socketId, newSocket, stream, true);
-        });
+        // Connect to existing participants with proper timing
+        setTimeout(() => {
+          if (localStream) {
+            existingParticipants.forEach((participant: Participant) => {
+              console.log('Creating peer connection to:', participant.userName);
+              createPeer(participant.socketId, newSocket, localStream, true);
+            });
+          } else {
+            console.warn('Local stream not available when connecting to existing participants');
+          }
+        }, 1000); // Wait 1 second to ensure stream is ready
 
         // Restore whiteboard
         if (whiteboard && canvasRef.current) {
           const ctx = canvasRef.current.getContext('2d');
           if (ctx) {
-            whiteboard.forEach((data: any) => {
+            whiteboard.forEach((data) => {
               drawOnCanvas(ctx, data);
             });
           }
@@ -221,8 +305,12 @@ export const MeetingRoom: React.FC = () => {
         
         // Small delay to ensure socket is ready
         setTimeout(() => {
-          console.log('Creating peer for new user:', userName);
-          createPeer(socketId, newSocket, stream, true);
+          if (localStream) {
+            console.log('Creating peer for new user:', userName);
+            createPeer(socketId, newSocket, localStream, true);
+          } else {
+            console.warn('Local stream not available for new user:', userName);
+          }
         }, 500);
         
         toast.info(`${userName} joined the meeting`);
@@ -240,7 +328,11 @@ export const MeetingRoom: React.FC = () => {
 
       newSocket.on('offer', ({ from, offer }) => {
         console.log('Received offer from:', from);
-        createPeer(from, newSocket, stream, false, offer);
+        if (localStream) {
+          createPeer(from, newSocket, localStream, false, offer);
+        } else {
+          console.warn('Local stream not available for offer from:', from);
+        }
       });
 
       newSocket.on('answer', ({ from, answer }) => {
@@ -277,7 +369,7 @@ export const MeetingRoom: React.FC = () => {
       });
 
       // Whiteboard
-      newSocket.on('whiteboard-draw', (data) => {
+      newSocket.on('whiteboard-draw', (data: WhiteboardData) => {
         if (canvasRef.current) {
           const ctx = canvasRef.current.getContext('2d');
           if (ctx) {
@@ -300,7 +392,7 @@ export const MeetingRoom: React.FC = () => {
           const ctx = canvasRef.current.getContext('2d');
           if (ctx) {
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-            whiteboard.forEach((data: any) => {
+            whiteboard.forEach((data: WhiteboardData) => {
               drawOnCanvas(ctx, data);
             });
           }
@@ -330,15 +422,20 @@ export const MeetingRoom: React.FC = () => {
     socket: Socket,
     stream: MediaStream,
     initiator: boolean,
-    offer?: any
+    offer?: string
   ) => {
-    console.log(`Creating peer connection - socketId: ${socketId}, initiator: ${initiator}`);
+    console.log(`Creating peer connection - socketId: ${socketId}, initiator: ${initiator}, stream tracks: ${stream.getTracks().length}`);
     
     // Check if peer already exists
     if (peersRef.current.has(socketId)) {
       console.log('Peer already exists for:', socketId);
       return;
     }
+    
+    // Log stream details
+    stream.getTracks().forEach(track => {
+      console.log(`  - Local ${track.kind} track:`, track.id, 'enabled:', track.enabled, 'label:', track.label);
+    });
 
     const peer = new Peer({
       initiator,
@@ -348,12 +445,24 @@ export const MeetingRoom: React.FC = () => {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
           { urls: 'stun:stun1.l.google.com:19302' },
-        ]
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+          // Add TURN server for better NAT traversal (you can get free TURN servers from various providers)
+          // { urls: 'turn:your-turn-server.com:3478', username: 'username', credential: 'password' }
+        ],
+        iceCandidatePoolSize: 10,
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require'
+      },
+      offerOptions: {
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
       }
     });
 
     peer.on('signal', (signal) => {
-      console.log(`Sending ${initiator ? 'offer' : 'answer'} to:`, socketId);
+      console.log(`Sending ${initiator ? 'offer' : 'answer'} to:`, socketId, 'Signal type:', signal.type);
       if (initiator) {
         socket.emit('offer', { to: socketId, offer: signal });
       } else {
@@ -372,6 +481,11 @@ export const MeetingRoom: React.FC = () => {
         peerConnection.stream = remoteStream;
         setPeers(new Map(peersRef.current));
         console.log('📺 Stream stored for peer:', socketId);
+        
+        // Force update to ensure UI re-renders
+        setTimeout(() => {
+          setPeers(new Map(peersRef.current));
+        }, 100);
       }
     });
     
@@ -381,6 +495,7 @@ export const MeetingRoom: React.FC = () => {
 
     peer.on('error', (err) => {
       console.error('❌ Peer connection error with', socketId, ':', err);
+      console.error('Error code:', err.code, 'Error message:', err.message);
     });
 
     peer.on('close', () => {
@@ -389,12 +504,18 @@ export const MeetingRoom: React.FC = () => {
 
     peer.on('connect', () => {
       console.log('🟢 Peer connected:', socketId);
+      console.log('Connection state:', peer.connected);
     });
 
     if (offer) {
       console.log('Signaling with offer from:', socketId);
       peer.signal(offer);
     }
+
+    // Add event listener for when peer is ready to connect
+    peer.on('ready', () => {
+      console.log('🟡 Peer ready for connection:', socketId);
+    });
 
     const peerConnection: PeerConnection = { peer };
     peersRef.current.set(socketId, peerConnection);
@@ -438,7 +559,7 @@ export const MeetingRoom: React.FC = () => {
         if (localStream) {
           const videoTrack = localStream.getVideoTracks()[0];
           peersRef.current.forEach(({ peer }) => {
-            const sender = peer._pc.getSenders().find((s: any) => s.track?.kind === 'video');
+            const sender = peer._pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video');
             if (sender && videoTrack) {
               sender.replaceTrack(videoTrack);
             }
@@ -451,7 +572,7 @@ export const MeetingRoom: React.FC = () => {
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: false
-        } as any);
+        });
         
         setScreenStream(stream);
         setScreenSharing(true);
@@ -467,12 +588,12 @@ export const MeetingRoom: React.FC = () => {
         let replacedCount = 0;
         peersRef.current.forEach(({ peer }, socketId) => {
           try {
-            const sender = peer._pc.getSenders().find((s: any) => s.track?.kind === 'video');
+            const sender = peer._pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video');
             if (sender) {
               sender.replaceTrack(screenTrack).then(() => {
                 console.log('✅ Screen track replaced for peer:', socketId);
                 replacedCount++;
-              }).catch((err: any) => {
+              }).catch((err: Error) => {
                 console.error('❌ Failed to replace track for peer:', socketId, err);
               });
             } else {
@@ -496,7 +617,7 @@ export const MeetingRoom: React.FC = () => {
           if (localStream) {
             const videoTrack = localStream.getVideoTracks()[0];
             peersRef.current.forEach(({ peer }) => {
-              const sender = peer._pc.getSenders().find((s: any) => s.track?.kind === 'video');
+              const sender = peer._pc.getSenders().find((s: RTCRtpSender) => s.track?.kind === 'video');
               if (sender && videoTrack) {
                 sender.replaceTrack(videoTrack);
               }
@@ -574,7 +695,7 @@ export const MeetingRoom: React.FC = () => {
     setIsDrawing(false);
   };
 
-  const drawOnCanvas = (ctx: CanvasRenderingContext2D, data: any) => {
+  const drawOnCanvas = (ctx: CanvasRenderingContext2D, data: WhiteboardData) => {
     ctx.strokeStyle = data.color;
     ctx.lineWidth = data.width;
     ctx.lineCap = 'round';

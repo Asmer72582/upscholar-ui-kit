@@ -24,6 +24,6 @@ export default defineConfig(({ mode }) => ({
     'process.env': {},
   },
   optimizeDeps: {
-    include: ['simple-peer', 'buffer'],
+    include: ['vite-compatible-simple-peer', 'buffer'],
   },
 }));

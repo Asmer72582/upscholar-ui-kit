@@ -143,7 +143,9 @@ export const MeetingRoom: React.FC = () => {
       
       try {
         console.log('📹 Requesting camera and microphone access...');
-        stream = await navigator.mediaDevices.getUserMedia({
+        
+        // Try with optimal settings first
+        const constraints = {
           video: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
@@ -154,30 +156,79 @@ export const MeetingRoom: React.FC = () => {
             noiseSuppression: true,
             autoGainControl: true
           }
-        });
+        };
+        
+        console.log('🎯 Trying optimal media constraints:', constraints);
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
         console.log('✅ Got local stream with video:', stream.id);
         console.log('📹 Video tracks:', stream.getVideoTracks().length);
         console.log('🎤 Audio tracks:', stream.getAudioTracks().length);
       } catch (videoError: unknown) {
         const videoErrorObj = videoError as Error;
         console.warn('⚠️ Video not available, trying audio only:', videoErrorObj.name, videoErrorObj.message);
+        
+        // Enhanced error handling for HTTPS and permission issues
+        if (videoErrorObj.name === 'NotAllowedError') {
+          toast.error('Camera/microphone access denied. Please allow permissions and refresh the page.');
+          console.error('❌ Permission denied - user needs to grant camera/microphone access');
+        } else if (videoErrorObj.name === 'NotFoundError') {
+          toast.error('No camera/microphone found. Please check your device settings.');
+          console.error('❌ No media devices found');
+        } else if (videoErrorObj.name === 'NotReadableError') {
+          toast.error('Camera/microphone is already in use by another application.');
+          console.error('❌ Media device already in use');
+        } else if (videoErrorObj.name === 'OverconstrainedError') {
+          toast.error('Camera settings not supported. Trying with default settings.');
+          console.error('❌ Media constraints not supported');
+        } else {
+          toast.error(`Media access failed: ${videoErrorObj.message}`);
+        }
+        
         try {
-          stream = await navigator.mediaDevices.getUserMedia({
+          // Try with basic audio-only constraints
+          const audioConstraints = {
             video: false,
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
               autoGainControl: true
             }
-          });
+          };
+          console.log('🎯 Trying audio-only constraints:', audioConstraints);
+          stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
           console.log('✅ Got local stream with audio only:', stream.id);
           setVideoEnabled(false);
           toast.info('Joined with audio only (camera not available)');
         } catch (audioError: unknown) {
           const audioErrorObj = audioError as Error;
           console.error('❌ No media available:', audioErrorObj.name, audioErrorObj.message);
-          toast.error('Could not access camera or microphone. Please check permissions.');
-          return;
+          
+          // Final fallback: try with minimal constraints
+          console.log('🎯 Trying minimal constraints as final fallback...');
+          try {
+            const minimalConstraints = { video: false, audio: true };
+            stream = await navigator.mediaDevices.getUserMedia(minimalConstraints);
+            console.log('✅ Got local stream with minimal audio:', stream.id);
+            setVideoEnabled(false);
+            toast.info('Joined with basic audio only');
+          } catch (finalError: unknown) {
+            const finalErrorObj = finalError as Error;
+            console.error('❌ Complete media failure:', finalErrorObj.name, finalErrorObj.message);
+            
+            let errorMessage = 'Could not access camera or microphone. ';
+            if (finalErrorObj.name === 'NotAllowedError') {
+              errorMessage += 'Please allow permissions in your browser settings.';
+            } else if (finalErrorObj.name === 'NotFoundError') {
+              errorMessage += 'No media devices found.';
+            } else if (finalErrorObj.name === 'NotReadableError') {
+              errorMessage += 'Media devices are in use by another application.';
+            } else {
+              errorMessage += `Error: ${finalErrorObj.message}`;
+            }
+            
+            toast.error(errorMessage);
+            return;
+          }
         }
       }
       
@@ -194,10 +245,18 @@ export const MeetingRoom: React.FC = () => {
 
       // Connect to socket
       console.log('🔗 Connecting to Socket.io server:', SOCKET_URL);
+      
+      // Check if we're on HTTPS and configure accordingly
+      const isHTTPS = window.location.protocol === 'https:';
+      console.log('🔒 HTTPS detected:', isHTTPS);
+      
       const newSocket = io(SOCKET_URL, {
         transports: ['websocket', 'polling'],
         timeout: 10000,
-        forceNew: true
+        forceNew: true,
+        secure: isHTTPS,
+        rejectUnauthorized: false, // Allow self-signed certificates in development
+        withCredentials: true
       });
       setSocket(newSocket);
 
@@ -376,6 +435,12 @@ export const MeetingRoom: React.FC = () => {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' },
+            // Additional public STUN servers
+            { urls: 'stun:openrelay.metered.ca:80' },
+            { urls: 'stun:stun.relay.metered.ca:80' }
           ]
         }
       });

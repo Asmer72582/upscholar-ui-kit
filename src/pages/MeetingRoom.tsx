@@ -4,6 +4,26 @@ import { useAuth } from '@/contexts/AuthContext';
 import io, { Socket } from 'socket.io-client';
 import Peer from 'simple-peer';
 import { toast } from 'sonner';
+
+// Simple-peer compatibility check
+const checkPeerCompatibility = () => {
+  try {
+    if (typeof Peer !== 'function') {
+      console.error('❌ Peer is not a function');
+      return false;
+    }
+    
+    // Test basic Peer constructor without parameters
+    const testPeer = new Peer({ initiator: false, trickle: false });
+    testPeer.destroy();
+    console.log('✅ Peer constructor test passed');
+    return true;
+  } catch (error: unknown) {
+    const errorObj = error as Error;
+    console.error('❌ Peer compatibility test failed:', errorObj.message);
+    return false;
+  }
+};
 import { SOCKET_URL } from '@/config/env';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -130,6 +150,13 @@ export const MeetingRoom: React.FC = () => {
       console.log('🔧 Initializing meeting...');
       console.log('📍 Current URL:', window.location.href);
       console.log('🔒 Protocol:', window.location.protocol);
+      
+      // Check simple-peer compatibility
+      console.log('🔍 Testing simple-peer compatibility...');
+      if (!checkPeerCompatibility()) {
+        toast.error('WebRTC library compatibility issue detected. Please refresh the page.');
+        return;
+      }
       
       // Check HTTPS requirement
       if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
@@ -328,22 +355,59 @@ export const MeetingRoom: React.FC = () => {
 
       newSocket.on('offer', ({ from, offer }) => {
         console.log('📨 Received offer from:', from);
-        createPeer(from, newSocket, stream, false, offer);
+        console.log('📨 Offer data:', { from, offer: !!offer, offerType: offer?.type });
+        
+        try {
+          if (!offer || typeof offer !== 'object') {
+            console.error('❌ Invalid offer received:', offer);
+            return;
+          }
+          createPeer(from, newSocket, stream, false, offer);
+        } catch (error: unknown) {
+          const errorObj = error as Error;
+          console.error('❌ Error processing offer from', from, ':', errorObj.message);
+          toast.error('Failed to process connection offer');
+        }
       });
 
       newSocket.on('answer', ({ from, answer }) => {
         console.log('📨 Received answer from:', from);
-        const peerConnection = peersRef.current.get(from);
-        if (peerConnection) {
-          peerConnection.peer.signal(answer);
+        console.log('📨 Answer data:', { from, answer: !!answer });
+        
+        try {
+          const peerConnection = peersRef.current.get(from);
+          if (peerConnection && peerConnection.peer) {
+            if (!answer || typeof answer !== 'object') {
+              console.error('❌ Invalid answer received:', answer);
+              return;
+            }
+            peerConnection.peer.signal(answer);
+          } else {
+            console.warn('⚠️ No peer connection found for answer from:', from);
+          }
+        } catch (error: unknown) {
+          const errorObj = error as Error;
+          console.error('❌ Error processing answer from', from, ':', errorObj.message);
         }
       });
 
       newSocket.on('ice-candidate', ({ from, candidate }) => {
         console.log('🧊 Received ICE candidate from:', from);
-        const peerConnection = peersRef.current.get(from);
-        if (peerConnection) {
-          peerConnection.peer.signal(candidate);
+        
+        try {
+          const peerConnection = peersRef.current.get(from);
+          if (peerConnection && peerConnection.peer) {
+            if (!candidate || typeof candidate !== 'object') {
+              console.error('❌ Invalid ICE candidate received:', candidate);
+              return;
+            }
+            peerConnection.peer.signal(candidate);
+          } else {
+            console.warn('⚠️ No peer connection found for ICE candidate from:', from);
+          }
+        } catch (error: unknown) {
+          const errorObj = error as Error;
+          console.error('❌ Error processing ICE candidate from', from, ':', errorObj.message);
         }
       });
 
@@ -380,6 +444,30 @@ export const MeetingRoom: React.FC = () => {
     initiator: boolean,
     offer?: Peer.SignalData
   ) => {
+    console.log(`🔧 Creating peer connection - socketId: ${socketId}, initiator: ${initiator}`);
+    
+    // Validate offer parameter if provided
+    if (offer && !initiator) {
+      console.log('📨 Offer validation:', {
+        hasOffer: !!offer,
+        offerType: offer.type,
+        hasSdp: !!offer.sdp,
+        offerKeys: Object.keys(offer)
+      });
+      
+      // Validate offer structure
+      if (!offer.sdp || typeof offer.sdp !== 'string') {
+        console.error('❌ Invalid offer structure - missing or invalid SDP');
+        toast.error('Connection error: Invalid offer received');
+        return;
+      }
+      
+      if (!offer.type || (offer.type !== 'offer' && offer.type !== 'answer')) {
+        console.error('❌ Invalid offer structure - missing or invalid type');
+        toast.error('Connection error: Invalid offer type');
+        return;
+      }
+    }
     console.log(`🔧 Creating peer connection - socketId: ${socketId}, initiator: ${initiator}`);
     
     // Validate socket parameter
@@ -422,28 +510,69 @@ export const MeetingRoom: React.FC = () => {
       console.log('  - Stream tracks:', stream.getTracks().length);
       console.log('  - Peer constructor available:', typeof Peer);
       
-      // Check if Peer is available
+      // Check if Peer is available and properly loaded
       if (typeof Peer !== 'function') {
         throw new Error('Peer constructor not available - simple-peer library may not be loaded');
       }
       
-      const peer = new Peer({
+      console.log('🎯 Creating Peer instance with config:', {
         initiator,
         trickle: true,
-        stream,
-        config: {
-          iceServers: [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun3.l.google.com:19302' },
-            { urls: 'stun:stun4.l.google.com:19302' },
-            // Additional public STUN servers
-            { urls: 'stun:openrelay.metered.ca:80' },
-            { urls: 'stun:stun.relay.metered.ca:80' }
-          ]
-        }
+        streamAvailable: !!stream,
+        streamId: stream?.id
       });
+      
+      let peer;
+      try {
+        // Validate stream before passing to Peer constructor
+        if (!stream || !stream.getTracks) {
+          throw new Error('Invalid stream: Stream is undefined or invalid');
+        }
+        
+        const peerConfig = {
+          initiator,
+          trickle: true,
+          stream,
+          config: {
+            iceServers: [
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun2.l.google.com:19302' },
+              { urls: 'stun:stun3.l.google.com:19302' },
+              { urls: 'stun:stun4.l.google.com:19302' },
+              // Additional public STUN servers
+              { urls: 'stun:openrelay.metered.ca:80' },
+              { urls: 'stun:stun.relay.metered.ca:80' }
+            ]
+          }
+        };
+        
+        console.log('🎯 Peer config:', {
+          initiator: peerConfig.initiator,
+          trickle: peerConfig.trickle,
+          hasStream: !!peerConfig.stream,
+          streamTracks: peerConfig.stream.getTracks().length
+        });
+        
+        peer = new Peer(peerConfig);
+      } catch (peerError: unknown) {
+        const peerErrorObj = peerError as Error;
+        console.error('❌ Peer constructor failed:', peerErrorObj.name, peerErrorObj.message);
+        console.error('❌ Peer constructor stack:', peerErrorObj.stack);
+        
+        // Check for specific constructor errors
+        if (peerErrorObj.message.includes('Cannot read properties of undefined')) {
+          console.error('❌ This appears to be a simple-peer constructor error');
+          console.error('❌ Stream validation:', {
+            hasStream: !!stream,
+            hasGetTracks: !!stream?.getTracks,
+            streamType: typeof stream
+          });
+        }
+        
+        toast.error(`Failed to create peer connection: ${peerErrorObj.message}`);
+        throw new Error(`Peer creation failed: ${peerErrorObj.message}`);
+      }
       
       console.log('✅ Peer instance created successfully');
 
@@ -492,12 +621,37 @@ export const MeetingRoom: React.FC = () => {
       // Handle incoming offer
       if (offer) {
         console.log('📨 Processing incoming offer for:', socketId);
+        console.log('📨 Offer details:', {
+          type: offer.type,
+          hasSdp: !!offer.sdp,
+          sdpLength: offer.sdp?.length
+        });
+        
         try {
+          // Ensure offer is valid before signaling
+          if (!offer.sdp || typeof offer.sdp !== 'string') {
+            throw new Error('Invalid offer: Missing or invalid SDP');
+          }
+          
           peer.signal(offer);
           console.log('✅ Offer processed successfully');
         } catch (signalError: unknown) {
           const errorObj = signalError as Error;
           console.error('❌ Failed to process offer:', errorObj.message);
+          console.error('❌ Signal error stack:', errorObj.stack);
+          
+          // Check for specific signal errors
+          if (errorObj.message.includes('Cannot read properties of undefined')) {
+            console.error('❌ This appears to be a simple-peer internal error');
+            console.error('❌ Offer object:', offer);
+            console.error('❌ Peer state:', {
+              destroyed: peer.destroyed,
+              connected: peer.connected,
+              initiator: peer.initiator
+            });
+          }
+          
+          toast.error(`Failed to process connection offer: ${errorObj.message}`);
         }
       }
 

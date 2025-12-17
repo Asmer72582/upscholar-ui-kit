@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import io, { Socket } from 'socket.io-client';
 import Peer from 'simple-peer';
 import { toast } from 'sonner';
+import { Buffer } from 'buffer';
 
-// Simple-peer compatibility check
+// Simple-peer compatibility check with proper polyfill handling
 const checkPeerCompatibility = () => {
   try {
     if (typeof Peer !== 'function') {
@@ -13,14 +14,66 @@ const checkPeerCompatibility = () => {
       return false;
     }
     
-    // Test basic Peer constructor without parameters
-    const testPeer = new Peer({ initiator: false, trickle: false });
-    testPeer.destroy();
+    // Ensure global objects are available for simple-peer in browser environment
+    if (typeof window !== 'undefined') {
+      // @ts-expect-error - polyfill for simple-peer
+      window.global = window.global || window;
+      // @ts-expect-error - polyfill for simple-peer
+      window.Buffer = window.Buffer || (typeof Buffer !== 'undefined' ? Buffer : { from: () => {}, alloc: () => {} });
+      // @ts-expect-error - polyfill for process
+      window.process = window.process || { env: {} };
+    }
+    
+    console.log('🧪 Testing Peer constructor...');
+    console.log('📋 Peer type:', typeof Peer);
+    console.log('📋 Peer constructor:', Peer.toString().substring(0, 100));
+    
+    // Test basic Peer constructor with minimal parameters
+    const testPeer = new Peer({ 
+      initiator: false, 
+      trickle: false,
+      config: {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      }
+    });
+    
+    console.log('✅ Peer instance created successfully');
+    console.log('📊 Peer state:', {
+      destroyed: testPeer.destroyed,
+      connected: testPeer.connected,
+      initiator: testPeer.initiator
+    });
+    
+    // Add error handler to prevent uncaught errors
+    testPeer.on('error', (err) => {
+      console.log('Test peer error (expected):', err.message);
+    });
+    
+    // Destroy after a short delay to allow initialization
+    setTimeout(() => {
+      try {
+        if (!testPeer.destroyed) {
+          testPeer.destroy();
+          console.log('✅ Test peer destroyed successfully');
+        }
+      } catch (e) {
+        console.log('Test peer destroy error (expected):', e);
+      }
+    }, 100);
+    
     console.log('✅ Peer constructor test passed');
     return true;
   } catch (error: unknown) {
     const errorObj = error as Error;
     console.error('❌ Peer compatibility test failed:', errorObj.message);
+    console.error('❌ Peer compatibility stack:', errorObj.stack);
+    
+    // Try to identify the specific issue
+    if (errorObj.message.includes('Cannot read properties of undefined')) {
+      console.error('❌ This appears to be a simple-peer internal initialization error');
+      console.error('❌ Possible causes: missing polyfills, browser compatibility issues');
+    }
+    
     return false;
   }
 };
@@ -522,6 +575,16 @@ export const MeetingRoom: React.FC = () => {
         streamId: stream?.id
       });
       
+      // Ensure global polyfills are available
+      if (typeof window !== 'undefined') {
+        // @ts-expect-error - polyfill for simple-peer
+        window.global = window.global || window;
+        // @ts-expect-error - polyfill for simple-peer
+        window.Buffer = window.Buffer || (typeof Buffer !== 'undefined' ? Buffer : { from: () => {}, alloc: () => {} });
+        // @ts-expect-error - polyfill for process
+        window.process = window.process || { env: {} };
+      }
+      
       let peer;
       try {
         // Validate stream before passing to Peer constructor
@@ -529,6 +592,9 @@ export const MeetingRoom: React.FC = () => {
           throw new Error('Invalid stream: Stream is undefined or invalid');
         }
         
+        console.log('🧪 Attempting Peer constructor...');
+        
+        // Create peer with more defensive configuration
         const peerConfig = {
           initiator,
           trickle: true,
@@ -554,7 +620,9 @@ export const MeetingRoom: React.FC = () => {
           streamTracks: peerConfig.stream.getTracks().length
         });
         
+        // Try to create peer with error handling
         peer = new Peer(peerConfig);
+        console.log('✅ Peer constructor succeeded');
       } catch (peerError: unknown) {
         const peerErrorObj = peerError as Error;
         console.error('❌ Peer constructor failed:', peerErrorObj.name, peerErrorObj.message);

@@ -31,7 +31,7 @@ export interface Lecture {
     enrolledAt: string;
     attended: boolean;
   }>;
-  status: 'pending' | 'scheduled' | 'live' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled';
   meetingLink?: string;
   recordingUrl?: string;
   materials: Array<{

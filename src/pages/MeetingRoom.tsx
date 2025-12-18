@@ -2,63 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import io, { Socket } from 'socket.io-client';
-import Peer from 'vite-compatible-simple-peer';
+import Peer from 'simple-peer';
 import { toast } from 'sonner';
-import { Buffer } from 'buffer';
-
-// Simple-peer compatibility check (vite-compatible-simple-peer should handle polyfills automatically)
-const checkPeerCompatibility = () => {
-  try {
-    if (typeof Peer !== 'function') {
-      console.error('❌ Peer is not a function');
-      return false;
-    }
-    
-    console.log('🧪 Testing Peer constructor...');
-    console.log('📋 Peer type:', typeof Peer);
-    
-    // Test basic Peer constructor with minimal parameters
-    const testPeer = new Peer({ 
-      initiator: false, 
-      trickle: false,
-      config: {
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-      }
-    });
-    
-    console.log('✅ Peer instance created successfully');
-    console.log('📊 Peer state:', {
-      destroyed: testPeer.destroyed,
-      connected: testPeer.connected,
-      initiator: testPeer.initiator
-    });
-    
-    // Add error handler to prevent uncaught errors
-    testPeer.on('error', (err) => {
-      console.log('Test peer error (expected):', err.message);
-    });
-    
-    // Destroy after a short delay to allow initialization
-    setTimeout(() => {
-      try {
-        if (!testPeer.destroyed) {
-          testPeer.destroy();
-          console.log('✅ Test peer destroyed successfully');
-        }
-      } catch (e) {
-        console.log('Test peer destroy error (expected):', e);
-      }
-    }, 100);
-    
-    console.log('✅ Peer constructor test passed');
-    return true;
-  } catch (error: unknown) {
-    const errorObj = error as Error;
-    console.error('❌ Peer compatibility test failed:', errorObj.message);
-    console.error('❌ Peer compatibility stack:', errorObj.stack);
-    return false;
-  }
-};
 import { SOCKET_URL } from '@/config/env';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -186,13 +131,6 @@ export const MeetingRoom: React.FC = () => {
       console.log('📍 Current URL:', window.location.href);
       console.log('🔒 Protocol:', window.location.protocol);
       
-      // Check simple-peer compatibility
-      console.log('🔍 Testing simple-peer compatibility...');
-      if (!checkPeerCompatibility()) {
-        toast.error('WebRTC library compatibility issue detected. Please refresh the page.');
-        return;
-      }
-      
       // Check HTTPS requirement
       if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
         console.error('❌ WebRTC requires HTTPS in production!');
@@ -205,9 +143,7 @@ export const MeetingRoom: React.FC = () => {
       
       try {
         console.log('📹 Requesting camera and microphone access...');
-        
-        // Try with optimal settings first
-        const constraints = {
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
             width: { ideal: 1280 },
             height: { ideal: 720 },
@@ -218,79 +154,30 @@ export const MeetingRoom: React.FC = () => {
             noiseSuppression: true,
             autoGainControl: true
           }
-        };
-        
-        console.log('🎯 Trying optimal media constraints:', constraints);
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        });
         console.log('✅ Got local stream with video:', stream.id);
         console.log('📹 Video tracks:', stream.getVideoTracks().length);
         console.log('🎤 Audio tracks:', stream.getAudioTracks().length);
       } catch (videoError: unknown) {
         const videoErrorObj = videoError as Error;
         console.warn('⚠️ Video not available, trying audio only:', videoErrorObj.name, videoErrorObj.message);
-        
-        // Enhanced error handling for HTTPS and permission issues
-        if (videoErrorObj.name === 'NotAllowedError') {
-          toast.error('Camera/microphone access denied. Please allow permissions and refresh the page.');
-          console.error('❌ Permission denied - user needs to grant camera/microphone access');
-        } else if (videoErrorObj.name === 'NotFoundError') {
-          toast.error('No camera/microphone found. Please check your device settings.');
-          console.error('❌ No media devices found');
-        } else if (videoErrorObj.name === 'NotReadableError') {
-          toast.error('Camera/microphone is already in use by another application.');
-          console.error('❌ Media device already in use');
-        } else if (videoErrorObj.name === 'OverconstrainedError') {
-          toast.error('Camera settings not supported. Trying with default settings.');
-          console.error('❌ Media constraints not supported');
-        } else {
-          toast.error(`Media access failed: ${videoErrorObj.message}`);
-        }
-        
         try {
-          // Try with basic audio-only constraints
-          const audioConstraints = {
+          stream = await navigator.mediaDevices.getUserMedia({
             video: false,
             audio: {
               echoCancellation: true,
               noiseSuppression: true,
               autoGainControl: true
             }
-          };
-          console.log('🎯 Trying audio-only constraints:', audioConstraints);
-          stream = await navigator.mediaDevices.getUserMedia(audioConstraints);
+          });
           console.log('✅ Got local stream with audio only:', stream.id);
           setVideoEnabled(false);
           toast.info('Joined with audio only (camera not available)');
         } catch (audioError: unknown) {
           const audioErrorObj = audioError as Error;
           console.error('❌ No media available:', audioErrorObj.name, audioErrorObj.message);
-          
-          // Final fallback: try with minimal constraints
-          console.log('🎯 Trying minimal constraints as final fallback...');
-          try {
-            const minimalConstraints = { video: false, audio: true };
-            stream = await navigator.mediaDevices.getUserMedia(minimalConstraints);
-            console.log('✅ Got local stream with minimal audio:', stream.id);
-            setVideoEnabled(false);
-            toast.info('Joined with basic audio only');
-          } catch (finalError: unknown) {
-            const finalErrorObj = finalError as Error;
-            console.error('❌ Complete media failure:', finalErrorObj.name, finalErrorObj.message);
-            
-            let errorMessage = 'Could not access camera or microphone. ';
-            if (finalErrorObj.name === 'NotAllowedError') {
-              errorMessage += 'Please allow permissions in your browser settings.';
-            } else if (finalErrorObj.name === 'NotFoundError') {
-              errorMessage += 'No media devices found.';
-            } else if (finalErrorObj.name === 'NotReadableError') {
-              errorMessage += 'Media devices are in use by another application.';
-            } else {
-              errorMessage += `Error: ${finalErrorObj.message}`;
-            }
-            
-            toast.error(errorMessage);
-            return;
-          }
+          toast.error('Could not access camera or microphone. Please check permissions.');
+          return;
         }
       }
       
@@ -307,18 +194,10 @@ export const MeetingRoom: React.FC = () => {
 
       // Connect to socket
       console.log('🔗 Connecting to Socket.io server:', SOCKET_URL);
-      
-      // Check if we're on HTTPS and configure accordingly
-      const isHTTPS = window.location.protocol === 'https:';
-      console.log('🔒 HTTPS detected:', isHTTPS);
-      
       const newSocket = io(SOCKET_URL, {
         transports: ['websocket', 'polling'],
         timeout: 10000,
-        forceNew: true,
-        secure: isHTTPS,
-        rejectUnauthorized: false, // Allow self-signed certificates in development
-        withCredentials: true
+        forceNew: true
       });
       setSocket(newSocket);
 
@@ -390,59 +269,22 @@ export const MeetingRoom: React.FC = () => {
 
       newSocket.on('offer', ({ from, offer }) => {
         console.log('📨 Received offer from:', from);
-        console.log('📨 Offer data:', { from, offer: !!offer, offerType: offer?.type });
-        
-        try {
-          if (!offer || typeof offer !== 'object') {
-            console.error('❌ Invalid offer received:', offer);
-            return;
-          }
-          createPeer(from, newSocket, stream, false, offer);
-        } catch (error: unknown) {
-          const errorObj = error as Error;
-          console.error('❌ Error processing offer from', from, ':', errorObj.message);
-          toast.error('Failed to process connection offer');
-        }
+        createPeer(from, newSocket, stream, false, offer);
       });
 
       newSocket.on('answer', ({ from, answer }) => {
         console.log('📨 Received answer from:', from);
-        console.log('📨 Answer data:', { from, answer: !!answer });
-        
-        try {
-          const peerConnection = peersRef.current.get(from);
-          if (peerConnection && peerConnection.peer) {
-            if (!answer || typeof answer !== 'object') {
-              console.error('❌ Invalid answer received:', answer);
-              return;
-            }
-            peerConnection.peer.signal(answer);
-          } else {
-            console.warn('⚠️ No peer connection found for answer from:', from);
-          }
-        } catch (error: unknown) {
-          const errorObj = error as Error;
-          console.error('❌ Error processing answer from', from, ':', errorObj.message);
+        const peerConnection = peersRef.current.get(from);
+        if (peerConnection) {
+          peerConnection.peer.signal(answer);
         }
       });
 
       newSocket.on('ice-candidate', ({ from, candidate }) => {
         console.log('🧊 Received ICE candidate from:', from);
-        
-        try {
-          const peerConnection = peersRef.current.get(from);
-          if (peerConnection && peerConnection.peer) {
-            if (!candidate || typeof candidate !== 'object') {
-              console.error('❌ Invalid ICE candidate received:', candidate);
-              return;
-            }
-            peerConnection.peer.signal(candidate);
-          } else {
-            console.warn('⚠️ No peer connection found for ICE candidate from:', from);
-          }
-        } catch (error: unknown) {
-          const errorObj = error as Error;
-          console.error('❌ Error processing ICE candidate from', from, ':', errorObj.message);
+        const peerConnection = peersRef.current.get(from);
+        if (peerConnection) {
+          peerConnection.peer.signal(candidate);
         }
       });
 
@@ -479,30 +321,6 @@ export const MeetingRoom: React.FC = () => {
     initiator: boolean,
     offer?: Peer.SignalData
   ) => {
-    console.log(`🔧 Creating peer connection - socketId: ${socketId}, initiator: ${initiator}`);
-    
-    // Validate offer parameter if provided
-    if (offer && !initiator) {
-      console.log('📨 Offer validation:', {
-        hasOffer: !!offer,
-        offerType: offer.type,
-        hasSdp: !!offer.sdp,
-        offerKeys: Object.keys(offer)
-      });
-      
-      // Validate offer structure
-      if (!offer.sdp || typeof offer.sdp !== 'string') {
-        console.error('❌ Invalid offer structure - missing or invalid SDP');
-        toast.error('Connection error: Invalid offer received');
-        return;
-      }
-      
-      if (!offer.type || (offer.type !== 'offer' && offer.type !== 'answer')) {
-        console.error('❌ Invalid offer structure - missing or invalid type');
-        toast.error('Connection error: Invalid offer type');
-        return;
-      }
-    }
     console.log(`🔧 Creating peer connection - socketId: ${socketId}, initiator: ${initiator}`);
     
     // Validate socket parameter
@@ -545,76 +363,22 @@ export const MeetingRoom: React.FC = () => {
       console.log('  - Stream tracks:', stream.getTracks().length);
       console.log('  - Peer constructor available:', typeof Peer);
       
-      // Check if Peer is available and properly loaded
+      // Check if Peer is available
       if (typeof Peer !== 'function') {
         throw new Error('Peer constructor not available - simple-peer library may not be loaded');
       }
       
-      console.log('🎯 Creating Peer instance with config:', {
+      const peer = new Peer({
         initiator,
         trickle: true,
-        streamAvailable: !!stream,
-        streamId: stream?.id
+        stream,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+          ]
+        }
       });
-      
-      // Global polyfills are handled automatically by vite-compatible-simple-peer
-      
-      let peer;
-      try {
-        // Validate stream before passing to Peer constructor
-        if (!stream || !stream.getTracks) {
-          throw new Error('Invalid stream: Stream is undefined or invalid');
-        }
-        
-        console.log('🧪 Attempting Peer constructor...');
-        
-        // Create peer with more defensive configuration
-        const peerConfig = {
-          initiator,
-          trickle: true,
-          stream,
-          config: {
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' },
-              { urls: 'stun:stun2.l.google.com:19302' },
-              { urls: 'stun:stun3.l.google.com:19302' },
-              { urls: 'stun:stun4.l.google.com:19302' },
-              // Additional public STUN servers
-              { urls: 'stun:openrelay.metered.ca:80' },
-              { urls: 'stun:stun.relay.metered.ca:80' }
-            ]
-          }
-        };
-        
-        console.log('🎯 Peer config:', {
-          initiator: peerConfig.initiator,
-          trickle: peerConfig.trickle,
-          hasStream: !!peerConfig.stream,
-          streamTracks: peerConfig.stream.getTracks().length
-        });
-        
-        // Try to create peer with error handling
-        peer = new Peer(peerConfig);
-        console.log('✅ Peer constructor succeeded');
-      } catch (peerError: unknown) {
-        const peerErrorObj = peerError as Error;
-        console.error('❌ Peer constructor failed:', peerErrorObj.name, peerErrorObj.message);
-        console.error('❌ Peer constructor stack:', peerErrorObj.stack);
-        
-        // Check for specific constructor errors
-        if (peerErrorObj.message.includes('Cannot read properties of undefined')) {
-          console.error('❌ This appears to be a simple-peer constructor error');
-          console.error('❌ Stream validation:', {
-            hasStream: !!stream,
-            hasGetTracks: !!stream?.getTracks,
-            streamType: typeof stream
-          });
-        }
-        
-        toast.error(`Failed to create peer connection: ${peerErrorObj.message}`);
-        throw new Error(`Peer creation failed: ${peerErrorObj.message}`);
-      }
       
       console.log('✅ Peer instance created successfully');
 
@@ -663,37 +427,12 @@ export const MeetingRoom: React.FC = () => {
       // Handle incoming offer
       if (offer) {
         console.log('📨 Processing incoming offer for:', socketId);
-        console.log('📨 Offer details:', {
-          type: offer.type,
-          hasSdp: !!offer.sdp,
-          sdpLength: offer.sdp?.length
-        });
-        
         try {
-          // Ensure offer is valid before signaling
-          if (!offer.sdp || typeof offer.sdp !== 'string') {
-            throw new Error('Invalid offer: Missing or invalid SDP');
-          }
-          
           peer.signal(offer);
           console.log('✅ Offer processed successfully');
         } catch (signalError: unknown) {
           const errorObj = signalError as Error;
           console.error('❌ Failed to process offer:', errorObj.message);
-          console.error('❌ Signal error stack:', errorObj.stack);
-          
-          // Check for specific signal errors
-          if (errorObj.message.includes('Cannot read properties of undefined')) {
-            console.error('❌ This appears to be a simple-peer internal error');
-            console.error('❌ Offer object:', offer);
-            console.error('❌ Peer state:', {
-              destroyed: peer.destroyed,
-              connected: peer.connected,
-              initiator: peer.initiator
-            });
-          }
-          
-          toast.error(`Failed to process connection offer: ${errorObj.message}`);
         }
       }
 

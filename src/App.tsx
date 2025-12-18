@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RoleGuard } from "@/components/common/RoleGuard";
 import { ModernDashboardLayout } from "@/components/layout/ModernDashboardLayout";
 
-
 // Pages
 import { Landing } from "./pages/Landing";
 import { Auth } from "./pages/Auth";
@@ -18,6 +17,7 @@ import { MyLectures } from "./pages/student/MyLectures";
 import { StudentWallet } from "./pages/student/StudentWallet";
 import { BuyUpCoins } from "./pages/student/BuyUpCoins";
 import { LectureDetails } from "./pages/student/LectureDetails";
+import { Support } from "./pages/student/Support";
 import { TrainerDashboard } from "./pages/trainer/TrainerDashboard";
 import { ScheduleLecture } from "./pages/trainer/ScheduleLecture";
 import { ManageLectures } from "./pages/trainer/ManageLectures";
@@ -35,6 +35,7 @@ import { ManageUsers } from "./pages/admin/ManageUsers";
 import { ManageLectures as ManageLecturesAdmin } from "./pages/admin/ManageLectures";
 import { ManageCourses as ManageCoursesAdmin } from "./pages/admin/ManageCourses";
 import { Analytics } from "./pages/admin/Analytics";
+import { AdminSupport } from "./pages/admin/AdminSupport";
 import { WithdrawalRequests } from "./pages/admin/WithdrawalRequests";
 import { LiveLecture } from "./pages/LiveLecture";
 import { MeetingRoom } from "./pages/MeetingRoom";
@@ -72,8 +73,9 @@ const App = () => (
               <Route path="lecture/:id/details" element={<LectureDetails />} />
               <Route path="wallet" element={<StudentWallet />} />
               <Route path="buy-upcoins" element={<BuyUpCoins />} />
+              <Route path="support" element={<Support />} />
             </Route>
-  
+
             {/* Trainer Routes */}
             <Route path="/trainer/*" element={
               <RoleGuard allowedRoles={['trainer']}>
@@ -102,6 +104,7 @@ const App = () => (
               <Route path="manage-courses" element={<ManageCoursesAdmin />} />
               <Route path="withdrawals" element={<WithdrawalRequests />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="support" element={<AdminSupport />} />
             </Route>
 
             {/* Live Lecture Route */}

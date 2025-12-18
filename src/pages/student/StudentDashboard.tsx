@@ -613,7 +613,16 @@ export const StudentDashboard: React.FC = () => {
                 <span className="text-sm">My Schedule</span>
               </Link>
             </Button>
-
+            <Button
+              asChild
+              variant="outline"
+              className="h-20 flex-col space-y-2 hover-scale"
+            >
+              <Link to="/student/support">
+                <Users className="w-6 h-6" />
+                <span className="text-sm">Get Support</span>
+              </Link>
+            </Button>
           </div>
         </CardContent>
       </Card>

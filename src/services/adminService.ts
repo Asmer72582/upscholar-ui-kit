@@ -520,18 +520,9 @@ class AdminService {
 
   async getAllLectures(): Promise<any[]> {
     try {
-      const response = await fetch(`${API_URL}/admin/lectures`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-        ...fetchConfig,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to fetch lectures");
-      }
-
-      return await response.json();
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return mockAdminLectures;
     } catch (error) {
       console.error("Error fetching lectures:", error);
       throw error;
@@ -540,18 +531,15 @@ class AdminService {
 
   async getLectureById(lectureId: string): Promise<any> {
     try {
-      const response = await fetch(`${API_URL}/admin/lectures/${lectureId}`, {
-        method: "GET",
-        headers: getAuthHeaders(),
-        ...fetchConfig,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to fetch lecture details");
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      const lecture = mockAdminLectures.find(l => l.id === lectureId);
+      if (!lecture) {
+        throw new Error("Lecture not found");
       }
-
-      return await response.json();
+      
+      return lecture;
     } catch (error) {
       console.error("Error fetching lecture details:", error);
       throw error;
@@ -593,21 +581,19 @@ class AdminService {
     lectureId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_URL}/admin/lectures/${lectureId}/approve`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        ...fetchConfig,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to approve lecture");
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const lecture = mockAdminLectures.find(l => l.id === lectureId);
+      if (!lecture) {
+        throw new Error("Lecture not found");
       }
-
-      const result = await response.json();
+      
+      lecture.status = 'approved';
+      
       return {
         success: true,
-        message: result.message || "Lecture approved successfully.",
+        message: "Lecture approved successfully.",
       };
     } catch (error) {
       console.error("Error approving lecture:", error);
@@ -620,22 +606,19 @@ class AdminService {
     reason?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetch(`${API_URL}/admin/lectures/${lectureId}/reject`, {
-        method: "PUT",
-        headers: getAuthHeaders(),
-        ...fetchConfig,
-        body: JSON.stringify({ reason }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to reject lecture");
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const lecture = mockAdminLectures.find(l => l.id === lectureId);
+      if (!lecture) {
+        throw new Error("Lecture not found");
       }
-
-      const result = await response.json();
+      
+      lecture.status = 'rejected';
+      
       return {
         success: true,
-        message: result.message || "Lecture rejected successfully.",
+        message: "Lecture rejected successfully.",
       };
     } catch (error) {
       console.error("Error rejecting lecture:", error);

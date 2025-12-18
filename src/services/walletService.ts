@@ -264,7 +264,6 @@ export const walletService = {
   getBalance: new WalletService().getBalance,
   getTransactions: new WalletService().getTransactions,
   getStats: new WalletService().getWalletStats,
-  processPayment: new WalletService().processPayment,
   getEarnings,
   requestWithdrawal
 };

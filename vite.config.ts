@@ -22,4 +22,12 @@ export default defineConfig(({ mode }) => ({
   define: {
     'global': 'globalThis',
   },
+  optimizeDeps: {
+    exclude: ['vite-compatible-simple-peer'],
+  },
+  build: {
+    rollupOptions: {
+      external: ['simple-peer'],
+    },
+  },
 }));

@@ -39,6 +39,7 @@ import { AdminSupport } from "./pages/admin/AdminSupport";
 import { WithdrawalRequests } from "./pages/admin/WithdrawalRequests";
 import { LiveLecture } from "./pages/LiveLecture";
 import { MeetingRoom } from "./pages/MeetingRoom";
+import { MeetingRoomProduction } from "./pages/MeetingRoomProduction";
 import { TrainerApplicationSuccess } from "./pages/TrainerApplicationSuccess";
 import { TrainerLectureDetails } from "./pages/trainer/LectureDetails";
 import { ResetPassword } from "./pages/ResetPassword";
@@ -117,7 +118,7 @@ const App = () => (
             {/* Meeting Room Route */}
             <Route path="/meeting/:lectureId" element={
               <RoleGuard allowedRoles={['student', 'trainer']}>
-                <MeetingRoom />
+                {import.meta.env.PROD ? <MeetingRoomProduction /> : <MeetingRoom />}
               </RoleGuard>
             } />
 

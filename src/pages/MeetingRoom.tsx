@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import io, { Socket } from 'socket.io-client';
-import Peer from 'simple-peer';
+import Peer from 'vite-compatible-simple-peer';
 import { toast } from 'sonner';
 import { SOCKET_URL } from '@/config/env';
 import { Button } from '@/components/ui/button';

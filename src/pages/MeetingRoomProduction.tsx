@@ -179,7 +179,7 @@ export const MeetingRoomProduction: React.FC = () => {
   const connectToSignalingServer = async (stream: MediaStream): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+        const API_URL = import.meta.env.VITE_API_URL || 'http://13.60.254.183:3000';
         console.log('🔗 Connecting to signaling server:', API_URL);
 
         const socketInstance = io(API_URL, {

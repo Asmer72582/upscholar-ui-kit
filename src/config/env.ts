@@ -11,13 +11,13 @@ const getEnvVar = (key: string, defaultValue: string): string => {
 // API Configuration
 export const API_CONFIG = {
   // Backend API Base URL
-  BASE_URL: getEnvVar('VITE_API_BASE_URL', 'http://localhost:3000'),
+  BASE_URL: getEnvVar('VITE_API_BASE_URL', 'http://13.60.254.183:3000'),
   
   // API Endpoints
-  API_URL: getEnvVar('VITE_API_BASE_URL', 'http://localhost:3000') + '/api',
+  API_URL: getEnvVar('VITE_API_BASE_URL', 'http://13.60.254.183:3000') + '/api',
   
   // Socket.io URL
-  SOCKET_URL: getEnvVar('VITE_SOCKET_URL', 'http://localhost:3000'),
+  SOCKET_URL: getEnvVar('VITE_SOCKET_URL', 'http://13.60.254.183:3000'),
   
   // Frontend URL
   FRONTEND_URL: getEnvVar('VITE_FRONTEND_URL', 'http://localhost:8080'),

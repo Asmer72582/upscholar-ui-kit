@@ -1,6 +1,7 @@
 /**
  * Environment Configuration
  * Centralized configuration for API URLs and environment variables
+ * UPDATED: For GoDaddy Production SSL Setup
  */
 
 // Get environment variables from Vite
@@ -8,19 +9,19 @@ const getEnvVar = (key: string, defaultValue: string): string => {
   return import.meta.env[key] || defaultValue;
 };
 
-// API Configuration
+// API Configuration - UPDATED FOR HTTPS
 export const API_CONFIG = {
-  // Backend API Base URL
-  BASE_URL: getEnvVar('VITE_API_BASE_URL', 'http://13.60.254.183:3000'),
+  // Backend API Base URL - Use HTTPS for production to avoid mixed content
+  BASE_URL: getEnvVar('VITE_API_BASE_URL', 'https://api.upscholar.in'),
   
   // API Endpoints
-  API_URL: getEnvVar('VITE_API_BASE_URL', 'http://13.60.254.183:3000') + '/api',
+  API_URL: getEnvVar('VITE_API_BASE_URL', 'https://api.upscholar.in') + '/api',
   
-  // Socket.io URL
-  SOCKET_URL: getEnvVar('VITE_SOCKET_URL', 'http://13.60.254.183:3000'),
+  // Socket.io URL - Use secure WebSocket for production
+  SOCKET_URL: getEnvVar('VITE_SOCKET_URL', 'https://api.upscholar.in'),
   
   // Frontend URL
-  FRONTEND_URL: getEnvVar('VITE_FRONTEND_URL', 'http://localhost:8080'),
+  FRONTEND_URL: getEnvVar('VITE_FRONTEND_URL', 'https://upscholar.in'),
 };
 
 // App Configuration

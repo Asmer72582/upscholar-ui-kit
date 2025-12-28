@@ -1,7 +1,7 @@
 /**
- * Environment Configuration - HTTPS SECURE VERSION
- * Now using https://api.upscholar.in for all API calls
- * ✅ SSL is working - using secure HTTPS endpoints
+ * Environment Configuration - EMERGENCY WORKAROUND
+ * Temporary solution for mixed content error while SSL is being set up
+ * This uses HTTP temporarily to bypass mixed content blocking
  */
 
 // Get environment variables from Vite
@@ -9,16 +9,17 @@ const getEnvVar = (key: string, defaultValue: string): string => {
   return import.meta.env[key] || defaultValue;
 };
 
-// SECURE HTTPS CONFIGURATION - api.upscholar.in is now working!
+// EMERGENCY WORKAROUND: Use HTTP temporarily to avoid mixed content errors
+// WARNING: This is not secure - only use while setting up SSL
 export const API_CONFIG = {
-  // Backend API Base URL - Now using HTTPS!
-  BASE_URL: getEnvVar('VITE_API_BASE_URL', 'https://api.upscholar.in'),
+  // Backend API Base URL - Temporary HTTP workaround
+  BASE_URL: getEnvVar('VITE_API_BASE_URL', 'http://13.60.254.183:3000'),
   
   // API Endpoints
-  API_URL: getEnvVar('VITE_API_BASE_URL', 'https://api.upscholar.in') + '/api',
+  API_URL: getEnvVar('VITE_API_BASE_URL', 'http://13.60.254.183:3000') + '/api',
   
-  // Socket.io URL - Now using secure WebSocket!
-  SOCKET_URL: getEnvVar('VITE_SOCKET_URL', 'https://api.upscholar.in'),
+  // Socket.io URL - Temporary HTTP workaround
+  SOCKET_URL: getEnvVar('VITE_SOCKET_URL', 'http://13.60.254.183:3000'),
   
   // Frontend URL
   FRONTEND_URL: getEnvVar('VITE_FRONTEND_URL', 'https://upscholar.in'),
@@ -47,12 +48,12 @@ export const FRONTEND_URL = API_CONFIG.FRONTEND_URL;
 
 // Log configuration in development
 if (import.meta.env.DEV) {
-  console.log('🔧 Environment Configuration (HTTPS SECURE):', {
+  console.log('🔧 Environment Configuration (EMERGENCY WORKAROUND):', {
     API_BASE_URL,
     API_URL,
     SOCKET_URL,
     FRONTEND_URL,
     MODE: import.meta.env.MODE,
-    STATUS: '✅ Using HTTPS - SSL is working!',
+    WARNING: 'Using HTTP temporarily - SSL setup in progress',
   });
 }

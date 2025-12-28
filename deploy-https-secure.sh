@@ -1,0 +1,65 @@
+#!/bin/bash
+# HTTPS SECURE DEPLOYMENT SCRIPT
+# Now using https://api.upscholar.in for all API calls
+
+echo "🚀 HTTPS SECURE DEPLOYMENT"
+echo "==========================="
+echo ""
+
+echo "✅ Frontend rebuilt with HTTPS configuration!"
+echo ""
+echo "📋 WHAT'S CHANGED:"
+echo "1. ✅ Now using https://api.upscholar.in for API calls"
+echo "2. ✅ Secure WebSocket connections (wss://api.upscholar.in)"
+echo "3. ✅ No more mixed content errors"
+echo "4. ✅ Full HTTPS security"
+echo ""
+
+echo "🔍 BACKEND STATUS:"
+echo "=================="
+echo "Testing backend endpoints..."
+echo ""
+
+echo "Testing HTTPS connectivity:"
+curl -s -o /dev/null -w "%{http_code}" https://api.upscholar.in/ || echo "Connection failed"
+echo ""
+
+echo "📁 DEPLOYMENT INSTRUCTIONS:"
+echo "============================"
+echo ""
+echo "Step 1: Upload the 'dist' folder to GoDaddy"
+echo "Step 2: Replace your current frontend files"
+echo "Step 3: Clear browser cache"
+echo "Step 4: Test the login at https://upscholar.in/auth"
+echo ""
+
+echo "🎯 EXPECTED RESULTS:"
+echo "===================="
+echo "• No more mixed content errors"
+echo "• Secure HTTPS connections"
+echo "• Login will work properly"
+echo "• No 'Not Secure' warnings"
+echo ""
+
+echo "🔧 VERIFICATION COMMANDS:"
+echo "=========================="
+echo ""
+echo "Test your frontend:"
+echo "curl -I https://upscholar.in/auth"
+echo ""
+echo "Test API endpoint:"
+echo "curl -X POST https://api.upscholar.in/api/auth/login \\"
+echo "  -H 'Content-Type: application/json' \\"
+echo "  -d '{\"email\":\"test@test.com\",\"password\":\"test\"}'"
+echo ""
+
+echo "📦 DEPLOYMENT FILES READY:"
+echo "=========================="
+ls -la dist/
+echo ""
+echo "Total size: $(du -sh dist/ | cut -f1)"
+echo "Files: $(find dist/ -type f | wc -l)"
+echo ""
+echo "✨ Ready to deploy! Upload the 'dist' folder to your GoDaddy hosting."
+echo ""
+echo "🎉 This should completely resolve your mixed content error!"

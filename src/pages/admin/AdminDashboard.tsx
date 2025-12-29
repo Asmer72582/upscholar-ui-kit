@@ -234,7 +234,7 @@ export const AdminDashboard: React.FC = () => {
                   Welcome, {user?.firstName}!
                 </h1>
                 <p className="text-white/70 mt-1">
-                  Monitor and manage the entire UpScholar platform
+                  Monitor and manage the entire Upscholar platform
                 </p>
               </div>
             </div>

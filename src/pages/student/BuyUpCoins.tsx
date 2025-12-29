@@ -112,9 +112,9 @@ export const BuyUpCoins: React.FC = () => {
         key: key,
         amount: order.amount,
         currency: order.currency,
-        name: 'UpScholar',
+        name: 'Upscholar',
         description: `Purchase ${order.upcoins} UpCoins`,
-        image: 'https://api.dicebear.com/7.x/shapes/svg?seed=UpScholar',
+        image: 'https://api.dicebear.com/7.x/shapes/svg?seed=Upscholar',
         order_id: order.id,
         prefill: {
           name: user?.name || user?.firstName + ' ' + user?.lastName,
@@ -471,7 +471,7 @@ export const BuyUpCoins: React.FC = () => {
                   <div>
                     <h4 className="font-bold text-gray-900 mb-1">What are UpCoins?</h4>
                     <p className="text-gray-600 text-sm">
-                      UpCoins are the virtual currency used on UpScholar to enroll in lectures. 1 UpCoin = ₹1 value.
+                      UpCoins are the virtual currency used on Upscholar to enroll in lectures. 1 UpCoin = ₹1 value.
                     </p>
                   </div>
                 </div>

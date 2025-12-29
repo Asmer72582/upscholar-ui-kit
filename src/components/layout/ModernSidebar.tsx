@@ -118,7 +118,7 @@ export const ModernSidebar: React.FC = () => {
           </div>
           {!collapsed && (
             <div>
-              <h2 className="text-lg font-bold text-sidebar-foreground">UpScholar</h2>
+              <h2 className="text-lg font-bold text-sidebar-foreground">Upscholar</h2>
               <p className="text-sm text-sidebar-foreground/70 capitalize">{user.role} Portal</p>
             </div>
           )}

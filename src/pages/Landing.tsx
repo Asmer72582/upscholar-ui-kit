@@ -24,7 +24,7 @@ import {
 // Offline Centre Details
 const offlineCentres = [
   {
-    name: 'UpScholar Learning Hub - Mumbai',
+    name: 'Upscholar Learning Hub - Mumbai',
     address: '123 Education Street, Andheri West, Mumbai - 400053',
     phone: '+91 98765 43210',
     email: 'mumbai@upscholar.com',
@@ -34,7 +34,7 @@ const offlineCentres = [
     image: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=400&fit=crop'
   },
   {
-    name: 'UpScholar Academy - Delhi',
+    name: 'Upscholar Academy - Delhi',
     address: '456 Knowledge Park, Connaught Place, New Delhi - 110001',
     phone: '+91 98765 43211',
     email: 'delhi@upscholar.com',
@@ -44,7 +44,7 @@ const offlineCentres = [
     image: 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop'
   },
   {
-    name: 'UpScholar Institute - Bangalore',
+    name: 'Upscholar Institute - Bangalore',
     address: '789 Tech Avenue, Koramangala, Bangalore - 560034',
     phone: '+91 98765 43212',
     email: 'bangalore@upscholar.com',
@@ -78,7 +78,7 @@ export const Landing: React.FC = () => {
                 <GraduationCap className="w-7 h-7 text-white" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                UpScholar
+                Upscholar
               </span>
             </div>
             <Button asChild variant="outline" className="hidden sm:flex">
@@ -98,7 +98,7 @@ export const Landing: React.FC = () => {
             <div className="max-w-4xl mx-auto text-center mb-16">
               <Badge className="mb-6 px-4 py-2 bg-indigo-100 text-indigo-700 border-indigo-200">
                 <Star className="w-4 h-4 mr-2" />
-                Welcome to UpScholar
+                Welcome to Upscholar
               </Badge>
               <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
                 Learn with the Best
@@ -256,7 +256,7 @@ export const Landing: React.FC = () => {
                   Our Physical Centres
                 </Badge>
                 <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-                  UpScholar Offline Centres
+                  Upscholar Offline Centres
                 </h1>
                 <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                   Visit our state-of-the-art coaching centres for an immersive learning experience
@@ -368,10 +368,10 @@ export const Landing: React.FC = () => {
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
                   <GraduationCap className="w-6 h-6 text-white" />
                 </div>
-                <span className="text-xl font-bold">UpScholar</span>
+                <span className="text-xl font-bold">Upscholar</span>
               </div>
               <div className="flex items-center gap-6 text-sm text-gray-400">
-                <span>© 2024 UpScholar</span>
+                <span>© 2024 Upscholar</span>
                 <span>•</span>
                 <span>All rights reserved</span>
               </div>

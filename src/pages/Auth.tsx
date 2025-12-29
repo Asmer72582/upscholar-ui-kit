@@ -116,7 +116,7 @@ export const Auth: React.FC = () => {
         } else {
           toast({
             title: 'Account created!',
-            description: 'Welcome to UpScholar. Your learning journey begins now.',
+            description: 'Welcome to Upscholar. Your learning journey begins now.',
           });
           navigate(`/${selectedRole}/dashboard`);
         }
@@ -231,7 +231,7 @@ export const Auth: React.FC = () => {
                 <GraduationCap className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                UpScholar
+                Upscholar
               </span>
             </Link>
           </div>
@@ -239,7 +239,7 @@ export const Auth: React.FC = () => {
           <Card className="card-elevated">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold">
-                {isLogin ? 'Welcome Back' : 'Join UpScholar'}
+                {isLogin ? 'Welcome Back' : 'Join Upscholar'}
               </CardTitle>
               <CardDescription>
                 {isLogin 

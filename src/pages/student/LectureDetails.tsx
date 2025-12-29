@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Clock, Users, Star, Calendar, Play, BookOpen, Coins, Wallet, CheckCircle, AlertCircle, MessageSquare, ThumbsUp, ExternalLink, Video, FileText } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Star, Calendar, Play, BookOpen, Coins, Wallet, CheckCircle, AlertCircle, MessageSquare, ThumbsUp, ExternalLink, Video, FileText, Radio } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { lectureService, Lecture } from '@/services/lectureService';
 import { walletService } from '@/services/walletService';
@@ -160,11 +160,18 @@ export const LectureDetails: React.FC = () => {
     const now = new Date();
     const lectureTime = new Date(lecture.scheduledAt);
     
+    if (lecture.status === 'live') return 'live';
     if (lecture.status === 'completed') return 'completed';
     if (lecture.status === 'cancelled') return 'cancelled';
     if (lectureTime > now) return 'upcoming';
     
     return 'completed'; // Past lectures are considered completed
+  };
+
+  const handleJoinMeeting = () => {
+    if (lecture) {
+      navigate(`/meeting/${lecture.id}`);
+    }
   };
 
   if (loading) {
@@ -432,18 +439,39 @@ export const LectureDetails: React.FC = () => {
                 {isEnrolled ? (
                   // Already enrolled - show access options
                   <div className="space-y-4">
-                    <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                      <h3 className="font-medium text-green-800">You're Enrolled!</h3>
-                      <p className="text-sm text-green-600">
-                        You have access to this lecture
-                      </p>
-                    </div>
+                    {getLectureStatus() === 'live' ? (
+                      // Live lecture - prominent join button
+                      <div className="text-center p-4 bg-red-50 border border-red-200 rounded-lg animate-pulse">
+                        <Radio className="w-8 h-8 text-red-600 mx-auto mb-2" />
+                        <h3 className="font-medium text-red-800">🔴 LIVE NOW!</h3>
+                        <p className="text-sm text-red-600">
+                          The lecture is happening right now
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                        <h3 className="font-medium text-green-800">You're Enrolled!</h3>
+                        <p className="text-sm text-green-600">
+                          You have access to this lecture
+                        </p>
+                      </div>
+                    )}
 
-                    {(getLectureStatus() === 'upcoming' || getLectureStatus() === 'completed') && lecture.meetingLink && (
+                    {getLectureStatus() === 'live' && (
+                      <Button 
+                        className="w-full bg-red-600 hover:bg-red-700 text-lg py-6 animate-pulse" 
+                        onClick={handleJoinMeeting}
+                      >
+                        <Video className="w-5 h-5 mr-2" />
+                        Join Live Meeting
+                      </Button>
+                    )}
+
+                    {getLectureStatus() === 'upcoming' && lecture.meetingLink && (
                       <Button 
                         className="w-full bg-green-600 hover:bg-green-700" 
-                        onClick={() => window.open(lecture.meetingLink, '_blank')}
+                        onClick={handleJoinMeeting}
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
                         Join Lecture

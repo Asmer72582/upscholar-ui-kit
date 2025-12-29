@@ -94,6 +94,89 @@ export const MeetingRoomEnhanced: React.FC = () => {
   const [connectionDetails, setConnectionDetails] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Handle local stream availability for peer creation
+  useEffect(() => {
+    if (localStream && socket && participants.length > 0) {
+      console.log('📹 Local stream now available, creating peers for existing participants');
+      participants.forEach((participant) => {
+        if (participant.socketId !== socket.id && !peersRef.current.has(participant.socketId)) {
+          console.log('🔄 Creating peer for participant:', participant.userName);
+          createPeer(participant.socketId, socket, localStream, true);
+        }
+      });
+    }
+  }, [localStream, socket, participants.length]);
+
+  // Handle delayed peer creation when stream becomes available
+  useEffect(() => {
+    if (localStream && socket) {
+      // Check for any pending peer creation requests
+      const pendingPeers = participants.filter(p => 
+        p.socketId !== socket.id && 
+        !peersRef.current.has(p.socketId) &&
+        (window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests?.has(p.socketId)
+      );
+      
+      if (pendingPeers.length > 0) {
+        console.log('🔄 Creating peers for pending requests:', pendingPeers.length);
+        pendingPeers.forEach(participant => {
+          createPeer(participant.socketId, socket, localStream, true);
+          (window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests?.delete(participant.socketId);
+        });
+      }
+    }
+  }, [localStream, socket]);
+
+  // Handle local stream changes for video element
+  useEffect(() => {
+    console.log('📹 Local stream changed:', localStream?.id);
+    if (localStream && localVideoRef.current) {
+      localVideoRef.current.srcObject = localStream;
+      console.log('📺 Local video element updated with new stream');
+      
+      // Try to play the video
+      const playVideo = async () => {
+        try {
+          // Check if video is ready before playing
+          if (localVideoRef.current?.readyState >= 2) {
+            await localVideoRef.current.play();
+            console.log('📺 Local video started playing successfully');
+          } else {
+            console.log('📺 Video not ready for playback yet');
+          }
+        } catch (error) {
+          console.error('📺 Error playing local video:', error);
+          // Don't try immediate fallback to avoid interruption errors
+        }
+      };
+      
+      // Check if video is playing
+      localVideoRef.current.onloadedmetadata = () => {
+        console.log('📺 Local video metadata loaded');
+        console.log('📺 Video dimensions:', localVideoRef.current?.videoWidth, 'x', localVideoRef.current?.videoHeight);
+        playVideo();
+      };
+      
+      localVideoRef.current.onplay = () => {
+        console.log('📺 Local video started playing');
+      };
+      
+      localVideoRef.current.onerror = (e) => {
+        console.error('📺 Local video error:', e);
+      };
+      
+      // Try to play immediately if metadata is already loaded
+      if (localVideoRef.current.readyState >= 2) {
+        console.log('📺 Video readyState >= 2, trying to play immediately');
+        playVideo();
+      }
+    } else {
+      console.log('📹 Local stream or video ref not available:', {
+        hasStream: !!localStream,
+        hasVideoRef: !!localVideoRef.current
+      });
+    }
+  }, [localStream]);
 
   // Chat
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -159,15 +242,24 @@ export const MeetingRoomEnhanced: React.FC = () => {
     try {
       setConnectionError(null);
       
+      console.log('📹 Starting media stream initialization...');
+      
       // Get user media
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 1280, height: 720 },
         audio: true
       });
       
+      console.log('✅ Media stream obtained:', stream.id);
+      console.log('📹 Video tracks:', stream.getVideoTracks().length);
+      console.log('🎤 Audio tracks:', stream.getAudioTracks().length);
+      
       setLocalStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
+        console.log('📺 Local video element updated with stream');
+      } else {
+        console.log('⚠️ Local video ref not available yet');
       }
 
       // Connect to socket
@@ -224,7 +316,17 @@ export const MeetingRoomEnhanced: React.FC = () => {
           if (participant.socketId !== newSocket.id) {
             console.log('🔄 Creating peer for existing participant:', participant.userName);
             setTimeout(() => {
-              createPeer(participant.socketId, newSocket, stream, true);
+              // Use localStream state instead of the stream parameter
+              if (localStream) {
+                createPeer(participant.socketId, newSocket, localStream, true);
+              } else {
+                console.log('⚠️ Local stream not available yet for existing participant, adding to pending requests...');
+                // Add to pending peer requests
+                if (!(window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests) {
+                  (window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests = new Set();
+                }
+                (window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests!.add(participant.socketId);
+              }
             }, 500);
           }
         });
@@ -279,10 +381,18 @@ export const MeetingRoomEnhanced: React.FC = () => {
         });
         
         setTimeout(() => {
-          createPeer(socketId, newSocket, stream, true);
+          // Use localStream state instead of the stream parameter
+          if (localStream) {
+            createPeer(socketId, newSocket, localStream, true);
+          } else {
+            console.log('⚠️ Local stream not available yet for new user, adding to pending requests...');
+            // Add to pending peer requests
+            if (!(window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests) {
+              (window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests = new Set();
+            }
+            (window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests!.add(socketId);
+          }
         }, 500);
-        
-        toast.info(`${userName} joined the meeting`);
       });
 
       newSocket.on('user-left', ({ socketId }) => {
@@ -298,7 +408,17 @@ export const MeetingRoomEnhanced: React.FC = () => {
 
       newSocket.on('offer', ({ from, offer }) => {
         console.log('📨 Received offer from:', from);
-        createPeer(from, newSocket, stream, false, offer);
+        // Use localStream state instead of the stream parameter
+        if (localStream) {
+          createPeer(from, newSocket, localStream, false, offer);
+        } else {
+          console.log('⚠️ Local stream not available yet for offer, adding to pending requests...');
+          // Add to pending peer requests
+          if (!(window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests) {
+            (window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests = new Set();
+          }
+          (window as {_pendingPeerRequests?: Set<string>})._pendingPeerRequests!.add(from);
+        }
       });
 
       newSocket.on('answer', ({ from, answer }) => {
@@ -361,9 +481,18 @@ export const MeetingRoomEnhanced: React.FC = () => {
       });
 
     } catch (error) {
-      console.error('❌ Failed to initialize meeting:', error);
-      setConnectionError('Failed to access camera/microphone');
+      console.error('❌ Error initializing meeting:', error);
+      setConnectionError('Failed to access camera/microphone. Please check permissions.');
       toast.error('Failed to access camera/microphone');
+      
+      // Log specific error details
+      if (error instanceof Error) {
+        console.error('❌ Error name:', error.name);
+        console.error('❌ Error message:', error.message);
+        if ('constraint' in error) {
+          console.error('❌ Constraint:', error.constraint);
+        }
+      }
     }
   };
 
@@ -384,6 +513,7 @@ export const MeetingRoomEnhanced: React.FC = () => {
 
   const createPeer = (socketId: string, socket: Socket, stream: MediaStream, initiator: boolean, offer?: Peer.SignalData) => {
     console.log('🔧 Creating peer for socket:', socketId, 'Initiator:', initiator);
+    console.log('📹 Stream provided to createPeer:', stream?.id, 'Tracks:', stream?.getTracks().length);
     
     const peer = new Peer({
       initiator: initiator,
@@ -680,6 +810,17 @@ export const MeetingRoomEnhanced: React.FC = () => {
 
   const totalParticipants = participants.length + 1;
 
+  console.log('🎥 MAIN RENDER - Current state:', {
+    totalParticipants,
+    videoEnabled,
+    audioEnabled,
+    localStream: !!localStream,
+    localStreamId: localStream?.id,
+    localVideoRef: !!localVideoRef.current,
+    participants: participants.length,
+    peers: peers.size
+  });
+
   return (
     <div className="min-h-screen bg-gray-900 text-white overflow-hidden">
       {/* Header */}
@@ -745,9 +886,44 @@ export const MeetingRoomEnhanced: React.FC = () => {
         <div className={`${showChat ? 'flex-1' : 'w-full'} p-4 transition-all duration-300`}>
           <div className={`grid ${videoLayout.gridCols} gap-2 h-full`}>
             {/* Local video */}
+            {console.log('🎥 Rendering local video section - videoEnabled:', videoEnabled, 'localStream:', !!localStream)}
             <div className={`relative ${videoLayout.videoHeight} bg-gray-800 rounded-lg overflow-hidden`}>
               <video
-                ref={localVideoRef}
+                ref={(video) => {
+                  localVideoRef.current = video;
+                  console.log('📺 Local video element mounted:', !!video);
+                  if (video && localStream) {
+                    console.log('📺 Setting local video srcObject, stream ID:', localStream.id);
+                    video.srcObject = localStream;
+                    
+                    // Handle video playback properly to avoid interruption errors
+                    const setupVideoPlayback = async () => {
+                      try {
+                        // Wait for the video to be ready
+                        if (video.readyState >= 2) {
+                          console.log('📺 Video readyState >= 2, playing immediately');
+                          await video.play();
+                          console.log('📺 Local video started playing successfully');
+                        } else {
+                          console.log('📺 Video not ready yet, waiting for loadedmetadata');
+                          video.addEventListener('loadedmetadata', async () => {
+                            console.log('📺 Video metadata loaded, attempting to play');
+                            try {
+                              await video.play();
+                              console.log('📺 Local video started playing after metadata loaded');
+                            } catch (playError) {
+                              console.error('📺 Error playing local video after metadata:', playError);
+                            }
+                          }, { once: true });
+                        }
+                      } catch (error) {
+                        console.error('📺 Error in video playback setup:', error);
+                      }
+                    };
+                    
+                    setupVideoPlayback();
+                  }
+                }}
                 autoPlay
                 muted
                 playsInline
@@ -783,7 +959,33 @@ export const MeetingRoomEnhanced: React.FC = () => {
                       if (video && stream) {
                         console.log('📺 Setting video srcObject for:', participant?.userName, 'Stream ID:', stream.id);
                         video.srcObject = stream;
-                        video.play().catch(err => console.error('Error playing video:', err));
+                        
+                        // Handle video playback properly to avoid interruption errors
+                        const setupRemoteVideoPlayback = async () => {
+                          try {
+                            // Wait for the video to be ready
+                            if (video.readyState >= 2) {
+                              console.log('📺 Remote video readyState >= 2, playing immediately for:', participant?.userName);
+                              await video.play();
+                              console.log('📺 Remote video started playing successfully for:', participant?.userName);
+                            } else {
+                              console.log('📺 Remote video not ready yet, waiting for loadedmetadata for:', participant?.userName);
+                              video.addEventListener('loadedmetadata', async () => {
+                                console.log('📺 Remote video metadata loaded for:', participant?.userName, ', attempting to play');
+                                try {
+                                  await video.play();
+                                  console.log('📺 Remote video started playing after metadata loaded for:', participant?.userName);
+                                } catch (playError) {
+                                  console.error('📺 Error playing remote video after metadata for:', participant?.userName, ':', playError);
+                                }
+                              }, { once: true });
+                            }
+                          } catch (error) {
+                            console.error('📺 Error in remote video playback setup for:', participant?.userName, ':', error);
+                          }
+                        };
+                        
+                        setupRemoteVideoPlayback();
                       }
                     }}
                     autoPlay

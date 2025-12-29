@@ -33,14 +33,13 @@ import { TrainerWalletEarnings } from "./pages/trainer/TrainerWalletEarnings";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { ManageUsers } from "./pages/admin/ManageUsers";
 import { ManageLectures as ManageLecturesAdmin } from "./pages/admin/ManageLectures";
+import { AdminLectureDetails } from "./pages/admin/LectureDetails";
 import { ManageCourses as ManageCoursesAdmin } from "./pages/admin/ManageCourses";
 import { Analytics } from "./pages/admin/Analytics";
 import { AdminSupport } from "./pages/admin/AdminSupport";
 import { WithdrawalRequests } from "./pages/admin/WithdrawalRequests";
 import { LiveLecture } from "./pages/LiveLecture";
-import { MeetingRoom } from "./pages/MeetingRoom";
-import { MeetingRoomProduction } from "./pages/MeetingRoomProduction";
-import { MeetingRoomEnhanced } from "./pages/MeetingRoomEnhanced";
+import { StreamMeetingRoom } from "./pages/StreamMeetingRoom";
 import { TrainerApplicationSuccess } from "./pages/TrainerApplicationSuccess";
 import { TrainerLectureDetails } from "./pages/trainer/LectureDetails";
 import { ResetPassword } from "./pages/ResetPassword";
@@ -103,6 +102,7 @@ const App = () => (
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="manage-users" element={<ManageUsers />} />
               <Route path="manage-lectures" element={<ManageLecturesAdmin />} />
+              <Route path="lectures/:id" element={<AdminLectureDetails />} />
               <Route path="manage-courses" element={<ManageCoursesAdmin />} />
               <Route path="withdrawals" element={<WithdrawalRequests />} />
               <Route path="analytics" element={<Analytics />} />
@@ -116,10 +116,10 @@ const App = () => (
               </RoleGuard>
             } />
 
-            {/* Meeting Room Route */}
+            {/* Meeting Room Route - Using GetStream.io Video */}
             <Route path="/meeting/:lectureId" element={
               <RoleGuard allowedRoles={['student', 'trainer']}>
-                <MeetingRoomEnhanced />
+                <StreamMeetingRoom />
               </RoleGuard>
             } />
 

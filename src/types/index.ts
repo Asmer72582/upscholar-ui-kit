@@ -1,4 +1,4 @@
-// Core Types for Upscholer Platform
+// Core Types for UpScholar Platform
 export type UserRole = 'student' | 'trainer' | 'admin';
 
 export interface User {

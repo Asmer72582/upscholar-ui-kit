@@ -15,7 +15,7 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground border border-border hover:bg-secondary/80 hover:scale-[1.02] active:scale-[0.98]",
         ghost: "hover:bg-muted hover:text-foreground hover:scale-[1.02] active:scale-[0.98]",
         link: "text-primary underline-offset-4 hover:underline",
-        // Custom Upscholer variants
+        // Custom UpScholar variants
         primary: "bg-gradient-primary text-white shadow-soft hover:shadow-glow hover:scale-[1.02] active:scale-[0.98]",
         accent: "bg-accent text-accent-foreground shadow-soft hover:shadow-medium hover:scale-[1.02] active:scale-[0.98]",
         success: "bg-success text-success-foreground shadow-soft hover:shadow-medium hover:scale-[1.02] active:scale-[0.98]",

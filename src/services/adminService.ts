@@ -15,105 +15,6 @@ const fetchConfig = {
   credentials: "include" as RequestCredentials,
 };
 
-// Mock admin lecture data
-const mockAdminLectures = [
-  {
-    id: 'lecture-1',
-    title: 'Introduction to React Hooks',
-    description: 'Learn the fundamentals of React Hooks and how to use them effectively in your applications.',
-    trainer: {
-      id: 'trainer-1',
-      email: 'jane@example.com',
-      firstName: 'Jane',
-      lastName: 'Smith',
-      role: 'trainer',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=jane',
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    price: 50,
-    duration: 90,
-    scheduledAt: '2024-01-15T14:00:00Z',
-    maxStudents: 25,
-    enrolledStudents: 18,
-    status: 'approved',
-    category: 'Programming',
-    tags: ['React', 'JavaScript', 'Frontend'],
-    thumbnail: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=300&fit=crop',
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 'lecture-2',
-    title: 'Advanced TypeScript Patterns',
-    description: 'Deep dive into advanced TypeScript patterns and best practices for enterprise applications.',
-    trainer: {
-      id: 'trainer-2',
-      email: 'mike@example.com',
-      firstName: 'Mike',
-      lastName: 'Johnson',
-      role: 'trainer',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=mike',
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    price: 75,
-    duration: 120,
-    scheduledAt: '2024-01-16T16:00:00Z',
-    maxStudents: 20,
-    enrolledStudents: 15,
-    status: 'pending',
-    category: 'Programming',
-    tags: ['TypeScript', 'JavaScript', 'Advanced'],
-    thumbnail: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=300&fit=crop',
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 'lecture-3',
-    title: 'UI/UX Design Principles',
-    description: 'Master the fundamental principles of user interface and user experience design.',
-    trainer: {
-      id: 'trainer-3',
-      email: 'sarah@example.com',
-      firstName: 'Sarah',
-      lastName: 'Williams',
-      role: 'trainer',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=sarah',
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    price: 60,
-    duration: 105,
-    scheduledAt: '2024-01-17T10:00:00Z',
-    maxStudents: 30,
-    enrolledStudents: 25,
-    status: 'rejected',
-    category: 'Design',
-    tags: ['UI', 'UX', 'Design'],
-    thumbnail: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&h=300&fit=crop',
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-  {
-    id: 'lecture-4',
-    title: 'Node.js Backend Development',
-    description: 'Build scalable backend applications with Node.js and Express.',
-    trainer: {
-      id: 'trainer-4',
-      email: 'alex@example.com',
-      firstName: 'Alex',
-      lastName: 'Brown',
-      role: 'trainer',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=alex',
-      createdAt: '2024-01-01T00:00:00Z',
-    },
-    price: 65,
-    duration: 150,
-    scheduledAt: '2024-01-18T15:00:00Z',
-    maxStudents: 35,
-    enrolledStudents: 28,
-    status: 'completed',
-    category: 'Backend',
-    tags: ['Node.js', 'Backend', 'JavaScript'],
-    thumbnail: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=400&h=300&fit=crop',
-    createdAt: '2024-01-01T00:00:00Z',
-  },
-];
 
 export interface UserStats {
   total: number;
@@ -520,9 +421,18 @@ class AdminService {
 
   async getAllLectures(): Promise<any[]> {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return mockAdminLectures;
+      const response = await fetch(`${API_URL}/admin/lectures`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch lectures");
+      }
+
+      return await response.json();
     } catch (error) {
       console.error("Error fetching lectures:", error);
       throw error;
@@ -531,15 +441,18 @@ class AdminService {
 
   async getLectureById(lectureId: string): Promise<any> {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const lecture = mockAdminLectures.find(l => l.id === lectureId);
-      if (!lecture) {
-        throw new Error("Lecture not found");
+      const response = await fetch(`${API_URL}/admin/lectures/${lectureId}`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Lecture not found");
       }
-      
-      return lecture;
+
+      return await response.json();
     } catch (error) {
       console.error("Error fetching lecture details:", error);
       throw error;
@@ -556,18 +469,16 @@ class AdminService {
     live: number;
   }> {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 300));
+      const lectures = await this.getAllLectures();
       
-      // Calculate stats from mock data
       const stats = {
-        total: mockAdminLectures.length,
-        pending: mockAdminLectures.filter(l => l.status === 'pending').length,
-        approved: mockAdminLectures.filter(l => l.status === 'approved').length,
-        completed: mockAdminLectures.filter(l => l.status === 'completed').length,
-        rejected: mockAdminLectures.filter(l => l.status === 'rejected').length,
-        scheduled: mockAdminLectures.filter(l => l.status === 'scheduled').length,
-        live: mockAdminLectures.filter(l => l.status === 'live').length,
+        total: lectures.length,
+        pending: lectures.filter((l: any) => l.status === 'pending').length,
+        approved: lectures.filter((l: any) => l.status === 'approved' || l.status === 'scheduled').length,
+        completed: lectures.filter((l: any) => l.status === 'completed').length,
+        rejected: lectures.filter((l: any) => l.status === 'cancelled' && l.rejectionReason).length,
+        scheduled: lectures.filter((l: any) => l.status === 'scheduled').length,
+        live: lectures.filter((l: any) => l.status === 'live').length,
       };
       
       return stats;
@@ -581,19 +492,21 @@ class AdminService {
     lectureId: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const lecture = mockAdminLectures.find(l => l.id === lectureId);
-      if (!lecture) {
-        throw new Error("Lecture not found");
+      const response = await fetch(`${API_URL}/admin/lectures/${lectureId}/approve`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to approve lecture");
       }
-      
-      lecture.status = 'approved';
-      
+
+      const result = await response.json();
       return {
         success: true,
-        message: "Lecture approved successfully.",
+        message: result.message || "Lecture approved successfully.",
       };
     } catch (error) {
       console.error("Error approving lecture:", error);
@@ -606,19 +519,22 @@ class AdminService {
     reason?: string
   ): Promise<{ success: boolean; message: string }> {
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const lecture = mockAdminLectures.find(l => l.id === lectureId);
-      if (!lecture) {
-        throw new Error("Lecture not found");
+      const response = await fetch(`${API_URL}/admin/lectures/${lectureId}/reject`, {
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to reject lecture");
       }
-      
-      lecture.status = 'rejected';
-      
+
+      const result = await response.json();
       return {
         success: true,
-        message: "Lecture rejected successfully.",
+        message: result.message || "Lecture rejected successfully.",
       };
     } catch (error) {
       console.error("Error rejecting lecture:", error);

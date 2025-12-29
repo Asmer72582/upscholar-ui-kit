@@ -24,23 +24,10 @@ import {
   Settings,
   BookOpen,
   Trash2,
-  TrendingUp,
-  Award,
-  Target,
-  BarChart3,
-  ThumbsUp,
-  ThumbsDown,
-  Eye,
-  Download,
-  Share2,
-  AlertCircle,
-  Info,
-  Mail
+  Radio
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { lectureService, Lecture } from '@/services/lectureService';
-import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 
 export const TrainerLectureDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -120,6 +107,12 @@ export const TrainerLectureDetails: React.FC = () => {
     }
   };
 
+  const handleJoinMeeting = () => {
+    if (lecture) {
+      navigate(`/meeting/${lecture.id}`);
+    }
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -164,10 +157,10 @@ export const TrainerLectureDetails: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const styles = {
-      scheduled: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300',
-      live: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300',
-      completed: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300',
-      cancelled: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950 dark:text-red-300',
+      scheduled: 'bg-blue-100 text-blue-700 border-blue-200',
+      live: 'bg-green-100 text-green-700 border-green-200',
+      completed: 'bg-gray-100 text-gray-700 border-gray-200',
+      cancelled: 'bg-red-100 text-red-700 border-red-200',
     }[status] || 'bg-gray-100 text-gray-700 border-gray-200';
 
     return (
@@ -175,29 +168,6 @@ export const TrainerLectureDetails: React.FC = () => {
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
     );
-  };
-
-  const calculateAverageRating = () => {
-    if (!lecture?.feedback || lecture.feedback.length === 0) return 0;
-    const sum = lecture.feedback.reduce((acc, review) => acc + review.rating, 0);
-    return (sum / lecture.feedback.length).toFixed(1);
-  };
-
-  const getRatingDistribution = () => {
-    if (!lecture?.feedback) return { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    lecture.feedback.forEach(review => {
-      distribution[review.rating as keyof typeof distribution]++;
-    });
-    return distribution;
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    }).format(amount) + ' UC';
   };
 
   return (
@@ -245,12 +215,9 @@ export const TrainerLectureDetails: React.FC = () => {
                   )}
                   {lecture.status === 'live' && (
                     <>
-                      <Button 
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => window.open(lecture.meetingLink || '#', '_blank')}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Join Lecture
+                      <Button className="bg-red-600 hover:bg-red-700 animate-pulse" onClick={handleJoinMeeting}>
+                        <Radio className="w-4 h-4 mr-2" />
+                        🔴 Join Live
                       </Button>
                       <Button variant="outline" onClick={handleCompleteLecture}>
                         <CheckCircle className="w-4 h-4 mr-2" />
@@ -355,190 +322,58 @@ export const TrainerLectureDetails: React.FC = () => {
             </Card>
           </div>
 
-          {/* Ratings & Reviews Section */}
+          {/* Student Feedback */}
           {lecture.status === 'completed' && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <Star className="w-5 h-5 mr-2 text-yellow-500" />
-                  Ratings & Reviews
-                </CardTitle>
+                <CardTitle className="text-lg">Student Feedback</CardTitle>
               </CardHeader>
               <CardContent>
                 {lecture.feedback.length > 0 ? (
-                  <div className="space-y-6">
-                    {/* Overall Rating Summary */}
-                    <div className="grid md:grid-cols-2 gap-6 pb-6 border-b">
-                      <div className="text-center">
-                        <div className="text-5xl font-bold text-primary mb-2">
-                          {calculateAverageRating()}
-                        </div>
-                        <div className="flex items-center justify-center mb-2">
-                          {[...Array(5)].map((_, i) => (
-                            <Star 
-                              key={i}
-                              className={`w-5 h-5 ${
-                                i < Math.round(Number(calculateAverageRating())) 
-                                  ? 'text-yellow-400 fill-yellow-400' 
-                                  : 'text-gray-300'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          Based on {lecture.feedback.length} {lecture.feedback.length === 1 ? 'review' : 'reviews'}
-                        </p>
-                      </div>
-                      
-                      {/* Rating Distribution */}
-                      <div className="space-y-2">
-                        {Object.entries(getRatingDistribution()).reverse().map(([rating, count]) => (
-                          <div key={rating} className="flex items-center gap-2">
-                            <span className="text-sm w-8">{rating} ⭐</span>
-                            <Progress 
-                              value={(count / lecture.feedback.length) * 100} 
-                              className="h-2 flex-1"
-                            />
-                            <span className="text-sm text-muted-foreground w-12 text-right">
-                              {count}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Individual Reviews */}
-                    <div className="space-y-4">
-                      <h4 className="font-semibold flex items-center">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Student Reviews
-                      </h4>
-                      {lecture.feedback.map((review, index) => (
-                        <div key={index} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="w-10 h-10">
-                                <AvatarImage src={review.student.avatar} />
-                                <AvatarFallback className="bg-primary/10 text-primary">
-                                  {review.student.firstname[0]}{review.student.lastname[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-medium">
-                                  {review.student.firstname} {review.student.lastname}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(review.createdAt).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                  })}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              {[...Array(5)].map((_, i) => (
-                                <Star 
-                                  key={i}
-                                  className={`w-4 h-4 ${
-                                    i < review.rating 
-                                      ? 'text-yellow-400 fill-yellow-400' 
-                                      : 'text-gray-300'
-                                  }`}
-                                />
-                              ))}
+                  <div className="space-y-4">
+                    {lecture.feedback.map((review, index) => (
+                      <div key={index} className="border-b last:border-0 pb-4 last:pb-0">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <Avatar className="w-8 h-8">
+                              <AvatarImage src={review.student.avatar} />
+                              <AvatarFallback>
+                                {review.student.firstname[0]}{review.student.lastname[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">
+                                {review.student.firstname} {review.student.lastname}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(review.createdAt).toLocaleDateString()}
+                              </p>
                             </div>
                           </div>
-                          {review.comment && (
-                            <p className="text-sm leading-relaxed">{review.comment}</p>
-                          )}
+                          <div className="flex items-center">
+                            {[...Array(5)].map((_, i) => (
+                              <Star 
+                                key={i}
+                                className={`w-4 h-4 ${
+                                  i < review.rating 
+                                    ? 'text-yellow-400 fill-yellow-400' 
+                                    : 'text-gray-300'
+                                }`}
+                              />
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                        {review.comment && (
+                          <p className="text-sm text-muted-foreground">{review.comment}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <Star className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                    <p className="text-muted-foreground mb-2">No reviews yet</p>
-                    <p className="text-sm text-muted-foreground">
-                      Students will be able to review after the lecture is completed
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No feedback received yet
+                  </p>
                 )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Lecture Analytics */}
-          {lecture.status === 'completed' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg flex items-center">
-                  <BarChart3 className="w-5 h-5 mr-2 text-primary" />
-                  Lecture Analytics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                    <Users className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {lecture.enrolledCount}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Total Enrolled</p>
-                  </div>
-                  <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
-                    <CheckCircle className="w-6 h-6 text-green-500 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {lecture.enrolledStudents.filter(e => e.attended).length}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Attended</p>
-                  </div>
-                  <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
-                    <Star className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                      {calculateAverageRating()}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Avg Rating</p>
-                  </div>
-                  <div className="text-center p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
-                    <DollarSign className="w-6 h-6 text-purple-500 mx-auto mb-2" />
-                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                      {lecture.enrolledCount * lecture.price}
-                    </div>
-                    <p className="text-xs text-muted-foreground">Total Revenue</p>
-                  </div>
-                </div>
-                
-                <Separator className="my-4" />
-                
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Attendance Rate</span>
-                    <span className="text-sm font-bold text-green-600">
-                      {lecture.enrolledCount > 0 
-                        ? Math.round((lecture.enrolledStudents.filter(e => e.attended).length / lecture.enrolledCount) * 100)
-                        : 0}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={lecture.enrolledCount > 0 
-                      ? (lecture.enrolledStudents.filter(e => e.attended).length / lecture.enrolledCount) * 100
-                      : 0} 
-                    className="h-2"
-                  />
-                  
-                  <div className="flex items-center justify-between mt-4">
-                    <span className="text-sm font-medium">Enrollment Rate</span>
-                    <span className="text-sm font-bold text-blue-600">
-                      {Math.round((lecture.enrolledCount / lecture.maxStudents) * 100)}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(lecture.enrolledCount / lecture.maxStudents) * 100} 
-                    className="h-2"
-                  />
-                </div>
               </CardContent>
             </Card>
           )}
@@ -546,95 +381,59 @@ export const TrainerLectureDetails: React.FC = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
+          {/* Live Meeting Section */}
+          {lecture.status === 'live' && (
+            <Card className="border-red-500 border-2">
+              <CardHeader className="bg-red-50">
+                <div className="flex items-center gap-2">
+                  <Radio className="w-5 h-5 text-red-600 animate-pulse" />
+                  <CardTitle className="text-red-700">🔴 LIVE NOW</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  Your lecture is currently live. Join now to interact with your students.
+                </p>
+                <Button 
+                  className="w-full bg-red-600 hover:bg-red-700 text-lg py-6" 
+                  onClick={handleJoinMeeting}
+                >
+                  <Video className="w-5 h-5 mr-2" />
+                  Join Live Meeting
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Enrollment Stats */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="w-5 h-5 mr-2" />
-                Enrollment Stats
-              </CardTitle>
+              <CardTitle>Enrollment Stats</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="text-center p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-lg">
-                  <div className="text-3xl font-bold text-primary mb-1">
-                    {lecture.enrolledCount}
-                  </div>
-                  <p className="text-sm text-muted-foreground">out of {lecture.maxStudents} seats</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Enrolled</span>
+                  <span className="font-medium">
+                    {lecture.enrolledCount}/{lecture.maxStudents}
+                  </span>
                 </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Enrollment Progress</span>
-                    <span className="font-medium">
-                      {Math.round((lecture.enrolledCount / lecture.maxStudents) * 100)}%
-                    </span>
-                  </div>
-                  <Progress 
-                    value={(lecture.enrolledCount / lecture.maxStudents) * 100} 
-                    className="h-3"
+                <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-primary h-full rounded-full"
+                    style={{ 
+                      width: `${(lecture.enrolledCount / lecture.maxStudents) * 100}%`
+                    }}
                   />
                 </div>
-                
-                {lecture.isFull ? (
-                  <div className="flex items-center gap-2 p-3 bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-lg">
-                    <AlertCircle className="w-4 h-4 text-orange-600" />
-                    <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">
-                      Lecture is full
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <Info className="w-4 h-4 text-blue-600" />
-                    <p className="text-sm text-blue-600 dark:text-blue-400">
-                      {lecture.maxStudents - lecture.enrolledCount} seats available
-                    </p>
-                  </div>
+                {lecture.isFull && (
+                  <p className="text-sm text-orange-600">
+                    This lecture is full
+                  </p>
                 )}
               </div>
             </CardContent>
           </Card>
-
-          {/* Earnings Card */}
-          {lecture.status === 'completed' && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <DollarSign className="w-5 h-5 mr-2 text-green-500" />
-                  Earnings Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-lg border border-green-200 dark:border-green-800">
-                    <p className="text-sm text-muted-foreground mb-1">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(lecture.enrolledCount * lecture.price)}
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Price per student</span>
-                      <span className="font-medium">{formatCurrency(lecture.price)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Students enrolled</span>
-                      <span className="font-medium">{lecture.enrolledCount}</span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between font-semibold">
-                      <span>Your Earnings</span>
-                      <span className="text-green-600">{formatCurrency(lecture.enrolledCount * lecture.price * 0.85)}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      * After 15% platform fee
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Actions */}
           {lecture.status === 'scheduled' && (
@@ -643,15 +442,10 @@ export const TrainerLectureDetails: React.FC = () => {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {lecture.meetingLink && (
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700" 
-                    onClick={() => window.open(lecture.meetingLink, '_blank')}
-                  >
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Join Lecture
-                  </Button>
-                )}
+                <Button className="w-full" onClick={() => window.open(lecture.meetingLink || '#', '_blank')}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open Meeting Link
+                </Button>
                 <Button variant="outline" className="w-full" onClick={() => navigate(`/trainer/lectures/${lecture.id}/edit`)}>
                   <Settings className="w-4 h-4 mr-2" />
                   Edit Settings
@@ -718,10 +512,7 @@ export const TrainerLectureDetails: React.FC = () => {
                         </div>
                       </div>
                       {lecture.status === 'completed' && (
-                        <Badge 
-                          variant="outline"
-                          className={enrollment.attended ? "bg-green-50 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300" : "bg-gray-100 text-gray-700 border-gray-200"}
-                        >
+                        <Badge variant={enrollment.attended ? "success" : "secondary"}>
                           {enrollment.attended ? "Attended" : "Absent"}
                         </Badge>
                       )}

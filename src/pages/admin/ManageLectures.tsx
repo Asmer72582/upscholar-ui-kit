@@ -95,14 +95,16 @@ export const ManageLectures: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800">Approved</Badge>;
+      case 'scheduled':
+        return <Badge className="bg-green-100 text-green-800">Scheduled</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">Pending Approval</Badge>;
+      case 'live':
+        return <Badge className="bg-red-100 text-red-800 animate-pulse">🔴 Live</Badge>;
       case 'completed':
         return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">Rejected</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -259,20 +261,30 @@ export const ManageLectures: React.FC = () => {
                     />
                   </div>
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-40">
+                    <SelectTrigger className="w-48">
                       <SelectValue placeholder="Category" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
                       <SelectItem value="Mathematics">Mathematics</SelectItem>
                       <SelectItem value="Science">Science</SelectItem>
-                      <SelectItem value="Programming">Programming</SelectItem>
-                      <SelectItem value="Design">Design</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                      <SelectItem value="Business">Business</SelectItem>
-                      <SelectItem value="English">English</SelectItem>
                       <SelectItem value="Physics">Physics</SelectItem>
                       <SelectItem value="Chemistry">Chemistry</SelectItem>
+                      <SelectItem value="Biology">Biology</SelectItem>
+                      <SelectItem value="English">English</SelectItem>
+                      <SelectItem value="Hindi">Hindi</SelectItem>
+                      <SelectItem value="Social Studies">Social Studies</SelectItem>
+                      <SelectItem value="History">History</SelectItem>
+                      <SelectItem value="Geography">Geography</SelectItem>
+                      <SelectItem value="Economics">Economics</SelectItem>
+                      <SelectItem value="Computer Science">Computer Science</SelectItem>
+                      <SelectItem value="Programming">Programming</SelectItem>
+                      <SelectItem value="Web Development">Web Development</SelectItem>
+                      <SelectItem value="Data Science">Data Science</SelectItem>
+                      <SelectItem value="Design">Design</SelectItem>
+                      <SelectItem value="Business">Business</SelectItem>
+                      <SelectItem value="Marketing">Marketing</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                   <Select value={selectedStatus} onValueChange={setSelectedStatus}>
@@ -449,12 +461,12 @@ export const ManageLectures: React.FC = () => {
           <TabsContent value="approved" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Approved Lectures ({lectureStats.approved})</CardTitle>
-                <CardDescription>Successfully approved lectures</CardDescription>
+                <CardTitle>Scheduled Lectures ({lectureStats.scheduled})</CardTitle>
+                <CardDescription>Approved lectures ready to go live</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredLectures.filter(l => l.status === 'approved').map((lecture) => (
+                  {filteredLectures.filter(l => l.status === 'scheduled' || l.status === 'live').map((lecture) => (
                     <Card key={lecture.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => viewLectureDetails(lecture.id)}>
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
@@ -479,8 +491,8 @@ export const ManageLectures: React.FC = () => {
                     </Card>
                   ))}
                 </div>
-                {filteredLectures.filter(l => l.status === 'approved').length === 0 && (
-                  <p className="text-muted-foreground text-center py-8">No approved lectures found</p>
+                {filteredLectures.filter(l => l.status === 'scheduled' || l.status === 'live').length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">No scheduled lectures found</p>
                 )}
               </CardContent>
             </Card>

@@ -31,6 +31,12 @@ export const APP_CONFIG = {
   SUPPORT_EMAIL: 'support@upscholar.com',
 };
 
+// GetStream.io Video Configuration
+export const STREAM_CONFIG = {
+  // API Key is fetched from backend for security
+  // The backend generates tokens with the secret key
+};
+
 // Feature Flags
 export const FEATURES = {
   ENABLE_MEETINGS: true,

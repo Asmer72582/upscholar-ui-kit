@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Users, 
   BookOpen, 
@@ -22,7 +24,20 @@ import {
   Clock,
   Server,
   Database,
-  Zap
+  Zap,
+  ArrowUpRight,
+  ArrowDownRight,
+  ChevronRight,
+  Eye,
+  UserX,
+  Calendar,
+  Crown,
+  Star,
+  Bell,
+  Settings,
+  FileText,
+  TrendingDown,
+  Sparkles
 } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import { toast } from 'sonner';
@@ -41,6 +56,7 @@ interface DashboardStats {
     active: number;
     completed: number;
     scheduled: number;
+    pending: number;
     growth: number;
     newThisMonth: number;
   };
@@ -79,6 +95,7 @@ interface PendingApproval {
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -121,13 +138,15 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success': return 'text-green-600';
-      case 'warning': return 'text-yellow-600';
-      case 'error': return 'text-red-600';
-      default: return 'text-blue-600';
-    }
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
   };
 
   const getActivityIcon = (type: string) => {
@@ -140,32 +159,32 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}d ago`;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success': return 'text-green-600 bg-green-100';
+      case 'warning': return 'text-yellow-600 bg-yellow-100';
+      case 'error': return 'text-red-600 bg-red-100';
+      default: return 'text-blue-600 bg-blue-100';
+    }
   };
 
   if (loading) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div className="h-32 bg-muted rounded-2xl animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="space-y-8">
+        {/* Hero Skeleton */}
+        <div className="h-48 bg-gradient-to-r from-slate-500/20 to-gray-500/20 rounded-3xl animate-pulse" />
+        
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} className="card-elevated">
-              <CardHeader>
-                <div className="h-4 bg-muted rounded animate-pulse" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-muted rounded animate-pulse mb-2" />
-                <div className="h-3 bg-muted rounded animate-pulse w-2/3" />
-              </CardContent>
-            </Card>
+            <div key={i} className="h-32 bg-muted rounded-2xl animate-pulse" />
+          ))}
+        </div>
+        
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-80 bg-muted rounded-2xl animate-pulse" />
           ))}
         </div>
       </div>
@@ -174,17 +193,15 @@ export const AdminDashboard: React.FC = () => {
 
   if (!stats) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <Card>
-          <CardContent className="text-center py-12">
-            <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Failed to load dashboard</h3>
-            <p className="text-muted-foreground mb-4">
-              Unable to fetch dashboard data. Please try again.
-            </p>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="font-semibold text-lg mb-2">Failed to Load Dashboard</h3>
+            <p className="text-muted-foreground mb-4">Unable to fetch dashboard data</p>
             <Button onClick={loadDashboardData}>
               <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
+              Try Again
             </Button>
           </CardContent>
         </Card>
@@ -192,220 +209,434 @@ export const AdminDashboard: React.FC = () => {
     );
   }
 
+  const totalPendingApprovals = stats.users.pendingTrainers + (stats.lectures.pending || 0);
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Welcome Header */}
-      <div className="bg-gradient-primary rounded-2xl p-8 text-white relative overflow-hidden">
+    <div className="space-y-8">
+      {/* Hero Welcome Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-gray-800 to-zinc-900 p-8 text-white">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+        
         <div className="relative z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Shield className="w-8 h-8 mr-3" />
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
+                <Shield className="w-8 h-8 text-white" />
+              </div>
               <div>
-                <h1 className="text-3xl font-bold mb-2">
-                  Admin Dashboard
+                <Badge className="mb-2 bg-gradient-to-r from-indigo-500 to-purple-500 border-0">
+                  <Crown className="w-3 h-3 mr-1" />
+                  Administrator
+                </Badge>
+                <h1 className="text-3xl md:text-4xl font-bold">
+                  Welcome, {user?.firstName}!
                 </h1>
-                <p className="text-lg opacity-90">
-                  Welcome back, {user?.firstName}. Here's your platform overview.
+                <p className="text-white/70 mt-1">
+                  Monitor and manage the entire UpScholar platform
                 </p>
               </div>
             </div>
-            <Button
-              variant="secondary"
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            
+            <div className="flex flex-wrap gap-3">
+              <Button 
+                variant="outline" 
+                className="border-white/20 text-white hover:bg-white/10"
+                onClick={handleRefresh}
+                disabled={refreshing}
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button 
+                className="bg-white text-gray-900 hover:bg-white/90 font-semibold"
+                onClick={() => navigate('/admin/settings')}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/30 rounded-lg">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.users.total.toLocaleString()}</p>
+                  <p className="text-white/70 text-sm">Total Users</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/30 rounded-lg">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.lectures.total}</p>
+                  <p className="text-white/70 text-sm">Total Lectures</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-500/30 rounded-lg">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.revenue.total.toLocaleString()}</p>
+                  <p className="text-white/70 text-sm">Total Revenue (UC)</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${totalPendingApprovals > 0 ? 'bg-orange-500/30' : 'bg-green-500/30'}`}>
+                  {totalPendingApprovals > 0 ? <AlertTriangle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{totalPendingApprovals}</p>
+                  <p className="text-white/70 text-sm">Pending</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
       </div>
 
-      {/* Platform Stats */}
+      {/* Alert for Pending Approvals */}
+      {totalPendingApprovals > 0 && (
+        <Card className="border-2 border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center animate-pulse">
+                  <Bell className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-orange-700">Action Required</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {stats.users.pendingTrainers} trainer applications & {stats.lectures.pending || 0} lectures awaiting approval
+                  </p>
+                </div>
+              </div>
+              <Button 
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={() => navigate('/admin/manage-users')}
+              >
+                Review Now
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="card-elevated hover-lift">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <div className="p-2 bg-blue-100 rounded-full">
-              <Users className="h-4 w-4 text-blue-600" />
+            <CardTitle className="text-sm font-medium text-blue-700">Total Users</CardTitle>
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <Users className="h-4 w-4 text-white" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{stats.users.total.toLocaleString()}</div>
-            <p className={`text-xs ${stats.users.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {stats.users.growth >= 0 ? '+' : ''}{stats.users.growth}% from last month
-            </p>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.users.newThisMonth} new this month
+            <div className="text-3xl font-bold text-blue-600">{stats.users.total.toLocaleString()}</div>
+            <div className="flex items-center mt-2 text-sm">
+              {stats.users.growth >= 0 ? (
+                <span className="text-green-600 flex items-center">
+                  <ArrowUpRight className="h-4 w-4 mr-1" />
+                  +{stats.users.growth}%
+                </span>
+              ) : (
+                <span className="text-red-600 flex items-center">
+                  <ArrowDownRight className="h-4 w-4 mr-1" />
+                  {stats.users.growth}%
+                </span>
+              )}
+              <span className="text-muted-foreground ml-2">from last month</span>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              +{stats.users.newThisMonth} new this month
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="card-elevated hover-lift">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Lectures</CardTitle>
-            <div className="p-2 bg-green-100 rounded-full">
-              <BookOpen className="h-4 w-4 text-green-600" />
+            <CardTitle className="text-sm font-medium text-green-700">Active Lectures</CardTitle>
+            <div className="p-2 bg-green-500 rounded-lg">
+              <BookOpen className="h-4 w-4 text-white" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.lectures.active}</div>
-            <p className={`text-xs ${stats.lectures.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {stats.lectures.growth >= 0 ? '+' : ''}{stats.lectures.growth}% from last month
-            </p>
-            <div className="text-xs text-muted-foreground mt-1">
+            <div className="text-3xl font-bold text-green-600">{stats.lectures.active}</div>
+            <div className="flex items-center mt-2 text-sm">
+              {stats.lectures.growth >= 0 ? (
+                <span className="text-green-600 flex items-center">
+                  <ArrowUpRight className="h-4 w-4 mr-1" />
+                  +{stats.lectures.growth}%
+                </span>
+              ) : (
+                <span className="text-red-600 flex items-center">
+                  <ArrowDownRight className="h-4 w-4 mr-1" />
+                  {stats.lectures.growth}%
+                </span>
+              )}
+              <span className="text-muted-foreground ml-2">from last month</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
               {stats.lectures.total} total lectures
-            </div>
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="card-elevated hover-lift">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-950/30 dark:to-fuchsia-950/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue (UC)</CardTitle>
-            <div className="p-2 bg-purple-100 rounded-full">
-              <Coins className="h-4 w-4 text-purple-600" />
+            <CardTitle className="text-sm font-medium text-purple-700">Revenue (UC)</CardTitle>
+            <div className="p-2 bg-purple-500 rounded-lg">
+              <Coins className="h-4 w-4 text-white" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{stats.revenue.total.toLocaleString()}</div>
-            <p className={`text-xs ${stats.revenue.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              {stats.revenue.growth >= 0 ? '+' : ''}{stats.revenue.growth}% from last month
-            </p>
-            <div className="text-xs text-muted-foreground mt-1">
-              {stats.revenue.thisMonth} UC this month
+            <div className="text-3xl font-bold text-purple-600">{stats.revenue.total.toLocaleString()}</div>
+            <div className="flex items-center mt-2 text-sm">
+              {stats.revenue.growth >= 0 ? (
+                <span className="text-green-600 flex items-center">
+                  <ArrowUpRight className="h-4 w-4 mr-1" />
+                  +{stats.revenue.growth}%
+                </span>
+              ) : (
+                <span className="text-red-600 flex items-center">
+                  <ArrowDownRight className="h-4 w-4 mr-1" />
+                  {stats.revenue.growth}%
+                </span>
+              )}
+              <span className="text-muted-foreground ml-2">from last month</span>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.revenue.thisMonth.toLocaleString()} UC this month
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="card-elevated hover-lift">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Approvals</CardTitle>
-            <div className="p-2 bg-orange-100 rounded-full">
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
+            <CardTitle className="text-sm font-medium text-orange-700">Pending</CardTitle>
+            <div className="p-2 bg-orange-500 rounded-lg">
+              <AlertTriangle className="h-4 w-4 text-white" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.users.pendingTrainers}</div>
-            <p className="text-xs text-muted-foreground">
-              Trainers awaiting approval
-            </p>
-            <div className="text-xs text-muted-foreground mt-1">
-              {pendingApprovals.length} total pending items
+            <div className="text-3xl font-bold text-orange-600">{totalPendingApprovals}</div>
+            <div className="mt-2 text-sm text-muted-foreground">
+              <p>{stats.users.pendingTrainers} trainers</p>
+              <p>{stats.lectures.pending || 0} lectures</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* User & Lecture Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="card-elevated">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* User Distribution */}
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Users className="w-5 h-5 mr-2 text-blue-600" />
-              User Overview
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Users className="w-5 h-5 text-blue-600" />
+              User Distribution
             </CardTitle>
-            <CardDescription>
-              Platform user distribution and growth
-            </CardDescription>
+            <CardDescription>Platform user breakdown</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                  <span className="text-sm">Students</span>
-                </div>
-                <span className="font-medium">{stats.users.students}</span>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30">
+                <GraduationCap className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-blue-600">{stats.users.students}</p>
+                <p className="text-sm text-muted-foreground">Students</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full" />
-                  <span className="text-sm">Approved Trainers</span>
-                </div>
-                <span className="font-medium">{stats.users.trainers}</span>
+              <div className="text-center p-4 rounded-xl bg-green-50 dark:bg-green-950/30">
+                <UserCheck className="w-8 h-8 text-green-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-600">{stats.users.trainers}</p>
+                <p className="text-sm text-muted-foreground">Trainers</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-orange-500 rounded-full" />
-                  <span className="text-sm">Pending Trainers</span>
-                </div>
-                <span className="font-medium">{stats.users.pendingTrainers}</span>
+              <div className="text-center p-4 rounded-xl bg-orange-50 dark:bg-orange-950/30">
+                <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-orange-600">{stats.users.pendingTrainers}</p>
+                <p className="text-sm text-muted-foreground">Pending</p>
               </div>
             </div>
+            
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Students</span>
+                  <span className="font-medium">{((stats.users.students / stats.users.total) * 100).toFixed(1)}%</span>
+                </div>
+                <Progress value={(stats.users.students / stats.users.total) * 100} className="h-3" />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Trainers</span>
+                  <span className="font-medium">{((stats.users.trainers / stats.users.total) * 100).toFixed(1)}%</span>
+                </div>
+                <Progress value={(stats.users.trainers / stats.users.total) * 100} className="h-3" />
+              </div>
+            </div>
+            
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/admin/manage-users">
+                Manage Users <ChevronRight className="w-4 h-4 ml-2" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 
-        <Card className="card-elevated">
+        {/* Lecture Overview */}
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <GraduationCap className="w-5 h-5 mr-2 text-green-600" />
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <BookOpen className="w-5 h-5 text-green-600" />
               Lecture Overview
             </CardTitle>
-            <CardDescription>
-              Platform lecture status and activity
-            </CardDescription>
+            <CardDescription>Platform lecture status</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full" />
-                  <span className="text-sm">Scheduled</span>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="w-5 h-5 text-yellow-600" />
+                  <span className="text-sm text-muted-foreground">Pending</span>
                 </div>
-                <span className="font-medium">{stats.lectures.scheduled}</span>
+                <p className="text-2xl font-bold text-yellow-600">{stats.lectures.pending || 0}</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full" />
-                  <span className="text-sm">Completed</span>
+              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm text-muted-foreground">Scheduled</span>
                 </div>
-                <span className="font-medium">{stats.lectures.completed}</span>
+                <p className="text-2xl font-bold text-blue-600">{stats.lectures.scheduled}</p>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full" />
-                  <span className="text-sm">Total Revenue</span>
+              <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-muted-foreground">Completed</span>
                 </div>
-                <span className="font-medium">{stats.revenue.total} UC</span>
+                <p className="text-2xl font-bold text-green-600">{stats.lectures.completed}</p>
+              </div>
+              <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Coins className="w-5 h-5 text-purple-600" />
+                  <span className="text-sm text-muted-foreground">Revenue</span>
+                </div>
+                <p className="text-2xl font-bold text-purple-600">{stats.revenue.total.toLocaleString()} UC</p>
               </div>
             </div>
+            
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/admin/manage-lectures">
+                Manage Lectures <ChevronRight className="w-4 h-4 ml-2" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
-        <Card className="card-elevated">
+        {/* Pending Approvals */}
+        <Card className="border-0 shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Recent Platform Activity</CardTitle>
-                <CardDescription>
-                  Latest events and system updates
-                </CardDescription>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <AlertTriangle className="w-5 h-5 text-orange-600" />
+                  Pending Approvals
+                </CardTitle>
+                <CardDescription>Items requiring your review</CardDescription>
               </div>
-              <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing}>
+              <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-200">
+                {pendingApprovals.length} items
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {pendingApprovals.length > 0 ? (
+              <>
+                {pendingApprovals.slice(0, 4).map((item) => (
+                  <div 
+                    key={item.id} 
+                    className="flex items-center justify-between p-4 rounded-xl border hover:border-orange-200 hover:bg-orange-50/50 transition-all cursor-pointer"
+                    onClick={() => navigate(item.type === 'Trainer' ? '/admin/manage-users' : '/admin/manage-lectures')}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        item.type === 'Trainer' ? 'bg-blue-100' : 'bg-green-100'
+                      }`}>
+                        {item.type === 'Trainer' ? (
+                          <UserCheck className="w-5 h-5 text-blue-600" />
+                        ) : (
+                          <BookOpen className="w-5 h-5 text-green-600" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">{item.item}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant="outline" className="mb-1">{item.type}</Badge>
+                      <p className="text-xs text-muted-foreground">{formatTimeAgo(item.createdAt)}</p>
+                    </div>
+                  </div>
+                ))}
+                <Button asChild variant="outline" className="w-full">
+                  <Link to="/admin/manage-users">
+                    View All Pending <ChevronRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <h3 className="font-medium mb-2">All Caught Up!</h3>
+                <p className="text-muted-foreground text-sm">
+                  No pending approvals at this time
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity */}
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Activity className="w-5 h-5 text-indigo-600" />
+                  Recent Activity
+                </CardTitle>
+                <CardDescription>Latest platform events</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={refreshing}>
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {recentActivity.length > 0 ? (
-              recentActivity.map((activity) => {
+              recentActivity.slice(0, 5).map((activity) => {
                 const Icon = getActivityIcon(activity.type);
+                const colorClass = getStatusColor(activity.status);
                 return (
-                  <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-muted/50">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      activity.status === 'success' ? 'bg-green-100' :
-                      activity.status === 'warning' ? 'bg-orange-100' :
-                      activity.status === 'error' ? 'bg-red-100' :
-                      'bg-blue-100'
-                    }`}>
-                      <Icon className={`w-4 h-4 ${getStatusColor(activity.status)}`} />
+                  <div key={activity.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClass}`}>
+                      <Icon className="w-5 h-5" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{activity.message}</p>
                       <p className="text-xs text-muted-foreground">{formatTimeAgo(activity.time)}</p>
                     </div>
@@ -413,149 +644,93 @@ export const AdminDashboard: React.FC = () => {
                 );
               })
             ) : (
-              <div className="text-center py-4">
-                <Activity className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No recent activity</p>
+              <div className="text-center py-8">
+                <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-muted-foreground text-sm">No recent activity</p>
               </div>
             )}
           </CardContent>
         </Card>
+      </div>
 
-        {/* Pending Approvals */}
-        <Card className="card-elevated">
+      {/* System Health & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* System Health */}
+        <Card className="border-0 shadow-lg lg:col-span-1">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center">
-                  <AlertTriangle className="w-5 h-5 mr-2 text-orange-600" />
-                  Pending Approvals
-                </CardTitle>
-                <CardDescription>
-                  Items requiring your review and approval
-                </CardDescription>
-              </div>
-              <Badge variant="outline">
-                {pendingApprovals.length}
-              </Badge>
-            </div>
+            <CardTitle className="flex items-center gap-2">
+              <Server className="w-5 h-5 text-green-600" />
+              System Health
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {pendingApprovals.length > 0 ? (
-              pendingApprovals.slice(0, 5).map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
-                  <div className="flex-1">
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">{item.item}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatTimeAgo(item.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="outline" className="text-xs">
-                      {item.type}
-                    </Badge>
-                    <Button size="sm" asChild>
-                      <Link to={item.type === 'Trainer' ? '/admin/manage-users' : '/admin/manage-lectures'}>
-                        Review
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-4">
-                <CheckCircle className="w-8 h-8 text-green-600 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No pending approvals</p>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-sm font-medium">Server Status</span>
               </div>
-            )}
-            {pendingApprovals.length > 5 && (
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/admin/manage-users">View All Pending Items</Link>
-              </Button>
-            )}
+              <Badge className="bg-green-500">Online</Badge>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-sm font-medium">Database</span>
+              </div>
+              <Badge className="bg-green-500">Healthy</Badge>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-medium">API Response</span>
+              </div>
+              <Badge variant="outline">~125ms</Badge>
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium">Uptime</span>
+              </div>
+              <Badge variant="outline">99.9%</Badge>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Quick Management Actions */}
-        <Card className="card-elevated lg:col-span-2">
+        {/* Quick Actions */}
+        <Card className="border-0 shadow-lg lg:col-span-2">
           <CardHeader>
-            <CardTitle>Platform Management</CardTitle>
-            <CardDescription>
-              Quick access to core administrative functions
-            </CardDescription>
+            <CardTitle className="text-xl">Platform Management</CardTitle>
+            <CardDescription>Quick access to administrative functions</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
+              <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-blue-300 hover:bg-blue-50">
                 <Link to="/admin/manage-users">
-                  <Users className="w-6 h-6" />
-                  <span className="text-sm">Manage Users</span>
+                  <Users className="w-8 h-8 text-blue-600" />
+                  <span className="text-sm font-medium">Manage Users</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
+              <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-green-300 hover:bg-green-50">
                 <Link to="/admin/manage-lectures">
-                  <BookOpen className="w-6 h-6" />
-                  <span className="text-sm">Manage Lectures</span>
+                  <BookOpen className="w-8 h-8 text-green-600" />
+                  <span className="text-sm font-medium">Manage Lectures</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
+              <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-purple-300 hover:bg-purple-50">
                 <Link to="/admin/analytics">
-                  <BarChart3 className="w-6 h-6" />
-                  <span className="text-sm">View Analytics</span>
+                  <BarChart3 className="w-8 h-8 text-purple-600" />
+                  <span className="text-sm font-medium">Analytics</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
+              <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-orange-300 hover:bg-orange-50">
                 <Link to="/admin/support">
-                  <MessageSquare className="w-6 h-6" />
-                  <span className="text-sm">Support Center</span>
+                  <MessageSquare className="w-8 h-8 text-orange-600" />
+                  <span className="text-sm font-medium">Support</span>
                 </Link>
               </Button>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* System Health Monitor */}
-      <Card className="card-elevated">
-        <CardHeader>
-          <CardTitle>System Health</CardTitle>
-          <CardDescription>
-            Real-time platform performance metrics
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
-              <p className="text-sm font-medium">Server Status</p>
-              <p className="text-xs text-success">Online</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
-              <p className="text-sm font-medium">Database</p>
-              <p className="text-xs text-success">Healthy</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
-              <p className="text-sm font-medium">API Response</p>
-              <p className="text-xs text-success">125ms avg</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-2">
-                <CheckCircle className="w-8 h-8 text-success" />
-              </div>
-              <p className="text-sm font-medium">Uptime</p>
-              <p className="text-xs text-success">99.9%</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

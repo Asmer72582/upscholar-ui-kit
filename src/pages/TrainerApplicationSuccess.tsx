@@ -25,7 +25,7 @@ export const TrainerApplicationSuccess: React.FC = () => {
                 <GraduationCap className="w-6 h-6 text-white" />
               </div>
               <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                Upscholer
+                UpScholar
               </span>
             </Link>
           </div>
@@ -39,7 +39,7 @@ export const TrainerApplicationSuccess: React.FC = () => {
                 Application Submitted Successfully!
               </CardTitle>
               <CardDescription className="text-lg">
-                Thank you for applying to become a trainer on Upscholer
+                Thank you for applying to become a trainer on UpScholar
               </CardDescription>
             </CardHeader>
 

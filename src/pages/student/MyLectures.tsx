@@ -29,7 +29,8 @@ import {
   Award,
   TrendingUp,
   Eye,
-  Plus
+  Plus,
+  Radio
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { lectureService, Lecture } from '@/services/lectureService';
@@ -150,6 +151,7 @@ export const MyLectures: React.FC = () => {
     const now = new Date();
     const lectureTime = new Date(lecture.scheduledAt);
     
+    if (lecture.status === 'live') return 'live';
     if (lecture.status === 'completed') return 'completed';
     if (lecture.status === 'cancelled') return 'cancelled';
     if (lectureTime > now) return 'upcoming';
@@ -163,6 +165,8 @@ export const MyLectures: React.FC = () => {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'live':
+        return <Radio className="w-4 h-4 text-red-600 animate-pulse" />;
       case 'upcoming':
         return <Clock className="w-4 h-4 text-blue-600" />;
       case 'completed':
@@ -178,6 +182,8 @@ export const MyLectures: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'live':
+        return 'text-red-700 bg-red-100 border-red-200 animate-pulse';
       case 'upcoming':
         return 'text-blue-700 bg-blue-100 border-blue-200';
       case 'completed':
@@ -204,6 +210,8 @@ export const MyLectures: React.FC = () => {
 
   const getStatusCardColor = (status: string) => {
     switch (status) {
+      case 'live':
+        return 'bg-red-50 border-red-300 border-2 hover:bg-red-100';
       case 'upcoming':
         return 'bg-blue-50 border-blue-200 hover:bg-blue-100';
       case 'completed':
@@ -306,11 +314,19 @@ export const MyLectures: React.FC = () => {
             )}
 
             <div className="flex gap-2">
+              {status === 'live' && (
+                <Button size="sm" className="flex-1 bg-red-600 hover:bg-red-700 animate-pulse"
+                        onClick={() => navigate(`/meeting/${lecture.id}`)}>
+                  <Radio className="w-4 h-4 mr-1" />
+                  🔴 Join Live
+                </Button>
+              )}
+
               {status === 'upcoming' && (
                 <Button size="sm" className="flex-1 btn-primary"
-                        onClick={() => window.open(lecture.meetingLink || '#', '_blank')}>
+                        onClick={() => navigate(`/student/lecture/${lecture.id}`)}>
                   <PlayCircle className="w-4 h-4 mr-1" />
-                  Join Lecture
+                  View Details
                 </Button>
               )}
               
@@ -340,10 +356,12 @@ export const MyLectures: React.FC = () => {
                 </Button>
               )}
 
-              <Button size="sm" variant="ghost"
-                      onClick={() => navigate(`/student/lecture/${lecture.id}`)}>
-                <Eye className="w-4 h-4" />
-              </Button>
+              {status !== 'live' && (
+                <Button size="sm" variant="ghost"
+                        onClick={() => navigate(`/student/lecture/${lecture.id}`)}>
+                  <Eye className="w-4 h-4" />
+                </Button>
+              )}
 
               {canUnenroll && (
                 <Button size="sm" variant="destructive" 

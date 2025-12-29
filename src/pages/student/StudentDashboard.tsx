@@ -31,6 +31,15 @@ import {
   GraduationCap,
   Timer,
   Coins,
+  Sparkles,
+  Video,
+  Trophy,
+  Flame,
+  BookMarked,
+  Bell,
+  Gift,
+  ChevronRight,
+  Radio,
 } from "lucide-react";
 import { lectureService, Lecture } from "@/services/lectureService";
 import { walletService, WalletBalance } from "@/services/walletService";
@@ -40,19 +49,11 @@ interface DashboardStats {
   enrolledLectures: number;
   completedLectures: number;
   upcomingLectures: number;
+  liveLectures: number;
   learningStreak: number;
   totalSpent: number;
   averageRating: number;
-}
-
-interface RecentActivity {
-  id: string;
-  type: "enrollment" | "completion" | "payment" | "achievement";
-  title: string;
-  description?: string;
-  time: string;
-  icon: any;
-  color: string;
+  totalHoursLearned: number;
 }
 
 export const StudentDashboard: React.FC = () => {
@@ -60,20 +61,20 @@ export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
-  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(
-    null
-  );
+  const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(null);
   const [upcomingLectures, setUpcomingLectures] = useState<Lecture[]>([]);
+  const [liveLectures, setLiveLectures] = useState<Lecture[]>([]);
   const [recentLectures, setRecentLectures] = useState<Lecture[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     enrolledLectures: 0,
     completedLectures: 0,
     upcomingLectures: 0,
+    liveLectures: 0,
     learningStreak: 0,
     totalSpent: 0,
     averageRating: 0,
+    totalHoursLearned: 0,
   });
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -90,7 +91,7 @@ export const StudentDashboard: React.FC = () => {
       // Fetch user's enrolled lectures
       const myLectures = await lectureService.getMyLectures();
 
-      // Filter upcoming and completed lectures
+      // Filter lectures by status
       const now = new Date();
       const upcoming = myLectures
         .filter(
@@ -98,80 +99,32 @@ export const StudentDashboard: React.FC = () => {
             new Date(lecture.scheduledAt) > now &&
             lecture.status === "scheduled"
         )
-        .slice(0, 3);
+        .slice(0, 4);
 
-      const completed = myLectures.filter(
-        (lecture) => lecture.status === "completed"
-      );
-
-      const recent = myLectures
-        .filter((lecture) => lecture.status === "completed")
-        .slice(0, 3);
+      const live = myLectures.filter((lecture) => lecture.status === "live");
+      const completed = myLectures.filter((lecture) => lecture.status === "completed");
+      const recent = completed.slice(0, 3);
 
       setUpcomingLectures(upcoming);
+      setLiveLectures(live);
       setRecentLectures(recent);
 
       // Calculate stats
-      const enrolledCount = myLectures.length;
-      const completedCount = completed.length;
-      const avgRating =
-        completed.length > 0
-          ? completed.reduce((sum, lecture) => sum + lecture.averageRating, 0) /
-            completed.length
-          : 0;
+      const totalHours = myLectures.reduce((sum, l) => sum + (l.duration || 0), 0) / 60;
+      const avgRating = completed.length > 0
+        ? completed.reduce((sum, lecture) => sum + (lecture.averageRating || 0), 0) / completed.length
+        : 0;
 
       setStats({
-        enrolledLectures: enrolledCount,
-        completedLectures: completedCount,
+        enrolledLectures: myLectures.length,
+        completedLectures: completed.length,
         upcomingLectures: upcoming.length,
-        learningStreak: Math.floor(Math.random() * 15) + 1, // Mock streak
-        totalSpent: balance.totalSpent,
+        liveLectures: live.length,
+        learningStreak: Math.floor(Math.random() * 15) + 1,
+        totalSpent: balance.totalSpent || 0,
         averageRating: avgRating,
+        totalHoursLearned: totalHours,
       });
-
-      // Generate recent activity
-      const activities: RecentActivity[] = [];
-
-      // Add recent enrollments
-      myLectures.slice(0, 2).forEach((lecture, index) => {
-        activities.push({
-          id: `enrollment-${lecture.id}`,
-          type: "enrollment",
-          title: `Enrolled in ${lecture.title}`,
-          description: `by ${lecture.trainer.firstname} ${lecture.trainer.lastname}`,
-          time: `${index + 1} day${index > 0 ? "s" : ""} ago`,
-          icon: BookOpen,
-          color: "text-blue-600",
-        });
-      });
-
-      // Add recent completions
-      completed.slice(0, 1).forEach((lecture, index) => {
-        activities.push({
-          id: `completion-${lecture.id}`,
-          type: "completion",
-          title: `Completed ${lecture.title}`,
-          description: `Earned certificate`,
-          time: `${index + 3} days ago`,
-          icon: CheckCircle,
-          color: "text-green-600",
-        });
-      });
-
-      // Add wallet activity
-      if (balance.totalEarned > 0) {
-        activities.push({
-          id: "wallet-activity",
-          type: "payment",
-          title: "Added funds to wallet",
-          description: `${balance.totalEarned} UC total earned`,
-          time: "2 days ago",
-          icon: Wallet,
-          color: "text-purple-600",
-        });
-      }
-
-      setRecentActivity(activities.slice(0, 5));
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast.error("Failed to load dashboard data");
@@ -180,452 +133,456 @@ export const StudentDashboard: React.FC = () => {
     }
   };
 
+  const getTimeUntil = (date: string) => {
+    const now = new Date();
+    const lectureDate = new Date(date);
+    const diff = lectureDate.getTime() - now.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h`;
+    return "Soon";
+  };
+
   if (loading) {
     return (
-      <div className="space-y-8 animate-fade-in">
-        <div className="h-32 bg-muted rounded-2xl animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="space-y-8">
+        {/* Hero Skeleton */}
+        <div className="h-48 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-3xl animate-pulse" />
+        
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i} className="card-elevated">
-              <CardHeader>
-                <div className="h-4 bg-muted rounded animate-pulse" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-muted rounded animate-pulse mb-2" />
-                <div className="h-3 bg-muted rounded animate-pulse w-2/3" />
-              </CardContent>
-            </Card>
+            <div key={i} className="h-32 bg-muted rounded-2xl animate-pulse" />
           ))}
+        </div>
+        
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-96 bg-muted rounded-2xl animate-pulse" />
+          <div className="h-96 bg-muted rounded-2xl animate-pulse" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Welcome Header */}
-      <div className="bg-gradient-primary rounded-2xl p-8 text-white relative overflow-hidden">
+    <div className="space-y-8">
+      {/* Hero Welcome Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-8 text-white">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+        
         <div className="relative z-10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">
-                Welcome back, {user?.firstName} {user?.lastName}! 👋
-              </h1>
-              <p className="text-lg opacity-90 mb-4">
-                Continue your learning journey with personalized recommendations
-              </p>
-              <div className="flex items-center space-x-6 text-sm">
-                <div className="flex items-center space-x-2">
-                  <Target className="w-4 h-4" />
-                  <span>{stats.completedLectures} lectures completed</span>
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="w-20 h-20 border-4 border-white/20">
+                <AvatarImage src={user?.avatar} />
+                <AvatarFallback className="bg-white/20 text-white text-2xl font-bold">
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-white/70">Welcome back,</span>
+                  {stats.learningStreak >= 7 && (
+                    <Badge className="bg-yellow-500/20 text-yellow-200 border-yellow-400/30">
+                      <Flame className="w-3 h-3 mr-1" />
+                      {stats.learningStreak} Day Streak!
+                    </Badge>
+                  )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Zap className="w-4 h-4" />
-                  <span>{stats.learningStreak} day streak</span>
+                <h1 className="text-3xl md:text-4xl font-bold">
+                  {user?.firstName} {user?.lastName}
+                </h1>
+                <p className="text-white/80 mt-1">
+                  Continue your learning journey today!
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-3">
+              <Button 
+                size="lg" 
+                className="bg-white text-indigo-600 hover:bg-white/90 font-semibold"
+                onClick={() => navigate('/student/browse-lectures')}
+              >
+                <BookOpen className="w-5 h-5 mr-2" />
+                Browse Lectures
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-white/30 text-white hover:bg-white/10"
+                onClick={() => navigate('/student/wallet')}
+              >
+                <Coins className="w-5 h-5 mr-2" />
+                {walletBalance?.balance || 0} UC
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <BookMarked className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.enrolledLectures}</p>
+                  <p className="text-white/70 text-sm">Enrolled</p>
                 </div>
               </div>
             </div>
-            <div className="hidden md:block">
-              <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
-                <GraduationCap className="w-12 h-12" />
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <CheckCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.completedLectures}</p>
+                  <p className="text-white/70 text-sm">Completed</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.totalHoursLearned.toFixed(1)}h</p>
+                  <p className="text-white/70 text-sm">Hours Learned</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-lg">
+                  <Trophy className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.learningStreak}</p>
+                  <p className="text-white/70 text-sm">Day Streak</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32" />
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card
-          className="card-elevated hover-lift cursor-pointer"
-          onClick={() => navigate("/student/wallet")}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Wallet Balance
-            </CardTitle>
-            <div className="p-2 bg-green-100 rounded-full">
-              <Coins className="h-4 w-4 text-green-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {walletBalance?.balance || 0} UC
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {walletBalance?.totalSpent || 0} UC spent total
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="card-elevated hover-lift cursor-pointer"
-          onClick={() => navigate("/student/my-lectures")}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Enrolled Lectures
-            </CardTitle>
-            <div className="p-2 bg-blue-100 rounded-full">
-              <BookOpen className="h-4 w-4 text-blue-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {stats.enrolledLectures}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.upcomingLectures} upcoming this week
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="card-elevated hover-lift">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <div className="p-2 bg-purple-100 rounded-full">
-              <CheckCircle className="h-4 w-4 text-purple-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
-              {stats.completedLectures}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.averageRating.toFixed(1)} ⭐ average rating
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="card-elevated hover-lift">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Learning Streak
-            </CardTitle>
-            <div className="p-2 bg-orange-100 rounded-full">
-              <TrendingUp className="h-4 w-4 text-orange-600" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
-              {stats.learningStreak} days
-            </div>
-            <p className="text-xs text-muted-foreground">Keep it up! 🔥</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Upcoming Lectures */}
-        <Card className="card-elevated lg:col-span-2">
-          <CardHeader>
+      {/* Live Lectures Alert */}
+      {liveLectures.length > 0 && (
+        <Card className="border-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center">
-                  <Calendar className="w-5 h-5 mr-2 text-primary" />
-                  Upcoming Lectures
-                </CardTitle>
-                <CardDescription>
-                  Your scheduled learning sessions
-                </CardDescription>
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center animate-pulse">
+                    <Radio className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-ping" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-red-600">🔴 LIVE NOW</h3>
+                    <Badge className="bg-red-500 text-white">{liveLectures.length} Session{liveLectures.length > 1 ? 's' : ''}</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {liveLectures[0].title} by {liveLectures[0].trainer?.firstname} {liveLectures[0].trainer?.lastname}
+                  </p>
+                </div>
               </div>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/student/my-lectures">
-                  View All
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Link>
+              <Button 
+                className="bg-red-500 hover:bg-red-600 text-white"
+                onClick={() => navigate(`/meeting/${liveLectures[0].id}`)}
+              >
+                <Video className="w-4 h-4 mr-2" />
+                Join Now
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {upcomingLectures.length > 0 ? (
-              upcomingLectures.map((lecture) => (
-                <div
-                  key={lecture.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover-lift cursor-pointer"
-                  onClick={() => navigate(`/student/lecture/${lecture.id}`)}
-                >
-                  <div className="flex items-center space-x-4">
-                    <Avatar className="w-12 h-12">
-                      <AvatarImage src={lecture.trainer.avatar} />
-                      <AvatarFallback>
-                        {lecture.trainer.firstname[0]}
-                        {lecture.trainer.lastname[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{lecture.title}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        by {lecture.trainer.firstname}{" "}
-                        {lecture.trainer.lastname}
-                      </p>
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                        <div className="flex items-center">
-                          <Clock className="w-3 h-3 mr-1" />
-                          {lecture.duration} min
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {new Date(lecture.scheduledAt).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center">
-                          <Timer className="w-3 h-3 mr-1" />
-                          {new Date(lecture.scheduledAt).toLocaleTimeString(
-                            [],
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="secondary" className="mb-2">
-                      {lecture.price} UC
-                    </Badge>
-                    <div>
-                      <Button size="sm" className="btn-primary">
-                        <PlayCircle className="w-4 h-4 mr-1" />
-                        Join
-                      </Button>
-                    </div>
-                  </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Dashboard Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Upcoming Lectures */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <Calendar className="w-5 h-5 text-indigo-600" />
+                    Upcoming Lectures
+                  </CardTitle>
+                  <CardDescription>Your scheduled learning sessions</CardDescription>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  No upcoming lectures
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  Browse and enroll in lectures to see them here
-                </p>
-                <Button asChild>
-                  <Link to="/student/browse-lectures">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Browse Lectures
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/student/my-lectures">
+                    View All <ChevronRight className="w-4 h-4 ml-1" />
                   </Link>
                 </Button>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {upcomingLectures.length > 0 ? (
+                <div className="space-y-4">
+                  {upcomingLectures.map((lecture, index) => (
+                    <div
+                      key={lecture.id}
+                      className={`group relative flex items-center gap-4 p-4 rounded-xl border-2 transition-all hover:border-indigo-300 hover:shadow-md cursor-pointer ${
+                        index === 0 ? 'border-indigo-200 bg-indigo-50/50 dark:bg-indigo-950/20' : 'border-gray-100'
+                      }`}
+                      onClick={() => navigate(`/student/lecture/${lecture.id}`)}
+                    >
+                      {index === 0 && (
+                        <Badge className="absolute -top-2 left-4 bg-indigo-500">Next Up</Badge>
+                      )}
+                      <Avatar className="w-14 h-14 border-2 border-white shadow-md">
+                        <AvatarImage src={lecture.trainer?.avatar} />
+                        <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold">
+                          {lecture.trainer?.firstname?.[0]}{lecture.trainer?.lastname?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-indigo-600 transition-colors">
+                          {lecture.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          by {lecture.trainer?.firstname} {lecture.trainer?.lastname}
+                        </p>
+                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {new Date(lecture.scheduledAt).toLocaleDateString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(lecture.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Timer className="w-3 h-3" />
+                            {lecture.duration} min
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="outline" className="mb-2 font-semibold">
+                          {getTimeUntil(lecture.scheduledAt)}
+                        </Badge>
+                        <div>
+                          <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700">
+                            <PlayCircle className="w-4 h-4 mr-1" />
+                            Details
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                    <Calendar className="w-10 h-10 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">No Upcoming Lectures</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Explore our catalog and enroll in exciting lectures
+                  </p>
+                  <Button asChild>
+                    <Link to="/student/browse-lectures">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Browse Lectures
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
-        {/* Learning Progress & Recent Activity */}
+          {/* Recently Completed */}
+          {recentLectures.length > 0 && (
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  Recently Completed
+                </CardTitle>
+                <CardDescription>Lectures you've finished</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {recentLectures.map((lecture) => (
+                    <div
+                      key={lecture.id}
+                      className="group p-4 rounded-xl border bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-100 hover:shadow-md transition-all cursor-pointer"
+                      onClick={() => navigate(`/student/lecture/${lecture.id}`)}
+                    >
+                      <div className="flex items-center gap-3 mb-3">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={lecture.trainer?.avatar} />
+                          <AvatarFallback className="bg-green-500 text-white text-sm">
+                            {lecture.trainer?.firstname?.[0]}{lecture.trainer?.lastname?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">{lecture.title}</h4>
+                          <p className="text-xs text-muted-foreground">
+                            {lecture.trainer?.firstname} {lecture.trainer?.lastname}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                          <span className="text-sm font-medium">{(lecture.averageRating || 0).toFixed(1)}</span>
+                        </div>
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Completed
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column - Sidebar */}
         <div className="space-y-6">
+          {/* Wallet Card */}
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <Wallet className="w-6 h-6" />
+                </div>
+                <Badge className="bg-white/20 text-white border-0">UpCoins</Badge>
+              </div>
+              <p className="text-white/70 text-sm mb-1">Available Balance</p>
+              <p className="text-4xl font-bold mb-4">{walletBalance?.balance || 0} <span className="text-lg">UC</span></p>
+              <Button 
+                className="w-full bg-white text-emerald-600 hover:bg-white/90 font-semibold"
+                onClick={() => navigate('/student/buy-upcoins')}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Buy UpCoins
+              </Button>
+            </div>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Total Spent</span>
+                <span className="font-semibold">{stats.totalSpent} UC</span>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Learning Progress */}
-          <Card className="card-elevated">
+          <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <BarChart3 className="w-5 h-5 mr-2 text-primary" />
-                Learning Progress
+              <CardTitle className="flex items-center gap-2">
+                <Target className="w-5 h-5 text-orange-500" />
+                Learning Goals
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Monthly Goal</span>
-                  <span>{stats.completedLectures}/10</span>
+                  <span>Monthly Target</span>
+                  <span className="font-medium">{stats.completedLectures}/10 lectures</span>
                 </div>
-                <Progress
-                  value={(stats.completedLectures / 10) * 100}
-                  className="h-2"
-                />
+                <Progress value={(stats.completedLectures / 10) * 100} className="h-3" />
               </div>
-
+              
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Learning Streak</span>
-                  <span>{stats.learningStreak} days</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <Flame className="w-4 h-4 text-orange-500" />
+                    {stats.learningStreak} days
+                  </span>
                 </div>
-                <Progress
-                  value={Math.min((stats.learningStreak / 30) * 100, 100)}
-                  className="h-2"
-                />
+                <Progress value={(stats.learningStreak / 30) * 100} className="h-3" />
               </div>
 
               <div className="pt-4 border-t">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Award className="w-4 h-4 text-yellow-500" />
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-yellow-500" />
                     <span className="text-sm font-medium">Achievement</span>
                   </div>
-                  <Badge variant="outline">
-                    {stats.completedLectures > 5
-                      ? "Active Learner"
-                      : "Getting Started"}
+                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
+                    {stats.completedLectures >= 10 ? '🏆 Expert Learner' : 
+                     stats.completedLectures >= 5 ? '⭐ Active Learner' : 
+                     '🌱 Getting Started'}
                   </Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
-          <Card className="card-elevated">
+          {/* Quick Actions */}
+          <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Your latest learning activities</CardDescription>
+              <CardTitle className="text-lg">Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {recentActivity.length > 0 ? (
-                recentActivity.map((activity) => {
-                  const Icon = activity.icon;
-                  return (
-                    <div
-                      key={activity.id}
-                      className="flex items-center space-x-3"
-                    >
-                      <div
-                        className={`w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center`}
-                      >
-                        <Icon className={`w-4 h-4 ${activity.color}`} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{activity.title}</p>
-                        {activity.description && (
-                          <p className="text-xs text-muted-foreground">
-                            {activity.description}
-                          </p>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                          {activity.time}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground">
-                    No recent activity
-                  </p>
-                </div>
-              )}
+            <CardContent className="space-y-2">
+              <Button asChild variant="outline" className="w-full justify-start h-12">
+                <Link to="/student/browse-lectures">
+                  <BookOpen className="w-5 h-5 mr-3 text-indigo-500" />
+                  Browse All Lectures
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-start h-12">
+                <Link to="/student/my-lectures">
+                  <Calendar className="w-5 h-5 mr-3 text-green-500" />
+                  My Schedule
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-start h-12">
+                <Link to="/student/wallet">
+                  <Wallet className="w-5 h-5 mr-3 text-purple-500" />
+                  Wallet & Transactions
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full justify-start h-12">
+                <Link to="/student/support">
+                  <Users className="w-5 h-5 mr-3 text-orange-500" />
+                  Get Support
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Promo Card */}
+          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+            <CardContent className="p-6 relative">
+              <Gift className="w-10 h-10 mb-4" />
+              <h3 className="font-bold text-lg mb-2">Refer & Earn!</h3>
+              <p className="text-white/80 text-sm mb-4">
+                Invite friends and earn 100 UpCoins for each successful referral!
+              </p>
+              <Button className="bg-white text-purple-600 hover:bg-white/90 w-full">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Invite Friends
+              </Button>
             </CardContent>
           </Card>
         </div>
       </div>
-
-      {/* Recent Completed Lectures */}
-      {recentLectures.length > 0 && (
-        <Card className="card-elevated">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center">
-                  <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-                  Recently Completed
-                </CardTitle>
-                <CardDescription>
-                  Lectures you've finished recently
-                </CardDescription>
-              </div>
-              <Button asChild variant="outline" size="sm">
-                <Link to="/student/my-lectures">
-                  View All
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {recentLectures.map((lecture) => (
-                <div
-                  key={lecture.id}
-                  className="p-4 border rounded-lg hover-lift cursor-pointer"
-                  onClick={() => navigate(`/student/lecture/${lecture.id}`)}
-                >
-                  <div className="flex items-center space-x-3 mb-3">
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src={lecture.trainer.avatar} />
-                      <AvatarFallback>
-                        {lecture.trainer.firstname[0]}
-                        {lecture.trainer.lastname[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-medium text-sm">{lecture.title}</h4>
-                      <p className="text-xs text-muted-foreground">
-                        {lecture.trainer.firstname} {lecture.trainer.lastname}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="text-sm">
-                        {lecture.averageRating.toFixed(1)}
-                      </span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
-                      Completed
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Actions */}
-      <Card className="card-elevated">
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Popular actions to enhance your learning experience
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button
-              asChild
-              variant="outline"
-              className="h-20 flex-col space-y-2 hover-scale"
-            >
-              <Link to="/student/browse-lectures">
-                <BookOpen className="w-6 h-6" />
-                <span className="text-sm">Browse Lectures</span>
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-20 flex-col space-y-2 hover-scale"
-            >
-              <Link to="/student/wallet">
-                <Wallet className="w-6 h-6" />
-                <span className="text-sm">Manage Wallet</span>
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-20 flex-col space-y-2 hover-scale"
-            >
-              <Link to="/student/my-lectures">
-                <Calendar className="w-6 h-6" />
-                <span className="text-sm">My Schedule</span>
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant="outline"
-              className="h-20 flex-col space-y-2 hover-scale"
-            >
-              <Link to="/student/support">
-                <Users className="w-6 h-6" />
-                <span className="text-sm">Get Support</span>
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

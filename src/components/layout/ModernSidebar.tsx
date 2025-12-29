@@ -113,15 +113,13 @@ export const ModernSidebar: React.FC = () => {
     <Sidebar className="border-r-0 bg-gradient-sidebar shadow-modern">
       <SidebarHeader className="border-b border-sidebar-border/20 p-6">
         <div className="flex items-center gap-3">
-          {/* <div className="w-10 h-10 bg-sidebar-primary rounded-xl flex items-center justify-center shadow-soft"> */}
-            {/* <GraduationCap className="w-5 h-5 text-sidebar-primary-foreground" /> */}
-          {/* </div> */}
+          <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+            <GraduationCap className="w-6 h-6 text-white" />
+          </div>
           {!collapsed && (
             <div>
-              <img src="../../assets/up scholar LOGO (1).jpg" alt="" srcset="" />
-
-              {/* <h2 className="text-lg font-bold text-sidebar-foreground">Upscholer</h2>
-              <p className="text-sm text-sidebar-foreground/70 capitalize">{user.role} Portal</p> */}
+              <h2 className="text-lg font-bold text-sidebar-foreground">UpScholar</h2>
+              <p className="text-sm text-sidebar-foreground/70 capitalize">{user.role} Portal</p>
             </div>
           )}
         </div>

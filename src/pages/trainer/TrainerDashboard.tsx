@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   BookOpen, 
   Calendar, 
@@ -28,12 +29,24 @@ import {
   AlertCircle,
   Bell,
   Zap,
-  ThumbsUp
+  ThumbsUp,
+  Coins,
+  Video,
+  Radio,
+  ChevronRight,
+  Wallet,
+  PlayCircle,
+  Timer,
+  Crown,
+  Sparkles,
+  AlertTriangle,
+  GraduationCap
 } from 'lucide-react';
 import { trainerService, TrainerStats } from '@/services/trainerService';
 
 export const TrainerDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<TrainerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,32 +82,40 @@ export const TrainerDashboard: React.FC = () => {
     return new Intl.NumberFormat('en-IN', {
       style: 'decimal',
       minimumFractionDigits: 0,
-      maximumFractionDigits: 2
-    }).format(amount) + ' UC';
+      maximumFractionDigits: 0
+    }).format(amount);
   };
 
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat('en-IN').format(num);
-  };
-
-  const getGrowthColor = (growth: number) => {
-    if (growth > 0) return 'text-green-500';
-    if (growth < 0) return 'text-red-500';
-    return 'text-muted-foreground';
-  };
-
-  const getGrowthIcon = (growth: number) => {
-    if (growth > 0) return <ArrowUpRight className="h-3 w-3" />;
-    if (growth < 0) return <ArrowDownRight className="h-3 w-3" />;
-    return <TrendingDown className="h-3 w-3" />;
+  const getTimeUntil = (date: string) => {
+    const now = new Date();
+    const lectureDate = new Date(date);
+    const diff = lectureDate.getTime() - now.getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h`;
+    return "Starting soon";
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading dashboard...</p>
+      <div className="space-y-8">
+        {/* Hero Skeleton */}
+        <div className="h-56 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-3xl animate-pulse" />
+        
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-32 bg-muted rounded-2xl animate-pulse" />
+          ))}
+        </div>
+        
+        {/* Content Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-80 bg-muted rounded-2xl animate-pulse" />
+          ))}
         </div>
       </div>
     );
@@ -103,163 +124,273 @@ export const TrainerDashboard: React.FC = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={loadDashboardData} variant="outline">
-            Try Again
-          </Button>
-        </div>
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h3 className="font-semibold text-lg mb-2">Failed to Load Dashboard</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={loadDashboardData}>
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!stats) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <p className="text-muted-foreground">No data available</p>
-      </div>
-    );
-  }
+  if (!stats) return null;
+
+  // Check for live lectures
+  const hasLiveLecture = stats.lectures.upcoming.some(l => 
+    new Date(l.scheduledAt) <= new Date() && l.status !== 'completed'
+  );
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-2xl">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              Welcome back, {user?.firstName}! 🎓
-            </h1>
-            <p className="text-lg opacity-90 mb-4">
-              Manage your lectures and track your teaching success
-            </p>
-            <div className="flex flex-wrap items-center gap-6">
-              <div className="flex items-center space-x-2">
-                <Award className="h-5 w-5" />
-                <span className="font-semibold">{stats.performance.averageRating.toFixed(1)}/5.0</span>
-                <span className="opacity-75">({stats.performance.totalReviews} reviews)</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Target className="h-5 w-5" />
-                <span className="font-semibold">{stats.performance.completionRate}%</span>
-                <span className="opacity-75">Completion</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Users className="h-5 w-5" />
-                <span className="font-semibold">{formatNumber(stats.students.total)}</span>
-                <span className="opacity-75">Students</span>
+    <div className="space-y-8">
+      {/* Hero Welcome Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-8 text-white">
+        {/* Decorative Elements */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+        
+        <div className="relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-4">
+              <Avatar className="w-20 h-20 border-4 border-white/20">
+                <AvatarImage src={user?.avatar} />
+                <AvatarFallback className="bg-white/20 text-white text-2xl font-bold">
+                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-yellow-500/20 text-yellow-200 border-yellow-400/30">
+                    <Crown className="w-3 h-3 mr-1" />
+                    Verified Trainer
+                  </Badge>
+                  {stats.performance.averageRating >= 4.5 && (
+                    <Badge className="bg-purple-500/20 text-purple-200 border-purple-400/30">
+                      <Star className="w-3 h-3 mr-1 fill-current" />
+                      Top Rated
+                    </Badge>
+                  )}
+                </div>
+                <h1 className="text-3xl md:text-4xl font-bold">
+                  Welcome, {user?.firstName}!
+                </h1>
+                <p className="text-white/80 mt-1">
+                  Manage your lectures and grow your teaching career
+                </p>
               </div>
             </div>
-          </div>
-          <div className="hidden md:block">
-            <Button asChild variant="secondary" size="lg" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
-              <Link to="/trainer/schedule-lecture">
+            
+            <div className="flex flex-wrap gap-3">
+              <Button 
+                size="lg" 
+                className="bg-white text-indigo-600 hover:bg-white/90 font-semibold"
+                onClick={() => navigate('/trainer/schedule-lecture')}
+              >
                 <PlusCircle className="w-5 h-5 mr-2" />
-                Schedule Lecture
-              </Link>
-            </Button>
+                Create Lecture
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-white/30 text-white hover:bg-white/10"
+                onClick={() => navigate('/trainer/wallet')}
+              >
+                <Wallet className="w-5 h-5 mr-2" />
+                {formatCurrency(stats.earnings.total)} UC
+              </Button>
+            </div>
+          </div>
+
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/30 rounded-lg">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{formatCurrency(stats.earnings.thisMonth)}</p>
+                  <p className="text-white/70 text-sm">This Month</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/30 rounded-lg">
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.students.total}</p>
+                  <p className="text-white/70 text-sm">Total Students</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/30 rounded-lg">
+                  <Star className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.performance.averageRating.toFixed(1)}</p>
+                  <p className="text-white/70 text-sm">Avg Rating</p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-500/30 rounded-lg">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{stats.lectures.total}</p>
+                  <p className="text-white/70 text-sm">Total Lectures</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Quick Stats */}
+      {/* Pending Approval Alert */}
+      {stats.lectures.pending > 0 && (
+        <Card className="border-2 border-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-yellow-700">Pending Approval</h3>
+                  <p className="text-sm text-muted-foreground">
+                    You have {stats.lectures.pending} lecture{stats.lectures.pending > 1 ? 's' : ''} waiting for admin approval
+                  </p>
+                </div>
+              </div>
+              <Button 
+                variant="outline"
+                className="border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                onClick={() => navigate('/trainer/manage-lectures')}
+              >
+                View Pending
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="card-elevated">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-100">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-green-700">Total Earnings</CardTitle>
+            <div className="p-2 bg-green-500 rounded-lg">
+              <Coins className="h-4 w-4 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {formatCurrency(stats.earnings.total)}
+            <div className="text-3xl font-bold text-green-600">
+              {formatCurrency(stats.earnings.total)} <span className="text-lg">UC</span>
             </div>
-            <div className="flex items-center text-xs mt-1">
-              <span className={getGrowthColor(stats.earnings.growth)}>
-                {getGrowthIcon(stats.earnings.growth)}
-              </span>
-              <span className={`${getGrowthColor(stats.earnings.growth)} ml-1 font-medium`}>
-                {stats.earnings.growth > 0 ? '+' : ''}{stats.earnings.growth.toFixed(1)}%
-              </span>
-              <span className="text-muted-foreground ml-1">vs last month</span>
+            <div className="flex items-center mt-2 text-sm">
+              {stats.earnings.growth >= 0 ? (
+                <span className="text-green-600 flex items-center">
+                  <ArrowUpRight className="h-4 w-4 mr-1" />
+                  +{stats.earnings.growth.toFixed(1)}%
+                </span>
+              ) : (
+                <span className="text-red-600 flex items-center">
+                  <ArrowDownRight className="h-4 w-4 mr-1" />
+                  {stats.earnings.growth.toFixed(1)}%
+                </span>
+              )}
+              <span className="text-muted-foreground ml-2">vs last month</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              This month: {formatCurrency(stats.earnings.thisMonth)}
-            </p>
           </CardContent>
         </Card>
 
-        <Card className="card-elevated">
+        <Card className="border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Lectures</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <BookOpen className="h-4 w-4 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.lectures.total}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.lectures.scheduled} scheduled · {stats.lectures.completed} completed
-            </p>
+            <div className="text-3xl font-bold">{stats.lectures.scheduled}</div>
             <div className="mt-2">
-              <Progress value={(stats.lectures.completed / stats.lectures.total) * 100} className="h-1" />
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>Completion</span>
+                <span>{stats.lectures.completed}/{stats.lectures.total}</span>
+              </div>
+              <Progress value={(stats.lectures.completed / Math.max(stats.lectures.total, 1)) * 100} className="h-2" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="card-elevated">
+        <Card className="border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-purple-500 rounded-lg">
+              <Users className="h-4 w-4 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatNumber(stats.students.total)}</div>
-            <div className="flex items-center text-xs mt-1">
-              <span className={getGrowthColor(stats.students.growth)}>
-                {getGrowthIcon(stats.students.growth)}
+            <div className="text-3xl font-bold">{stats.students.total}</div>
+            <div className="flex items-center mt-2 text-sm">
+              <span className="text-green-600 flex items-center">
+                <ArrowUpRight className="h-4 w-4 mr-1" />
+                +{stats.students.newThisWeek}
               </span>
-              <span className={`${getGrowthColor(stats.students.growth)} ml-1 font-medium`}>
-                +{stats.students.newThisWeek} this week
-              </span>
+              <span className="text-muted-foreground ml-2">this week</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.students.active} active students
-            </p>
           </CardContent>
         </Card>
 
-        <Card className="card-elevated">
+        <Card className="border-0 shadow-lg bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium text-yellow-700">Rating</CardTitle>
+            <div className="p-2 bg-yellow-500 rounded-lg">
+              <Star className="h-4 w-4 text-white" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold flex items-center">
-              {stats.performance.averageRating.toFixed(1)}
-              <Star className="h-5 w-5 text-yellow-500 fill-yellow-500 ml-1" />
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-bold text-yellow-600">{stats.performance.averageRating.toFixed(1)}</span>
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <Star 
+                    key={i} 
+                    className={`h-4 w-4 ${i < Math.round(stats.performance.averageRating) ? 'text-yellow-500 fill-yellow-500' : 'text-gray-300'}`} 
+                  />
+                ))}
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-2">
               Based on {stats.performance.totalReviews} reviews
             </p>
-            <div className="mt-2">
-              <Progress value={(stats.performance.averageRating / 5) * 100} className="h-1" />
-            </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Upcoming Lectures */}
-        <Card className="card-elevated">
+        <Card className="border-0 shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center">
-                  <Calendar className="w-5 h-5 mr-2 text-primary" />
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Calendar className="w-5 h-5 text-blue-600" />
                   Upcoming Lectures
                 </CardTitle>
-                <CardDescription>
-                  Your scheduled teaching sessions
-                </CardDescription>
+                <CardDescription>Your scheduled teaching sessions</CardDescription>
               </div>
-              <Button asChild size="sm" className="btn-primary">
+              <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700">
                 <Link to="/trainer/schedule-lecture">
                   <PlusCircle className="w-4 h-4 mr-1" />
                   New
@@ -269,230 +400,275 @@ export const TrainerDashboard: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             {stats.lectures.upcoming.length > 0 ? (
-              stats.lectures.upcoming.map((lecture) => (
-                <div key={lecture.id} className="p-4 border rounded-lg hover-lift">
-                  <div className="flex items-start justify-between mb-3">
-                    <h4 className="font-medium">{lecture.title}</h4>
-                    <Badge variant="secondary">{formatCurrency(lecture.price)}</Badge>
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                    <div className="flex items-center">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {lecture.duration} min
+              <>
+                {stats.lectures.upcoming.map((lecture, index) => (
+                  <div 
+                    key={lecture.id} 
+                    className={`p-4 rounded-xl border-2 transition-all hover:shadow-md cursor-pointer ${
+                      index === 0 ? 'border-blue-200 bg-blue-50/50 dark:bg-blue-950/20' : 'border-gray-100'
+                    }`}
+                    onClick={() => navigate(`/trainer/lectures/${lecture.id}/details`)}
+                  >
+                    {index === 0 && (
+                      <Badge className="mb-2 bg-blue-500">Next Up</Badge>
+                    )}
+                    <div className="flex items-start justify-between mb-3">
+                      <div>
+                        <h4 className="font-semibold text-lg">{lecture.title}</h4>
+                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                          <span className="flex items-center">
+                            <Calendar className="w-3 h-3 mr-1" />
+                            {formatDate(lecture.scheduledAt)}
+                          </span>
+                          <span className="flex items-center">
+                            <Timer className="w-3 h-3 mr-1" />
+                            {lecture.duration} min
+                          </span>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="font-semibold">
+                        {getTimeUntil(lecture.scheduledAt)}
+                      </Badge>
                     </div>
-                    <div className="flex items-center">
-                      <Calendar className="w-3 h-3 mr-1" />
-                      {formatDate(lecture.scheduledAt)}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-2">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <span>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Users className="w-4 h-4" />
                           {lecture.enrolledStudents}/{lecture.maxStudents} enrolled
                         </span>
+                        <Badge variant="secondary" className="font-semibold">
+                          {lecture.price} UC
+                        </Badge>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {Math.round((lecture.enrolledStudents / lecture.maxStudents) * 100)}% full
-                      </span>
+                      <Progress 
+                        value={(lecture.enrolledStudents / lecture.maxStudents) * 100} 
+                        className="h-2" 
+                      />
                     </div>
-                    <Progress value={(lecture.enrolledStudents / lecture.maxStudents) * 100} className="h-2" />
                   </div>
-                </div>
-              ))
+                ))}
+                <Button asChild variant="outline" className="w-full">
+                  <Link to="/trainer/manage-lectures">
+                    View All Lectures
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No upcoming lectures scheduled</p>
-                <Button asChild className="mt-4" variant="outline">
-                  <Link to="/trainer/schedule-lecture">Schedule Your First Lecture</Link>
+              <div className="text-center py-10">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <Calendar className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="font-medium mb-2">No Upcoming Lectures</h3>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Create your first lecture to start teaching
+                </p>
+                <Button asChild>
+                  <Link to="/trainer/schedule-lecture">
+                    <PlusCircle className="w-4 h-4 mr-2" />
+                    Create Lecture
+                  </Link>
                 </Button>
               </div>
-            )}
-            {stats.lectures.upcoming.length > 0 && (
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/trainer/manage-lectures">Manage All Lectures</Link>
-              </Button>
             )}
           </CardContent>
         </Card>
 
         {/* Recent Earnings */}
-        <Card className="card-elevated">
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <TrendingUp className="w-5 h-5 mr-2 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <TrendingUp className="w-5 h-5 text-green-600" />
               Recent Earnings
             </CardTitle>
-            <CardDescription>
-              Your latest income from lectures
-            </CardDescription>
+            <CardDescription>Your latest income from lectures</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {stats.earnings.recentEarnings.length > 0 ? (
-              stats.earnings.recentEarnings.map((earning, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{earning.lecture}</p>
-                    <p className="text-sm text-muted-foreground">{earning.date}</p>
+              <>
+                {stats.earnings.recentEarnings.map((earning, index) => (
+                  <div 
+                    key={index} 
+                    className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-green-100"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                        <Coins className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{earning.lecture}</p>
+                        <p className="text-sm text-muted-foreground">{earning.date}</p>
+                      </div>
+                    </div>
+                    <span className="font-bold text-green-600 text-lg">
+                      +{formatCurrency(earning.amount)} UC
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium text-primary">+{formatCurrency(earning.amount)}</p>
-                  </div>
-                </div>
-              ))
+                ))}
+                <Button asChild variant="outline" className="w-full">
+                  <Link to="/trainer/earnings">
+                    View All Earnings
+                    <ChevronRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </>
             ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No earnings yet</p>
-                <p className="text-sm">Complete lectures to start earning</p>
+              <div className="text-center py-10">
+                <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <Coins className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="font-medium mb-2">No Earnings Yet</h3>
+                <p className="text-muted-foreground text-sm">
+                  Complete lectures to start earning UpCoins
+                </p>
               </div>
-            )}
-            {stats.earnings.recentEarnings.length > 0 && (
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/trainer/earnings">View All Earnings</Link>
-              </Button>
             )}
           </CardContent>
         </Card>
 
         {/* Performance Metrics */}
-        <Card className="card-elevated">
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <Activity className="w-5 h-5 mr-2 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <BarChart3 className="w-5 h-5 text-purple-600" />
               Performance Metrics
             </CardTitle>
-            <CardDescription>
-              Your teaching performance overview
-            </CardDescription>
+            <CardDescription>Your teaching performance overview</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium flex items-center">
-                    <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-500" />
                     Completion Rate
                   </span>
-                  <span className="text-sm font-bold text-green-500">{stats.performance.completionRate}%</span>
+                  <span className="text-sm font-bold text-green-600">{stats.performance.completionRate}%</span>
                 </div>
-                <Progress value={stats.performance.completionRate} className="h-2" />
+                <Progress value={stats.performance.completionRate} className="h-3" />
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium flex items-center">
-                    <Users className="w-4 h-4 mr-2 text-blue-500" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <Users className="w-4 h-4 text-blue-500" />
                     Attendance Rate
                   </span>
-                  <span className="text-sm font-bold text-blue-500">{stats.performance.attendanceRate}%</span>
+                  <span className="text-sm font-bold text-blue-600">{stats.performance.attendanceRate}%</span>
                 </div>
-                <Progress value={stats.performance.attendanceRate} className="h-2" />
+                <Progress value={stats.performance.attendanceRate} className="h-3" />
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium flex items-center">
-                    <ThumbsUp className="w-4 h-4 mr-2 text-purple-500" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium flex items-center gap-2">
+                    <ThumbsUp className="w-4 h-4 text-purple-500" />
                     Student Satisfaction
                   </span>
-                  <span className="text-sm font-bold text-purple-500">{stats.performance.averageRating.toFixed(1)}/5.0</span>
+                  <span className="text-sm font-bold text-purple-600">{((stats.performance.averageRating / 5) * 100).toFixed(0)}%</span>
                 </div>
-                <Progress value={(stats.performance.averageRating / 5) * 100} className="h-2" />
+                <Progress value={(stats.performance.averageRating / 5) * 100} className="h-3" />
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-yellow-500" />
+                  <span className="text-sm font-medium">Teaching Level</span>
+                </div>
+                <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white">
+                  {stats.lectures.completed >= 50 ? '🏆 Master Trainer' : 
+                   stats.lectures.completed >= 20 ? '⭐ Expert Trainer' : 
+                   stats.lectures.completed >= 10 ? '📚 Active Trainer' : 
+                   '🌱 New Trainer'}
+                </Badge>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Monthly Overview */}
-        <Card className="card-elevated">
+        {/* Student Overview */}
+        <Card className="border-0 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <BarChart3 className="w-5 h-5 mr-2 text-primary" />
-              This Month
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <GraduationCap className="w-5 h-5 text-indigo-600" />
+              Student Overview
             </CardTitle>
-            <CardDescription>
-              Your current month performance
-            </CardDescription>
+            <CardDescription>Your student engagement stats</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-lg border border-green-200 dark:border-green-800">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-500 rounded-lg">
-                    <DollarSign className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">This Month Earnings</p>
-                    <p className="font-bold text-green-600 dark:text-green-400">
-                      {formatCurrency(stats.earnings.thisMonth)}
-                    </p>
-                  </div>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-5 h-5 text-indigo-600" />
+                  <span className="text-sm text-muted-foreground">Total Students</span>
                 </div>
+                <p className="text-2xl font-bold text-indigo-600">{stats.students.total}</p>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-500 rounded-lg">
-                    <BookOpen className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Scheduled Lectures</p>
-                    <p className="font-bold text-blue-600 dark:text-blue-400">
-                      {stats.lectures.scheduled} lectures
-                    </p>
-                  </div>
+              <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-muted-foreground">Active Students</span>
                 </div>
+                <p className="text-2xl font-bold text-green-600">{stats.students.active}</p>
               </div>
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-lg border border-purple-200 dark:border-purple-800">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-purple-500 rounded-lg">
-                    <Users className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">New This Week</p>
-                    <p className="font-bold text-purple-600 dark:text-purple-400">
-                      +{stats.students.newThisWeek} students
-                    </p>
-                  </div>
+              <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 border border-blue-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                  <span className="text-sm text-muted-foreground">New This Week</span>
                 </div>
+                <p className="text-2xl font-bold text-blue-600">+{stats.students.newThisWeek}</p>
+              </div>
+              <div className="p-4 rounded-xl bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/30 dark:to-orange-950/30 border border-yellow-100">
+                <div className="flex items-center gap-2 mb-2">
+                  <Star className="w-5 h-5 text-yellow-600" />
+                  <span className="text-sm text-muted-foreground">Reviews</span>
+                </div>
+                <p className="text-2xl font-bold text-yellow-600">{stats.performance.totalReviews}</p>
               </div>
             </div>
+            
+            <Button asChild variant="outline" className="w-full">
+              <Link to="/trainer/students">
+                View All Students
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Link>
+            </Button>
           </CardContent>
         </Card>
       </div>
 
       {/* Quick Actions */}
-      <Card className="card-elevated">
+      <Card className="border-0 shadow-lg">
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>
-            Manage your teaching activities efficiently
-          </CardDescription>
+          <CardTitle className="text-xl">Quick Actions</CardTitle>
+          <CardDescription>Manage your teaching activities efficiently</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
+            <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-blue-300 hover:bg-blue-50">
               <Link to="/trainer/schedule-lecture">
-                <PlusCircle className="w-6 h-6" />
-                <span className="text-sm">List Lecture</span>
+                <PlusCircle className="w-8 h-8 text-blue-600" />
+                <span className="text-sm font-medium">Create Lecture</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
+            <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-purple-300 hover:bg-purple-50">
               <Link to="/trainer/manage-lectures">
-                <BookOpen className="w-6 h-6" />
-                <span className="text-sm">Manage Lectures</span>
+                <BookOpen className="w-8 h-8 text-purple-600" />
+                <span className="text-sm font-medium">Manage Lectures</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
+            <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-indigo-300 hover:bg-indigo-50">
               <Link to="/trainer/students">
-                <Users className="w-6 h-6" />
-                <span className="text-sm">View Students</span>
+                <Users className="w-8 h-8 text-indigo-600" />
+                <span className="text-sm font-medium">View Students</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="h-20 flex-col space-y-2 hover-scale">
+            <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-green-300 hover:bg-green-50">
               <Link to="/trainer/wallet">
-                <DollarSign className="w-6 h-6" />
-                <span className="text-sm">Wallet & Earnings</span>
+                <Wallet className="w-8 h-8 text-green-600" />
+                <span className="text-sm font-medium">Wallet & Earnings</span>
               </Link>
             </Button>
           </div>

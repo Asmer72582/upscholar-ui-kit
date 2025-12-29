@@ -127,16 +127,16 @@ export const AdminLectureDetails: React.FC = () => {
       await adminService.approveLecture(lecture.id);
       toast({
         title: 'Success',
-        description: 'Lecture approved successfully',
+        description: 'Lecture approved successfully! Trainer has been notified.',
       });
-      loadLectureDetails();
+      // Redirect back to manage lectures page
+      navigate('/admin/manage-lectures');
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to approve lecture',
         variant: 'destructive',
       });
-    } finally {
       setActionLoading(false);
     }
   };
@@ -152,16 +152,16 @@ export const AdminLectureDetails: React.FC = () => {
       await adminService.rejectLecture(lecture.id, reason);
       toast({
         title: 'Success',
-        description: 'Lecture rejected successfully',
+        description: 'Lecture rejected. Trainer has been notified.',
       });
-      loadLectureDetails();
+      // Redirect back to manage lectures page
+      navigate('/admin/manage-lectures');
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to reject lecture',
         variant: 'destructive',
       });
-    } finally {
       setActionLoading(false);
     }
   };

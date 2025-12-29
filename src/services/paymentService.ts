@@ -15,10 +15,14 @@ const fetchConfig = {
 export interface UpCoinPackage {
   id: string;
   upcoins: number;
+  bonusCoins: number;
+  totalCoins: number;
   price: number;
   discount: number;
   popular: boolean;
   description: string;
+  savings: number;
+  badge: string | null;
 }
 
 export interface PaymentOrder {

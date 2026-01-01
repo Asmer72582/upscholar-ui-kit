@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { GraduationCap, UserCheck, Users, Shield, Mail, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { API_URL } from '@/config/env';
+import { authService } from '@/services/authService';
 
 const roleOptions = [
   {
@@ -39,6 +40,7 @@ export const Auth: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>('student');
   const [formData, setFormData] = useState({
     email: '',
+    mobile: '',
     password: '',
     firstName: '',
     lastName: '',
@@ -55,12 +57,129 @@ export const Auth: React.FC = () => {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [sendingResetEmail, setSendingResetEmail] = useState(false);
+  
+  // OTP verification states
+  const [otpStep, setOtpStep] = useState<'form' | 'otp'>('form');
+  const [otp, setOtp] = useState('');
+  const [sendingOTP, setSendingOTP] = useState(false);
+  const [verifyingOTP, setVerifyingOTP] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpExpiresIn, setOtpExpiresIn] = useState(0);
 
   const { login, register } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendOTP = async () => {
+    // Validate email and mobile
+    if (!formData.email) {
+      toast({
+        title: 'Email Required',
+        description: 'Please enter your email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.mobile) {
+      toast({
+        title: 'Mobile Number Required',
+        description: 'Please enter your mobile number.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate mobile format (10-digit Indian number)
+    const mobileRegex = /^[6-9]\d{9}$/;
+    if (!mobileRegex.test(formData.mobile)) {
+      toast({
+        title: 'Invalid Mobile Number',
+        description: 'Please enter a valid 10-digit Indian mobile number.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: 'Invalid Email',
+        description: 'Please enter a valid email address.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setSendingOTP(true);
+      const result = await authService.sendOTP(formData.email, formData.mobile);
+      
+      if (result.success) {
+        setOtpStep('otp');
+        setOtpExpiresIn(result.expiresIn || 600);
+        toast({
+          title: 'OTP Sent',
+          description: result.message || 'OTP has been sent to your email.',
+        });
+        
+        // Start countdown timer
+        const interval = setInterval(() => {
+          setOtpExpiresIn(prev => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Failed to Send OTP',
+        description: error.message || 'Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSendingOTP(false);
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length !== 6) {
+      toast({
+        title: 'Invalid OTP',
+        description: 'Please enter a 6-digit OTP.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      setVerifyingOTP(true);
+      const result = await authService.verifyOTP(formData.email, otp);
+      
+      if (result.success) {
+        setOtpVerified(true);
+        toast({
+          title: 'Email Verified',
+          description: 'Your email has been verified successfully.',
+        });
+        // Proceed to registration
+        handleRegister();
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Verification Failed',
+        description: error.message || 'Invalid OTP. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setVerifyingOTP(false);
+    }
+  };
+
+  const handleRegister = async () => {
     setLoading(true);
 
     // Validation for trainer registration
@@ -87,39 +206,32 @@ export const Auth: React.FC = () => {
     }
 
     try {
-      if (isLogin) {
-        await login(formData.email, formData.password, selectedRole);
+      const result = await register(
+        formData.email,
+        formData.password,
+        formData.firstName,
+        formData.lastName,
+        formData.mobile,
+        selectedRole,
+        otpVerified,
+        selectedRole === 'trainer' ? trainerData : undefined
+      );
+      
+      if (result.isTrainer) {
+        // Navigate to success page for trainers
+        navigate('/trainer-application-success', { 
+          state: { 
+            email: formData.email,
+            message: result.message 
+          } 
+        });
+        return;
+      } else {
         toast({
-          title: 'Welcome back!',
-          description: 'Successfully logged in to your account.',
+          title: 'Account created!',
+          description: 'Welcome to Upscholar. Your learning journey begins now.',
         });
         navigate(`/${selectedRole}/dashboard`);
-      } else {
-        const result = await register(
-          formData.email,
-          formData.password,
-          formData.firstName,
-          formData.lastName,
-          selectedRole,
-          selectedRole === 'trainer' ? trainerData : undefined
-        );
-        
-        if (result.isTrainer) {
-          // Navigate to success page for trainers
-          navigate('/trainer-application-success', { 
-            state: { 
-              email: formData.email,
-              message: result.message 
-            } 
-          });
-          return;
-        } else {
-          toast({
-            title: 'Account created!',
-            description: 'Welcome to Upscholar. Your learning journey begins now.',
-          });
-          navigate(`/${selectedRole}/dashboard`);
-        }
       }
     } catch (error: any) {
       console.error('Auth error:', error);
@@ -130,6 +242,45 @@ export const Auth: React.FC = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isLogin) {
+      setLoading(true);
+      try {
+        await login(formData.email, formData.password, selectedRole);
+        toast({
+          title: 'Welcome back!',
+          description: 'Successfully logged in to your account.',
+        });
+        navigate(`/${selectedRole}/dashboard`);
+      } catch (error: any) {
+        console.error('Auth error:', error);
+        toast({
+          title: 'Authentication Error',
+          description: error.message || 'Please check your credentials and try again.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // For registration, check if OTP is verified
+      if (!otpVerified) {
+        // First step: send OTP
+        if (otpStep === 'form') {
+          handleSendOTP();
+        } else {
+          // Second step: verify OTP
+          handleVerifyOTP();
+        }
+      } else {
+        // OTP verified, proceed with registration
+        handleRegister();
+      }
     }
   };
 
@@ -228,7 +379,7 @@ export const Auth: React.FC = () => {
           <div className="text-center mb-8">
             <Link to="/" className="inline-flex items-center space-x-2">
               <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-white" />
+                <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-6 h-6 text-white object-contain" />
               </div>
               <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 Upscholar
@@ -315,11 +466,82 @@ export const Auth: React.FC = () => {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="john@example.com"
+                    disabled={otpStep === 'otp' || otpVerified}
                   />
                 </div>
 
+                {!isLogin && (
+                  <div className="space-y-2">
+                    <Label htmlFor="mobile">Mobile Number</Label>
+                    <Input
+                      id="mobile"
+                      name="mobile"
+                      type="tel"
+                      required
+                      value={formData.mobile}
+                      onChange={handleInputChange}
+                      placeholder="9876543210"
+                      maxLength={10}
+                      disabled={otpStep === 'otp' || otpVerified}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      10-digit Indian mobile number (e.g., 9876543210)
+                    </p>
+                  </div>
+                )}
+
+                {/* OTP Verification Step */}
+                {!isLogin && otpStep === 'otp' && !otpVerified && (
+                  <div className="space-y-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                    <div className="space-y-2">
+                      <Label htmlFor="otp">Enter OTP</Label>
+                      <Input
+                        id="otp"
+                        name="otp"
+                        type="text"
+                        required
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="000000"
+                        maxLength={6}
+                        className="text-center text-2xl tracking-widest font-mono"
+                      />
+                      <div className="flex items-center justify-between text-sm">
+                        <p className="text-muted-foreground">
+                          OTP sent to {formData.email}
+                        </p>
+                        {otpExpiresIn > 0 && (
+                          <p className="text-muted-foreground">
+                            Expires in {Math.floor(otpExpiresIn / 60)}:{(otpExpiresIn % 60).toString().padStart(2, '0')}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSendOTP}
+                        disabled={sendingOTP}
+                        className="w-full"
+                      >
+                        {sendingOTP ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Mail className="w-4 h-4 mr-2" />
+                            Resend OTP
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Password field - for login (all roles) or student registration */}
-                {(isLogin || (!isLogin && selectedRole === 'student')) && (
+                {(isLogin || (!isLogin && selectedRole === 'student' && otpVerified)) && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="password">Password</Label>
@@ -461,19 +683,38 @@ export const Auth: React.FC = () => {
                 <Button 
                   type="submit" 
                   className="w-full btn-primary" 
-                  disabled={loading}
+                  disabled={loading || sendingOTP || verifyingOTP}
                 >
-                  {loading ? (
-                    <LoadingSpinner size="sm" className="mr-2" />
-                  ) : null}
-                  {isLogin ? 'Sign In' : 'Create Account'}
+                  {(loading || sendingOTP || verifyingOTP) ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {sendingOTP ? 'Sending OTP...' : verifyingOTP ? 'Verifying...' : 'Processing...'}
+                    </>
+                  ) : (
+                    <>
+                      {isLogin 
+                        ? 'Sign In' 
+                        : otpStep === 'form' 
+                          ? 'Send OTP' 
+                          : otpStep === 'otp' && !otpVerified
+                            ? 'Verify OTP'
+                            : 'Create Account'
+                      }
+                    </>
+                  )}
                 </Button>
               </form>
 
               <div className="mt-6 text-center">
                 <button
                   type="button"
-                  onClick={() => setIsLogin(!isLogin)}
+                  onClick={() => {
+                    setIsLogin(!isLogin);
+                    setOtpStep('form');
+                    setOtp('');
+                    setOtpVerified(false);
+                    setOtpExpiresIn(0);
+                  }}
                   className="text-sm text-primary hover:underline"
                 >
                   {isLogin 

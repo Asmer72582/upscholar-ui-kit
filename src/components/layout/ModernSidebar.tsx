@@ -113,8 +113,8 @@ export const ModernSidebar: React.FC = () => {
     <Sidebar className="border-r-0 bg-gradient-sidebar shadow-modern">
       <SidebarHeader className="border-b border-sidebar-border/20 p-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-            <GraduationCap className="w-6 h-6 text-white" />
+          <div className="w-10 h-10  rounded-xl flex items-center justify-center shadow-lg">
+            <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-10 h-10 text-white object-contain" />
           </div>
           {!collapsed && (
             <div>

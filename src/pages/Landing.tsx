@@ -75,7 +75,8 @@ export const Landing: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <GraduationCap className="w-7 h-7 text-white" />
+                {/* <GraduationCap className="w-7 h-7 text-white" /> */}
+                <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-7 h-7 text-white object-contain" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Upscholar
@@ -100,13 +101,18 @@ export const Landing: React.FC = () => {
                 <Star className="w-4 h-4 mr-2" />
                 Welcome to Upscholar
               </Badge>
-              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4 leading-tight">
                 Learn with the Best
                 <br />
                 <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   Anytime, Anywhere
                 </span>
               </h1>
+              
+              <p className="text-xl md:text-2xl text-gray-800 font-medium max-w-3xl mx-auto mb-6">
+                Live interactive classes for Grades 8–12 (SSC, CBSE, ICSE) and JEE • NEET.
+              </p>
+
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">
                 Choose your preferred mode of learning. We offer both online interactive classes 
                 and offline coaching centres across India.
@@ -124,7 +130,7 @@ export const Landing: React.FC = () => {
                     <Video className="w-10 h-10 text-white" />
                   </div>
                   <CardTitle className="text-3xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                    Online Teaching
+                    Virtual Classroom
                   </CardTitle>
                   <CardDescription className="text-lg text-gray-600">
                     Live interactive classes from expert trainers
@@ -366,7 +372,7 @@ export const Landing: React.FC = () => {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <GraduationCap className="w-6 h-6 text-white" />
+                  <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-6 h-6 text-white object-contain" />
                 </div>
                 <span className="text-xl font-bold">Upscholar</span>
               </div>

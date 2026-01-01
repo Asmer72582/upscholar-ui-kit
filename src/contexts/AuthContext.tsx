@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
-  register: (email: string, password: string, firstName: string, lastName: string, role: UserRole, trainerData?: {
+  register: (email: string, password: string, firstName: string, lastName: string, mobile: string, role: UserRole, otpVerified: boolean, trainerData?: {
     resumeFile: File;
     demoVideoUrl: string;
     expertise: string[];
@@ -71,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, firstName: string, lastName: string, role: UserRole, trainerData?: {
+  const register = async (email: string, password: string, firstName: string, lastName: string, mobile: string, role: UserRole, otpVerified: boolean, trainerData?: {
     resumeFile: File;
     demoVideoUrl: string;
     expertise: string[];
@@ -80,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }) => {
     setLoading(true);
     try {
-      const result = await authService.register(email, password, firstName, lastName, role, trainerData);
+      const result = await authService.register(email, password, firstName, lastName, mobile, role, otpVerified, trainerData);
       
       if (role === 'trainer') {
         // For trainers, result is a status message

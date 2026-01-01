@@ -11,6 +11,44 @@ const fetchConfig = {
 };
 
 class AuthService {
+  async sendOTP(email: string, mobile: string): Promise<{ success: boolean; message: string; expiresIn?: number }> {
+    try {
+      const response = await fetch(`${AUTH_API_URL}/send-otp`, {
+        ...fetchConfig,
+        method: "POST",
+        body: JSON.stringify({ email, mobile }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to send OTP");
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to send OTP");
+    }
+  }
+
+  async verifyOTP(email: string, otp: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(`${AUTH_API_URL}/verify-otp`, {
+        ...fetchConfig,
+        method: "POST",
+        body: JSON.stringify({ email, otp }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to verify OTP");
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to verify OTP");
+    }
+  }
+
   async login(email: string, password: string, role: UserRole): Promise<User> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
@@ -69,7 +107,9 @@ class AuthService {
     password: string,
     firstName: string,
     lastName: string,
+    mobile: string,
     role: UserRole,
+    otpVerified: boolean,
     trainerData?: {
       resumeFile: File;
       demoVideoUrl: string;
@@ -88,10 +128,12 @@ class AuthService {
         // For trainers, use FormData for file upload
         const formData = new FormData();
         formData.append('email', email);
+        formData.append('mobile', mobile);
         formData.append('firstname', firstName);
         formData.append('lastname', lastName);
         formData.append('name', `${firstName} ${lastName}`);
         formData.append('role', role);
+        formData.append('otpVerified', otpVerified.toString());
         formData.append('resume', trainerData.resumeFile);
         formData.append('demoVideoUrl', trainerData.demoVideoUrl);
         formData.append('expertise', JSON.stringify(trainerData.expertise));
@@ -113,10 +155,12 @@ class AuthService {
           body: JSON.stringify({
             email,
             password,
+            mobile,
             firstname: firstName,
             lastname: lastName,
             name: `${firstName} ${lastName}`,
             role,
+            otpVerified,
           }),
         });
       }

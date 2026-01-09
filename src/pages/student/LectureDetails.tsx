@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Clock, Users, Star, Calendar, Play, BookOpen, Coins, Wallet, CheckCircle, AlertCircle, MessageSquare, ThumbsUp, ExternalLink, Video, FileText, Radio } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Star, Calendar, BookOpen, Coins, Wallet, CheckCircle, AlertCircle, MessageSquare, ThumbsUp, ExternalLink, Video, FileText, Radio } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { lectureService, Lecture } from '@/services/lectureService';
 import { walletService } from '@/services/walletService';
@@ -236,7 +236,6 @@ export const LectureDetails: React.FC = () => {
 
   const trainerName = `${lecture.trainer.firstname} ${lecture.trainer.lastname}`;
   const trainerAvatar = lecture.trainer.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lecture.trainer.firstname}`;
-  const thumbnail = `https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=600&h=400&fit=crop&seed=${lecture.id}`;
   const canAfford = userBalance >= lecture.price;
 
 
@@ -256,29 +255,15 @@ export const LectureDetails: React.FC = () => {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            <div className="relative">
-              <img 
-                src={thumbnail} 
-                alt={lecture.title}
-                className="w-full h-64 object-cover rounded-lg"
-              />
-              <div className="absolute inset-0 bg-black/40 rounded-lg flex items-center justify-center">
-                <Button size="lg" className="gap-2">
-                  <Play className="w-5 h-5" />
-                  Preview
-                </Button>
-              </div>
-              <Badge className="absolute top-4 right-4 bg-primary text-primary-foreground">
-                {lecture.status}
-              </Badge>
-            </div>
-
             <Card>
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="outline">{lecture.category}</Badge>
+                      <Badge variant={lecture.status === 'live' ? 'destructive' : 'secondary'} className="text-xs">
+                        {lecture.status}
+                      </Badge>
                       {lecture.tags.slice(0, 3).map((tag, index) => (
                         <Badge key={index} variant="secondary" className="text-xs">
                           {tag}
@@ -625,10 +610,6 @@ export const LectureDetails: React.FC = () => {
                         </div>
                       </DialogContent>
                     </Dialog>
-
-                    <Button variant="outline" className="w-full">
-                      Add to Wishlist
-                    </Button>
                   </div>
                 )}
               </CardContent>

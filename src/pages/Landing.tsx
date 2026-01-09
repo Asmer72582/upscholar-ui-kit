@@ -110,7 +110,7 @@ export const Landing: React.FC = () => {
               </h1>
               
               <p className="text-xl md:text-2xl text-gray-800 font-medium max-w-3xl mx-auto mb-6">
-                Live interactive classes for Grades 8–12 (SSC, CBSE, ICSE) and JEE • NEET.
+                Live interactive classes for Grades 8–10 (SSC/CBSE/ICSE) | 11th–12th Science & Commerce | JEE & NEET Preparation
               </p>
 
               <p className="text-xl text-gray-600 max-w-2xl mx-auto">

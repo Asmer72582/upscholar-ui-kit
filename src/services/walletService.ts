@@ -260,10 +260,13 @@ const requestWithdrawal = async (amount: number, bankDetails: {
   return response.json();
 };
 
+const walletServiceInstance = new WalletService();
+
 export const walletService = {
-  getBalance: new WalletService().getBalance,
-  getTransactions: new WalletService().getTransactions,
-  getStats: new WalletService().getWalletStats,
+  getBalance: walletServiceInstance.getBalance.bind(walletServiceInstance),
+  getTransactions: walletServiceInstance.getTransactions.bind(walletServiceInstance),
+  getStats: walletServiceInstance.getWalletStats.bind(walletServiceInstance),
+  processPayment: walletServiceInstance.processPayment.bind(walletServiceInstance),
   getEarnings,
   requestWithdrawal
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, Search, Settings, Wallet, Coins, RefreshCw } from "lucide-react";
+import { Search, Settings, Wallet, Coins, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -111,17 +111,6 @@ export const ModernHeader: React.FC = () => {
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="relative hover:bg-muted/50"
-          >
-            <Bell className="w-5 h-5" />
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 p-0 flex items-center justify-center bg-destructive text-destructive-foreground text-xs">
-              3
-            </Badge>
-          </Button>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -162,26 +151,28 @@ export const ModernHeader: React.FC = () => {
                 </Link>
               </DropdownMenuItem>
               {(user.role === "student" || user.role === "trainer") && (
-                <DropdownMenuItem asChild>
-                  <Link to={`/${user.role}/wallet`} className="cursor-pointer">
-                    <Wallet className="mr-2 h-4 w-4" />
-                    <div className="flex flex-col">
-                      <span>Wallet</span>
-                      {walletBalance && (
-                        <span className="text-xs text-muted-foreground">
-                          {walletBalance.balance} UC available
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link to={`/${user.role}/wallet`} className="cursor-pointer">
+                      <Wallet className="mr-2 h-4 w-4" />
+                      <div className="flex flex-col">
+                        <span>Wallet</span>
+                        {walletBalance && (
+                          <span className="text-xs text-muted-foreground">
+                            {walletBalance.balance} UC available
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to={`/${user.role}/settings`} className="cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Settings
+                    </Link>
+                  </DropdownMenuItem>
+                </>
               )}
-              <DropdownMenuItem asChild>
-                <Link to={`/${user.role}/settings`} className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Link>
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={handleLogout}

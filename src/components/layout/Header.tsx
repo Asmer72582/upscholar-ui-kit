@@ -29,9 +29,7 @@ export const Header: React.FC = () => {
           <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
             <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-5 h-5 text-white object-contain" />
           </div>
-          <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Upscholar
-          </span>
+         
         </Link>
 
         {user ? (

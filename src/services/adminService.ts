@@ -467,6 +467,7 @@ class AdminService {
     rejected: number;
     scheduled: number;
     live: number;
+    cancelled: number;
   }> {
     try {
       const lectures = await this.getAllLectures();
@@ -479,6 +480,7 @@ class AdminService {
         rejected: lectures.filter((l: any) => l.status === 'cancelled' && l.rejectionReason).length,
         scheduled: lectures.filter((l: any) => l.status === 'scheduled').length,
         live: lectures.filter((l: any) => l.status === 'live').length,
+        cancelled: lectures.filter((l: any) => l.status === 'cancelled').length,
       };
       
       return stats;
@@ -538,6 +540,75 @@ class AdminService {
       };
     } catch (error) {
       console.error("Error rejecting lecture:", error);
+      throw error;
+    }
+  }
+
+  async getSignupBonusSettings(): Promise<{ enabled: boolean; amount: number }> {
+    try {
+      const response = await fetch(`${API_URL}/admin/settings/signup-bonus`, {
+        ...fetchConfig,
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch signup bonus settings");
+      }
+
+      const result = await response.json();
+      return result.settings;
+    } catch (error) {
+      console.error("Error fetching signup bonus settings:", error);
+      throw error;
+    }
+  }
+
+  async updateSignupBonusSettings(enabled: boolean, amount: number): Promise<{ enabled: boolean; amount: number }> {
+    try {
+      const response = await fetch(`${API_URL}/admin/settings/signup-bonus`, {
+        ...fetchConfig,
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ enabled, amount }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update signup bonus settings");
+      }
+
+      const result = await response.json();
+      return result.settings;
+    } catch (error) {
+      console.error("Error updating signup bonus settings:", error);
+      throw error;
+    }
+  }
+
+  async sendNotificationToAll(subject: string, message: string, targetRole?: 'student' | 'trainer' | 'admin'): Promise<{ totalUsers: number; successful: number; failed: number }> {
+    try {
+      const response = await fetch(`${API_URL}/admin/notifications/send-all`, {
+        ...fetchConfig,
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ subject, message, targetRole }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to send notifications");
+      }
+
+      const result = await response.json();
+      return {
+        totalUsers: result.totalUsers,
+        successful: result.successful,
+        failed: result.failed
+      };
+    } catch (error) {
+      console.error("Error sending notifications:", error);
       throw error;
     }
   }

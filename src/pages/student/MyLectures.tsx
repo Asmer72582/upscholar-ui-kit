@@ -330,13 +330,13 @@ export const MyLectures: React.FC = () => {
                 </Button>
               )}
               
-              {status === 'completed' && (
+              {/* {status === 'completed' && (
                 <Button size="sm" variant="outline" className="flex-1"
                         onClick={() => window.open(lecture.recordingUrl || '#', '_blank')}>
                   <Video className="w-4 h-4 mr-1" />
                   Watch Recording
                 </Button>
-              )}
+              )} */}
               
               {status === 'completed' && (
                 <Button size="sm" variant="ghost"
@@ -348,13 +348,13 @@ export const MyLectures: React.FC = () => {
                 </Button>
               )}
               
-              {status === 'missed' && (
+              {/* {status === 'missed' && (
                 <Button size="sm" variant="outline" className="flex-1"
                         onClick={() => window.open(lecture.recordingUrl || '#', '_blank')}>
                   <Video className="w-4 h-4 mr-1" />
                   Watch Recording
                 </Button>
-              )}
+              )} */}
 
               {status !== 'live' && (
                 <Button size="sm" variant="ghost"

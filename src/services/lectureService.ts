@@ -32,6 +32,14 @@ export interface Lecture {
     attended: boolean;
   }>;
   status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  rejectionReason?: string;
+  rejectedAt?: string;
+  rejectedBy?: {
+    id: string;
+    firstname: string;
+    lastname: string;
+    email: string;
+  };
   meetingLink?: string;
   recordingUrl?: string;
   materials: Array<{
@@ -71,12 +79,67 @@ export interface CreateLectureData {
   scheduledAt: string;
   maxStudents: number;
   meetingLink?: string;
-  materials?: Array<{
-    name: string;
-    url: string;
-    type: 'pdf' | 'video' | 'link' | 'document' | 'other';
-  }>;
-  isPublished?: boolean;
+}
+
+// API Response Interfaces
+interface ApiUser {
+  _id: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  avatar?: string;
+  bio?: string;
+  expertise?: string[];
+  experience?: number;
+}
+
+interface ApiEnrollment {
+  student: ApiUser;
+  enrolledAt: string;
+  attended: boolean;
+}
+
+interface ApiFeedback {
+  student: ApiUser;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
+interface ApiMaterial {
+  name: string;
+  url: string;
+  type: 'pdf' | 'video' | 'link' | 'document' | 'other';
+}
+
+interface ApiLecture {
+  _id: string;
+  title: string;
+  description: string;
+  trainer: ApiUser;
+  category: string;
+  tags: string[];
+  price: number;
+  duration: number;
+  scheduledAt: string;
+  maxStudents: number;
+  enrolledStudents: ApiEnrollment[];
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  rejectionReason?: string;
+  rejectedAt?: string;
+  rejectedBy?: ApiUser;
+  meetingLink?: string;
+  recordingUrl?: string;
+  materials: ApiMaterial[];
+  feedback: ApiFeedback[];
+  averageRating: number;
+  totalEarnings: number;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+  enrolledCount?: number;
+  isFull?: boolean;
+  canBeCancelled?: boolean;
 }
 
 export interface LectureFilters {
@@ -184,7 +247,7 @@ class LectureService {
       });
 
       if (!response.ok) {
-        let errorBody: any = null;
+        let errorBody: { message?: string } | null = null;
         try {
           errorBody = await response.json();
         } catch (parseError) {
@@ -244,6 +307,25 @@ class LectureService {
       }
     } catch (error) {
       console.error('Error deleting lecture:', error);
+      throw error;
+    }
+  }
+
+  async cancelLecture(id: string, reason: string): Promise<void> {
+    try {
+      const response = await fetch(`${LECTURE_API_URL}/${id}/cancel`, {
+        ...fetchConfig,
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to cancel lecture');
+      }
+    } catch (error) {
+      console.error('Error cancelling lecture:', error);
       throw error;
     }
   }
@@ -349,7 +431,7 @@ class LectureService {
     }
   }
 
-  async submitReview(id: string, reviewData: { rating: number; comment: string }): Promise<{ message: string; review: any; averageRating: number }> {
+  async submitReview(id: string, reviewData: { rating: number; comment: string }): Promise<{ message: string; review: { id: string; rating: number; comment: string; student: { id: string; firstname: string; lastname: string }; createdAt: string }; averageRating: number }> {
     try {
       const response = await fetch(`${LECTURE_API_URL}/${id}/review`, {
         ...fetchConfig,
@@ -394,7 +476,98 @@ class LectureService {
     }
   }
 
-  private transformLecture(lecture: any): Lecture {
+  async cancelLecture(id: string, reason: string): Promise<{ message: string; lecture: Lecture }> {
+    try {
+      const response = await fetch(`${LECTURE_API_URL}/${id}/cancel`, {
+        ...fetchConfig,
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ reason }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to cancel lecture');
+      }
+
+      const data = await response.json();
+      return {
+        message: data.message,
+        lecture: this.transformLecture(data.lecture)
+      };
+    } catch (error) {
+      console.error('Error cancelling lecture:', error);
+      throw error;
+    }
+  }
+
+  private transformLecture(lecture: {
+    _id: string;
+    title: string;
+    description: string;
+    trainer: {
+      _id: string;
+      firstname: string;
+      lastname: string;
+      email: string;
+      avatar?: string;
+      bio?: string;
+      expertise?: string[];
+      experience?: number;
+    };
+    category: string;
+    tags?: string[];
+    price: number;
+    duration: number;
+    scheduledAt: string;
+    maxStudents: number;
+    enrolledStudents?: Array<{
+      student: {
+        _id: string;
+        firstname: string;
+        lastname: string;
+        email: string;
+        avatar?: string;
+      };
+      enrolledAt: string;
+      attended?: boolean;
+    }>;
+    status: string;
+    rejectionReason?: string;
+    rejectedAt?: string;
+    rejectedBy?: {
+      _id: string;
+      firstname: string;
+      lastname: string;
+      email: string;
+    };
+    meetingLink?: string;
+    recordingUrl?: string;
+    materials?: Array<{
+      name: string;
+      url: string;
+      type: 'pdf' | 'video' | 'link' | 'document' | 'other';
+    }>;
+    feedback?: Array<{
+      student: {
+        _id: string;
+        firstname: string;
+        lastname: string;
+        avatar?: string;
+      };
+      rating: number;
+      comment: string;
+      createdAt: string;
+    }>;
+    averageRating?: number;
+    totalEarnings?: number;
+    isPublished: boolean;
+    createdAt: string;
+    updatedAt: string;
+    enrolledCount?: number;
+    isFull?: boolean;
+    canBeCancelled?: boolean;
+  }): Lecture {
     return {
       id: lecture._id,
       title: lecture.title,
@@ -415,7 +588,7 @@ class LectureService {
       duration: lecture.duration,
       scheduledAt: lecture.scheduledAt,
       maxStudents: lecture.maxStudents,
-      enrolledStudents: lecture.enrolledStudents?.map((enrollment: any) => ({
+      enrolledStudents: lecture.enrolledStudents?.map((enrollment) => ({
         student: {
           id: enrollment.student._id,
           firstname: enrollment.student.firstname,
@@ -427,10 +600,18 @@ class LectureService {
         attended: enrollment.attended,
       })) || [],
       status: lecture.status,
+      rejectionReason: lecture.rejectionReason,
+      rejectedAt: lecture.rejectedAt,
+      rejectedBy: lecture.rejectedBy ? {
+        id: lecture.rejectedBy._id,
+        firstname: lecture.rejectedBy.firstname,
+        lastname: lecture.rejectedBy.lastname,
+        email: lecture.rejectedBy.email,
+      } : undefined,
       meetingLink: lecture.meetingLink,
       recordingUrl: lecture.recordingUrl,
       materials: lecture.materials || [],
-      feedback: lecture.feedback?.map((fb: any) => ({
+      feedback: lecture.feedback?.map((fb) => ({
         student: {
           id: fb.student._id,
           firstname: fb.student.firstname,

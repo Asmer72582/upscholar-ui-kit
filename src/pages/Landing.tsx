@@ -117,7 +117,7 @@ export const Landing: React.FC = () => {
                 Choose your preferred mode of learning. We offer both online interactive classes 
                 and offline coaching centres across India.
               </p>
-            </div>
+            </div> 
 
             {/* Two Options */}
             <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">

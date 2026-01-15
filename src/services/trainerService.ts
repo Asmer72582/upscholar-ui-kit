@@ -31,6 +31,7 @@ export interface TrainerStats {
     active: number;
     completed: number;
     scheduled: number;
+    pending: number;
     upcoming: Array<{
       id: string;
       title: string;
@@ -124,6 +125,48 @@ class TrainerService {
       return await response.json();
     } catch (error) {
       console.error('Error fetching recent earnings:', error);
+      throw error;
+    }
+  }
+
+  async getStudents(lectureId?: string): Promise<any[]> {
+    try {
+      const url = lectureId 
+        ? `${API_URL}/trainer/students?lectureId=${lectureId}`
+        : `${API_URL}/trainer/students`;
+        
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch students');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      throw error;
+    }
+  }
+
+  async getEarnings(timeRange: string = 'all'): Promise<any[]> {
+    try {
+      const response = await fetch(`${API_URL}/trainer/earnings?timeRange=${timeRange}`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch earnings');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching earnings:', error);
       throw error;
     }
   }

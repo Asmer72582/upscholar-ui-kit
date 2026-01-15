@@ -34,6 +34,7 @@ import { ManageUsers } from "./pages/admin/ManageUsers";
 import { ManageLectures as ManageLecturesAdmin } from "./pages/admin/ManageLectures";
 import { AdminLectureDetails } from "./pages/admin/LectureDetails";
 import { ManageCourses as ManageCoursesAdmin } from "./pages/admin/ManageCourses";
+import { AdminSettings } from "./pages/admin/Settings";
 import { Analytics } from "./pages/admin/Analytics";
 import { WithdrawalRequests } from "./pages/admin/WithdrawalRequests";
 import { LiveLecture } from "./pages/LiveLecture";
@@ -41,6 +42,7 @@ import { StreamMeetingRoom } from "./pages/StreamMeetingRoom";
 import { TrainerApplicationSuccess } from "./pages/TrainerApplicationSuccess";
 import { TrainerLectureDetails } from "./pages/trainer/LectureDetails";
 import { ResetPassword } from "./pages/ResetPassword";
+import { Support } from "./pages/student/Support";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +74,7 @@ const App = () => (
               <Route path="lecture/:id/details" element={<LectureDetails />} />
               <Route path="wallet" element={<StudentWallet />} />
               <Route path="buy-upcoins" element={<BuyUpCoins />} />
+              <Route path="support" element={<Support />} />
             </Route>
 
             {/* Trainer Routes */}
@@ -88,6 +91,7 @@ const App = () => (
               <Route path="students" element={<Students />} />
               <Route path="wallet" element={<TrainerWalletEarnings />} />
               <Route path="settings" element={<TrainerSettings />} />
+              <Route path="support" element={<Support />} />
             </Route>
 
             {/* Admin Routes */}
@@ -103,6 +107,7 @@ const App = () => (
               <Route path="manage-courses" element={<ManageCoursesAdmin />} />
               <Route path="withdrawals" element={<WithdrawalRequests />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
 
             {/* Live Lecture Route */}

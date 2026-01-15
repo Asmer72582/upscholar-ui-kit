@@ -31,13 +31,11 @@ import {
   GraduationCap,
   Timer,
   Coins,
-  Sparkles,
   Video,
   Trophy,
   Flame,
   BookMarked,
   Bell,
-  Gift,
   ChevronRight,
   Radio,
 } from "lucide-react";
@@ -566,21 +564,7 @@ export const StudentDashboard: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Promo Card */}
-          <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white overflow-hidden relative">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-            <CardContent className="p-6 relative">
-              <Gift className="w-10 h-10 mb-4" />
-              <h3 className="font-bold text-lg mb-2">Refer & Earn!</h3>
-              <p className="text-white/80 text-sm mb-4">
-                Invite friends and earn 100 UpCoins for each successful referral!
-              </p>
-              <Button className="bg-white text-purple-600 hover:bg-white/90 w-full">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Invite Friends
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Promo Card removed */}
         </div>
       </div>
     </div>

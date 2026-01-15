@@ -20,7 +20,6 @@ import {
   Clock, 
   Eye, 
   Edit, 
-  Trash2, 
   Play, 
   RefreshCw,
   Star,
@@ -61,27 +60,6 @@ export const ManageLectures: React.FC = () => {
     }
   };
 
-  const handleDeleteLecture = async (lectureId: string) => {
-    if (!confirm('Are you sure you want to delete this lecture?')) {
-      return;
-    }
-
-    try {
-      await lectureService.deleteLecture(lectureId);
-      toast({
-        title: 'Success',
-        description: 'Lecture deleted successfully.',
-      });
-      loadLectures(); // Refresh the list
-    } catch (error: any) {
-      console.error('Error deleting lecture:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete lecture.',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleStartMeeting = async (lectureId: string, lectureTitle: string) => {
     try {
@@ -500,16 +478,6 @@ export const ManageLectures: React.FC = () => {
                                   >
                                     <CheckCircle className="w-4 h-4 mr-2" />
                                     Complete Lecture
-                                  </DropdownMenuItem>
-                                )}
-                                
-                                {lecture.canBeCancelled && (
-                                  <DropdownMenuItem 
-                                    className="text-red-600"
-                                    onClick={() => handleDeleteLecture(lecture.id)}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Cancel Lecture
                                   </DropdownMenuItem>
                                 )}
                               </DropdownMenuContent>

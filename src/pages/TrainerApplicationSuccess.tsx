@@ -148,7 +148,7 @@ export const TrainerApplicationSuccess: React.FC = () => {
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-500 mr-2">✅</span>
-                    Make sure to whitelist notifications@upscholer.com
+                    Make sure to whitelist hr@upscholar.in
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-500 mr-2">🔒</span>
@@ -156,7 +156,7 @@ export const TrainerApplicationSuccess: React.FC = () => {
                   </li>
                   <li className="flex items-start">
                     <span className="text-blue-500 mr-2">💬</span>
-                    Contact support@upscholer.com if you have questions
+                    Contact support@upscholar.in if you have questions
                   </li>
                 </ul>
               </div>

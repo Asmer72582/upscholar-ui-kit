@@ -336,6 +336,7 @@ export const Settings: React.FC = () => {
                         <Label htmlFor="firstname">First Name</Label>
                         <Input
                           id="firstname"
+                          disabled={true}
                           value={firstname}
                           onChange={(e) => setFirstname(e.target.value)}
                           placeholder="Enter first name"
@@ -345,6 +346,7 @@ export const Settings: React.FC = () => {
                         <Label htmlFor="lastname">Last Name</Label>
                         <Input
                           id="lastname"
+                          disabled={true}
                           value={lastname}
                           onChange={(e) => setLastname(e.target.value)}
                           placeholder="Enter last name"
@@ -406,6 +408,7 @@ export const Settings: React.FC = () => {
                         <Video className="w-5 h-5 text-muted-foreground mt-2" />
                         <Input
                           id="demoVideoUrl"
+                          disabled={true}
                           value={demoVideoUrl}
                           onChange={(e) => setDemoVideoUrl(e.target.value)}
                           placeholder="https://youtube.com/..."

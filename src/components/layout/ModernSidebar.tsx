@@ -16,7 +16,8 @@ import {
   GraduationCap,
   ClipboardList,
   ChevronRight,
-  LogOut
+  LogOut,
+  HelpCircle
 } from 'lucide-react';
 import {
   Sidebar,
@@ -35,10 +36,12 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
+import { LucideIcon } from 'lucide-react';
+
 interface SidebarItem {
   title: string;
   href: string;
-  icon: React.ComponentType<any>;
+  icon: LucideIcon;
   badge?: number;
 }
 
@@ -79,6 +82,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'My Lectures', href: '/student/my-lectures', icon: GraduationCap },
           { title: 'Wallet', href: '/student/wallet', icon: Wallet },
           { title: 'Buy UpCoins', href: '/student/buy-upcoins', icon: CreditCard },
+          { title: 'Support', href: '/student/support', icon: HelpCircle },
         ];
       case 'trainer':
         return [
@@ -87,6 +91,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Manage Lectures', href: '/trainer/manage-lectures', icon: Calendar },
           { title: 'Students', href: '/trainer/students', icon: Users },
           { title: 'Wallet & Earnings', href: '/trainer/wallet', icon: Wallet },
+          { title: 'Support', href: '/trainer/support', icon: HelpCircle },
           { title: 'Settings', href: '/trainer/settings', icon: Settings },
         ];
       case 'admin':
@@ -96,6 +101,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Manage Lectures', href: '/admin/manage-lectures', icon: BookOpen },
           { title: 'Withdrawal Requests', href: '/admin/withdrawals', icon: Wallet },
           { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+          { title: 'Settings', href: '/admin/settings', icon: Settings },
         ];
       default:
         return [];

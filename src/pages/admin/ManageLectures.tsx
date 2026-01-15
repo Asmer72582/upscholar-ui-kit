@@ -24,11 +24,27 @@ interface LectureData {
   duration: number;
   price: number;
   status: string;
-  enrolledStudents: any[];
+  enrolledStudents: Array<{
+    student: {
+      id: string;
+      firstname: string;
+      lastname: string;
+      email: string;
+      avatar?: string;
+    };
+    enrolledAt: string;
+    attended?: boolean;
+  }>;
   maxStudents: number;
   category: string;
   thumbnail?: string;
   createdAt: string;
+  rejectionReason?: string;
+  rejectedAt?: string;
+  rejectedBy?: {
+    name: string;
+    email: string;
+  };
 }
 
 interface LectureStats {
@@ -39,6 +55,7 @@ interface LectureStats {
   rejected: number;
   scheduled: number;
   live: number;
+  cancelled: number;
 }
 
 export const ManageLectures: React.FC = () => {
@@ -51,7 +68,8 @@ export const ManageLectures: React.FC = () => {
     completed: 0,
     rejected: 0,
     scheduled: 0,
-    live: 0
+    live: 0,
+    cancelled: 0
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -218,6 +236,13 @@ export const ManageLectures: React.FC = () => {
               <p className="text-xs text-muted-foreground">Rejected</p>
             </CardContent>
           </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
+              <XCircle className="w-6 h-6 mx-auto mb-2 text-gray-600" />
+              <p className="text-2xl font-bold">{lectureStats.cancelled}</p>
+              <p className="text-xs text-muted-foreground">Cancelled</p>
+            </CardContent>
+          </Card>
         </div>
 
         <Tabs defaultValue="all">
@@ -226,6 +251,7 @@ export const ManageLectures: React.FC = () => {
             <TabsTrigger value="pending">Pending Review ({lectureStats.pending})</TabsTrigger>
             <TabsTrigger value="approved">Approved</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="cancelled">Cancelled ({lectureStats.cancelled})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
@@ -531,6 +557,55 @@ export const ManageLectures: React.FC = () => {
                 </div>
                 {filteredLectures.filter(l => l.status === 'completed').length === 0 && (
                   <p className="text-muted-foreground text-center py-8">No completed lectures found</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="cancelled" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Cancelled Lectures ({lectureStats.cancelled})</CardTitle>
+                <CardDescription>Lectures cancelled by trainers with reasons</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {filteredLectures.filter(l => l.status === 'cancelled').map((lecture) => (
+                    <Card key={lecture.id} className="border-l-4 border-l-red-500">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="w-12 h-12 bg-muted rounded flex items-center justify-center">
+                                <Video className="w-6 h-6 text-muted-foreground" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium">{lecture.title}</h4>
+                                <p className="text-sm text-muted-foreground">by {lecture.trainer.name}</p>
+                              </div>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-md mt-3">
+                              <p className="text-sm font-medium text-gray-700 mb-1">Cancellation Reason:</p>
+                              <p className="text-sm text-gray-600">{lecture.rejectionReason || 'No reason provided'}</p>
+                            </div>
+                            <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
+                              <span>Scheduled: {new Date(lecture.scheduledAt).toLocaleDateString()}</span>
+                              <span>•</span>
+                              <span>Cancelled: {new Date(lecture.rejectedAt || '').toLocaleDateString()}</span>
+                              <span>•</span>
+                              <span>{lecture.enrolledStudents.length} enrolled students</span>
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                {filteredLectures.filter(l => l.status === 'cancelled').length === 0 && (
+                  <p className="text-muted-foreground text-center py-8">No cancelled lectures found</p>
                 )}
               </CardContent>
             </Card>

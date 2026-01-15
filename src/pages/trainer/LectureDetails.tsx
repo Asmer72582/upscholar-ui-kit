@@ -23,7 +23,6 @@ import {
   MessageSquare,
   Settings,
   BookOpen,
-  Trash2,
   Radio
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
@@ -83,29 +82,6 @@ export const TrainerLectureDetails: React.FC = () => {
     }
   };
 
-  const handleDeleteLecture = async () => {
-    if (!lecture) return;
-
-    if (!window.confirm(`Are you sure you want to cancel "${lecture.title}"? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      await lectureService.deleteLecture(lecture.id);
-      toast({
-        title: 'Success',
-        description: 'Lecture cancelled successfully.',
-      });
-      navigate('/trainer/manage-lectures');
-    } catch (error) {
-      console.error('Error cancelling lecture:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to cancel lecture',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const handleJoinMeeting = () => {
     if (lecture) {
@@ -202,16 +178,10 @@ export const TrainerLectureDetails: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                   {lecture.status === 'scheduled' && (
-                    <>
-                      <Button variant="outline" onClick={() => navigate(`/trainer/lectures/${lecture.id}/edit`)}>
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                      <Button variant="destructive" onClick={handleDeleteLecture}>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Cancel
-                      </Button>
-                    </>
+                    <Button variant="outline" onClick={() => navigate(`/trainer/lectures/${lecture.id}/edit`)}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit
+                    </Button>
                   )}
                   {lecture.status === 'live' && (
                     <>

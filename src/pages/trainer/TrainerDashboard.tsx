@@ -40,7 +40,8 @@ import {
   Crown,
   Sparkles,
   AlertTriangle,
-  GraduationCap
+  GraduationCap,
+  HelpCircle
 } from 'lucide-react';
 import { trainerService, TrainerStats } from '@/services/trainerService';
 
@@ -646,7 +647,7 @@ export const TrainerDashboard: React.FC = () => {
           <CardDescription>Manage your teaching activities efficiently</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-blue-300 hover:bg-blue-50">
               <Link to="/trainer/schedule-lecture">
                 <PlusCircle className="w-8 h-8 text-blue-600" />
@@ -669,6 +670,12 @@ export const TrainerDashboard: React.FC = () => {
               <Link to="/trainer/wallet">
                 <Wallet className="w-8 h-8 text-green-600" />
                 <span className="text-sm font-medium">Wallet & Earnings</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-orange-300 hover:bg-orange-50">
+              <Link to="/trainer/support">
+                <HelpCircle className="w-8 h-8 text-orange-600" />
+                <span className="text-sm font-medium">Get Support</span>
               </Link>
             </Button>
           </div>

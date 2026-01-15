@@ -465,14 +465,14 @@ export const LectureDetails: React.FC = () => {
 
                     {getLectureStatus() === 'completed' && (
                       <div className="space-y-2">
-                        <Button 
+                        {/* <Button 
                           variant="outline" 
                           className="w-full"
                           onClick={() => window.open(lecture.recordingUrl || '#', '_blank')}
                         >
                           <Video className="w-4 h-4 mr-2" />
                           Watch Recording
-                        </Button>
+                        </Button> */}
                         
                         {lecture.materials.length > 0 && (
                           <Button variant="outline" className="w-full">

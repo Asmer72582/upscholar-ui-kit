@@ -138,8 +138,7 @@ export const Auth: React.FC = () => {
       toast({
         title: 'Failed to Send OTP',
         description: error.message || 'Please try again.',
-        variant: 'destructive',
-      });
+        variant: 'destructive',o     });
     } finally {
       setSendingOTP(false);
     }

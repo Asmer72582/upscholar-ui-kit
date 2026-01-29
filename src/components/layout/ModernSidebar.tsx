@@ -116,7 +116,7 @@ export const ModernSidebar: React.FC = () => {
       <SidebarHeader className="border-b border-sidebar-border/20 p-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10  rounded-xl flex items-center justify-center shadow-lg">
-            <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-10 h-10 text-white object-contain" />
+            <img src="/logo.png" alt="Upscholar Logo" className="w-10 h-10 text-white object-contain" />
           </div>
           {!collapsed && (
             <div>

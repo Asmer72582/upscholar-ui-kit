@@ -22,7 +22,7 @@ export const TrainerApplicationSuccess: React.FC = () => {
           <div className="text-center mb-8">
             <Link to="/" className="inline-flex items-center space-x-2">
               <div className="w-10 h-10  rounded-xl flex items-center justify-center shadow-lg">
-            <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-10 h-10 text-white object-contain" />
+            <img src="/logo.png" alt="Upscholar Logo" className="w-10 h-10 text-white object-contain" />
           </div>
               <span className="text-2xl font-bold bg-gradient-primary bg-clip-text text-transparent">
                 Upscholar

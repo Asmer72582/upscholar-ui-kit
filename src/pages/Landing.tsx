@@ -18,7 +18,8 @@ import {
   Star,
   Building2,
   Wifi,
-  BookOpen
+  BookOpen,
+  MessageCircle
 } from 'lucide-react';
 
 // Offline Centre Details
@@ -76,7 +77,7 @@ export const Landing: React.FC = () => {
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 {/* <GraduationCap className="w-7 h-7 text-white" /> */}
-                <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-7 h-7 text-white object-contain" />
+                <img src="/logo.png" alt="Upscholar Logo" className="w-7 h-7 text-white object-contain" />
               </div>
               <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Upscholar
@@ -366,20 +367,75 @@ export const Landing: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <img src="/src/assets/logo.png" alt="Upscholar Logo" className="w-6 h-6 text-white object-contain" />
+      <footer className="bg-gray-900 text-white">
+        <div className="container mx-auto px-4 py-12 md:py-16">
+          <div className="max-w-6xl mx-auto">
+            {/* Brand + Contact Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12 mb-12">
+              {/* Brand */}
+              <div className="lg:col-span-1">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <img src="/logo.png" alt="Upscholar Logo" className="w-6 h-6 text-white object-contain" />
+                  </div>
+                  <span className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">Upscholar</span>
                 </div>
-                <span className="text-xl font-bold">Upscholar</span>
+                <p className="text-sm text-gray-400 max-w-xs">
+                  Live interactive classes for Grades 8–12, JEE & NEET. Learn with the best, anytime, anywhere.
+                </p>
               </div>
-              <div className="flex items-center gap-6 text-sm text-gray-400">
-                <span>© 2024 Upscholar</span>
-                <span>•</span>
-                <span>All rights reserved</span>
+
+              {/* Phone / WhatsApp */}
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-300 mb-4 flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  Phone & WhatsApp
+                </h3>
+                <a href="tel:+917506002004" className="block text-gray-300 hover:text-white transition-colors mb-1">
+                  +91 750 600 2004
+                </a>
+                <a href="tel:+917506004002" className="block text-gray-300 hover:text-white transition-colors">
+                  +91 750 600 4002
+                </a>
+              </div>
+
+              {/* Email & Website */}
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-300 mb-4 flex items-center gap-2">
+                  <Mail className="w-4 h-4" />
+                  Email & Web
+                </h3>
+                <a href="mailto:info@upscholar.in" className="block text-gray-300 hover:text-white transition-colors mb-2 break-all">
+                  info@upscholar.in
+                </a>
+                <a href="https://www.upscholar.in" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-gray-300 hover:text-white transition-colors">
+                  <Globe className="w-4 h-4 flex-shrink-0" />
+                  www.upscholar.in
+                </a>
+              </div>
+
+              {/* Address */}
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-300 mb-4 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  Visit Us
+                </h3>
+                <address className="text-gray-300 not-italic leading-relaxed">
+                  Upscholar, 1st Floor, Asha Icon,<br />
+                  Survey No. 80, Next To Venkatesh Petrol Pump,<br />
+                  Kalyan Shil Road, Dombivli (E.), 421203
+                </address>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-700/80 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-sm text-gray-500">
+                © {new Date().getFullYear()} Upscholar. All rights reserved.
+              </p>
+              <div className="flex items-center gap-6 text-sm text-gray-500">
+                <a href="mailto:info@upscholar.in" className="hover:text-indigo-400 transition-colors">Contact</a>
+                <a href="https://www.upscholar.in" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 transition-colors">Website</a>
               </div>
             </div>
           </div>

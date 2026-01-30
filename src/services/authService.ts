@@ -236,6 +236,7 @@ class AuthService {
       firstName: data.firstname,
       lastName: data.lastname,
       name: data.name || `${data.firstname} ${data.lastname}`,
+      mobile: data.mobile,
       role: data.role as UserRole,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email}`,
       createdAt: data.createdAt,
@@ -255,6 +256,71 @@ class AuthService {
   async logout(): Promise<void> {
     localStorage.removeItem("upscholer_token");
     localStorage.removeItem("upscholer_user");
+  }
+
+  async updateProfile(data: { firstname?: string; lastname?: string; mobile?: string }): Promise<User> {
+    const token = localStorage.getItem("upscholer_token");
+    if (!token) throw new Error("No token found");
+
+    const response = await fetch(`${AUTH_API_URL}/profile`, {
+      ...fetchConfig,
+      method: "PUT",
+      headers: {
+        ...fetchConfig.headers,
+        "x-auth-token": token,
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to update profile");
+    }
+
+    const updated = await response.json();
+    return {
+      id: updated._id || updated.id,
+      email: updated.email,
+      firstName: updated.firstname,
+      lastName: updated.lastname,
+      name: updated.name || `${updated.firstname} ${updated.lastname}`,
+      mobile: updated.mobile,
+      role: updated.role as UserRole,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${updated.email}`,
+      createdAt: updated.createdAt,
+      isApproved: updated.isApproved,
+      status: updated.status,
+      walletBalance: updated.walletBalance,
+      totalEarned: updated.totalEarned,
+      totalSpent: updated.totalSpent,
+      resume: updated.resume,
+      demoVideoUrl: updated.demoVideoUrl,
+      expertise: updated.expertise,
+      experience: updated.experience,
+      bio: updated.bio,
+    };
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> {
+    const token = localStorage.getItem("upscholer_token");
+    if (!token) throw new Error("No token found");
+
+    const response = await fetch(`${AUTH_API_URL}/change-password`, {
+      ...fetchConfig,
+      method: "POST",
+      headers: {
+        ...fetchConfig.headers,
+        "x-auth-token": token,
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to change password");
+    }
+
+    return await response.json();
   }
 }
 

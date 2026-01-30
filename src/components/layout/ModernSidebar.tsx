@@ -83,6 +83,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Wallet', href: '/student/wallet', icon: Wallet },
           { title: 'Buy UpCoins', href: '/student/buy-upcoins', icon: CreditCard },
           { title: 'Support', href: '/student/support', icon: HelpCircle },
+          { title: 'Settings', href: '/student/settings', icon: Settings },
         ];
       case 'trainer':
         return [

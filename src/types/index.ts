@@ -7,6 +7,7 @@ export interface User {
   firstName: string;
   lastName: string;
   name?: string;
+  mobile?: string;
   role: UserRole;
   avatar?: string;
   createdAt: string;

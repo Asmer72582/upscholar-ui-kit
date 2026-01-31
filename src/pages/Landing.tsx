@@ -75,13 +75,14 @@ export const Landing: React.FC = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              {/* <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg"> */}
                 {/* <GraduationCap className="w-7 h-7 text-white" /> */}
-                <img src="/logo.png" alt="Upscholar Logo" className="w-7 h-7 text-white object-contain" />
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                {/* <img src="/logo.jpg" alt="Upscholar Logo" className="w-7 h-7 text-white object-contain" /> */}
+              {/* </div> */}
+              {/* <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                 Upscholar
-              </span>
+              </span> */}
+              <img src="/logo.jpg" alt="Upscholar Logo" className="w-100 h-10 text-white object-contain" />
             </div>
             <Button asChild variant="outline" className="hidden sm:flex">
               <Link to="/auth">
@@ -376,9 +377,10 @@ export const Landing: React.FC = () => {
               <div className="lg:col-span-1">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <img src="/logo.png" alt="Upscholar Logo" className="w-6 h-6 text-white object-contain" />
+                    {/* <img src="/logo.jpg" alt="Upscholar Logo" className="w-6 h-6 text-white object-contain" /> */}
                   </div>
-                  <span className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">Upscholar</span>
+                  <img src="/logo.jpg" alt="Upscholar Logo" className="w-100 h-100 text-white object-contain" />
+                  {/* <span className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">Upscholar</span> */}
                 </div>
                 <p className="text-sm text-gray-400 max-w-xs">
                   Live interactive classes for Grades 8–12, JEE & NEET. Learn with the best, anytime, anywhere.
@@ -434,8 +436,8 @@ export const Landing: React.FC = () => {
                 © {new Date().getFullYear()} Upscholar. All rights reserved.
               </p>
               <div className="flex items-center gap-6 text-sm text-gray-500">
-                <a href="mailto:info@upscholar.in" className="hover:text-indigo-400 transition-colors">Contact</a>
-                <a href="https://www.upscholar.in" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 transition-colors">Website</a>
+                <a href="mailto:hr@upscholar.in" className="hover:text-indigo-400 transition-colors">Contact</a>
+                {/* <a href="https://www.upscholar.in" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 transition-colors">Website</a> */}
               </div>
             </div>
           </div>

@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Clock, Users, Star, Calendar, BookOpen, Coins, Wallet, CheckCircle, AlertCircle, MessageSquare, ThumbsUp, ExternalLink, Video, FileText, Radio } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Star, Calendar, BookOpen, Coins, Wallet, CheckCircle, AlertCircle, MessageSquare, ThumbsUp, Video, FileText, Radio } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { lectureService, Lecture } from '@/services/lectureService';
 import { walletService } from '@/services/walletService';
@@ -166,6 +166,14 @@ export const LectureDetails: React.FC = () => {
     if (lectureTime > now) return 'upcoming';
     
     return 'completed'; // Past lectures are considered completed
+  };
+
+  // Check if lecture has ended (past date) - students cannot enroll
+  const isPastLecture = (): boolean => {
+    if (!lecture) return false;
+    const lectureEnd = new Date(lecture.scheduledAt);
+    lectureEnd.setMinutes(lectureEnd.getMinutes() + (lecture.duration || 0));
+    return lectureEnd <= new Date();
   };
 
   const handleJoinMeeting = () => {
@@ -453,14 +461,10 @@ export const LectureDetails: React.FC = () => {
                       </Button>
                     )}
 
-                    {getLectureStatus() === 'upcoming' && lecture.meetingLink && (
-                      <Button 
-                        className="w-full bg-green-600 hover:bg-green-700" 
-                        onClick={handleJoinMeeting}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Join Lecture
-                      </Button>
+                    {getLectureStatus() === 'upcoming' && (
+                      <p className="text-sm text-muted-foreground text-center py-2">
+                        The Join button will appear when the trainer starts the lecture. You will receive an email notification.
+                      </p>
                     )}
 
                     {getLectureStatus() === 'completed' && (
@@ -521,6 +525,16 @@ export const LectureDetails: React.FC = () => {
                 ) : (
                   // Not enrolled - show enrollment options
                   <div>
+                    {isPastLecture() ? (
+                      <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-center">
+                        <AlertCircle className="w-8 h-8 text-amber-600 mx-auto mb-2" />
+                        <p className="font-medium text-amber-800 dark:text-amber-200">Enrollment closed</p>
+                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                          This lecture has already ended. You cannot enroll in past lectures.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
                     <div className="text-center mb-4">
                       <p className="text-2xl font-bold flex items-center justify-center gap-2">
                         <Coins className="w-6 h-6" />
@@ -545,9 +559,9 @@ export const LectureDetails: React.FC = () => {
                       <DialogTrigger asChild>
                         <Button 
                           className="w-full mb-2" 
-                          disabled={lecture.isFull || lecture.status === 'completed'}
+                          disabled={lecture.isFull || lecture.status === 'completed' || isPastLecture()}
                         >
-                          {lecture.isFull ? 'Lecture Full' : 'Enroll Now'}
+                          {lecture.isFull ? 'Lecture Full' : isPastLecture() ? 'Enrollment Closed' : 'Enroll Now'}
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
@@ -610,6 +624,8 @@ export const LectureDetails: React.FC = () => {
                         </div>
                       </DialogContent>
                     </Dialog>
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>

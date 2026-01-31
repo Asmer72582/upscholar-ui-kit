@@ -28,7 +28,7 @@ export const BrowseLectures: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState('averageRating');
+  const [sortBy, setSortBy] = useState('createdAt');
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({
@@ -72,11 +72,13 @@ export const BrowseLectures: React.FC = () => {
   const fetchLectures = async () => {
     try {
       setLoading(true);
+      const apiSortBy = sortBy === 'rating' ? 'averageRating' : sortBy === 'date' ? 'scheduledAt' : sortBy;
+      const sortOrder = sortBy === 'price' || sortBy === 'date' ? 'asc' : 'desc';
       const filters = {
         search: searchTerm || undefined,
         category: selectedCategory !== 'all' ? selectedCategory : undefined,
-        sortBy: sortBy,
-        sortOrder: 'desc' as const,
+        sortBy: apiSortBy,
+        sortOrder: sortOrder as 'asc' | 'desc',
         page: pagination.current,
         limit: pagination.limit
       };
@@ -116,18 +118,18 @@ export const BrowseLectures: React.FC = () => {
       }
     };
     
-    // Format scheduled time
+    // Format scheduled time and "Ending in X days" indicator
     const formatScheduledTime = (dateString: string) => {
       const date = new Date(dateString);
       const now = new Date();
       const diffTime = date.getTime() - now.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
-      if (diffDays < 0) return 'Started';
-      if (diffDays === 0) return 'Today';
-      if (diffDays === 1) return 'Tomorrow';
-      if (diffDays <= 7) return `In ${diffDays} days`;
-      return date.toLocaleDateString();
+      if (diffDays < 0) return { text: 'Ended', isPast: true };
+      if (diffDays === 0) return { text: 'Ending today', isPast: false };
+      if (diffDays === 1) return { text: 'Ending in 1 day', isPast: false };
+      if (diffDays <= 14) return { text: `Ending in ${diffDays} days`, isPast: false };
+      return { text: date.toLocaleDateString(), isPast: false };
     };
     
     return (
@@ -192,9 +194,21 @@ export const BrowseLectures: React.FC = () => {
             </div>
             
             <div className="flex items-center justify-between">
-              <div className="text-xs text-muted-foreground">
-                <Calendar className="w-3 h-3 inline mr-1" />
-                {formatScheduledTime(lecture.scheduledAt)}
+              <div className="flex items-center gap-2">
+                <div className="text-xs flex items-center">
+                  <Calendar className="w-3 h-3 inline mr-1" />
+                  <span className={formatScheduledTime(lecture.scheduledAt).isPast ? 'text-muted-foreground' : ''}>
+                    {formatScheduledTime(lecture.scheduledAt).text}
+                  </span>
+                </div>
+                {!formatScheduledTime(lecture.scheduledAt).isPast && (() => {
+                  const diffDays = Math.ceil((new Date(lecture.scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                  return diffDays >= 1 && diffDays <= 14 ? (
+                    <Badge variant="outline" className="text-xs border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
+                      {diffDays === 1 ? '1 day left' : `${diffDays} days left`}
+                    </Badge>
+                  ) : null;
+                })()}
               </div>
               <Button 
                 size="sm" 
@@ -271,9 +285,10 @@ export const BrowseLectures: React.FC = () => {
                 <SelectValue placeholder="Sort by" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="createdAt">Newest First</SelectItem>
                 <SelectItem value="rating">Rating</SelectItem>
                 <SelectItem value="price">Price</SelectItem>
-                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="date">Lecture Date</SelectItem>
               </SelectContent>
             </Select>
             

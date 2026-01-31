@@ -253,19 +253,8 @@ export const MyLectures: React.FC = () => {
               {lecture.category}
             </Badge>
           </div>
-          <CardTitle className="line-clamp-2 cursor-pointer hover:text-primary" 
-                     onClick={() => navigate(`/student/lecture/${lecture.id}`)}>
-            {lecture.title}
-          </CardTitle>
-          <CardDescription className="flex items-center space-x-2">
-            <Avatar className="w-5 h-5">
-              <AvatarImage src={trainerAvatar} />
-              <AvatarFallback className="text-xs">
-                {lecture.trainer.firstname[0]}{lecture.trainer.lastname[0]}
-              </AvatarFallback>
-            </Avatar>
-            <span>by {trainerName}</span>
-          </CardDescription>
+          
+
         </CardHeader>
         
         <CardHeader className="pb-3">

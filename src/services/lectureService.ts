@@ -311,25 +311,6 @@ class LectureService {
     }
   }
 
-  async cancelLecture(id: string, reason: string): Promise<void> {
-    try {
-      const response = await fetch(`${LECTURE_API_URL}/${id}/cancel`, {
-        ...fetchConfig,
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ reason }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to cancel lecture');
-      }
-    } catch (error) {
-      console.error('Error cancelling lecture:', error);
-      throw error;
-    }
-  }
-
   async enrollInLecture(id: string): Promise<{ message: string; enrolledCount: number }> {
     try {
       const response = await fetch(`${LECTURE_API_URL}/${id}/enroll`, {

@@ -240,7 +240,7 @@ export const TrainerWallet: React.FC = () => {
               <h3 className="font-semibold text-blue-900 mb-1">How Trainer Wallet Works</h3>
               <ul className="text-sm text-blue-800 space-y-1">
                 <li>• <strong>Course Creation:</strong> Costs 50 UpCoins per lecture</li>
-                <li>• <strong>Student Enrollments:</strong> Earn 90% of lecture price (10% platform fee)</li>
+                <li>• <strong>Student Enrollments:</strong> Earn 100% of lecture price when students enroll</li>
                 <li>• <strong>Track Everything:</strong> View all earnings and expenses</li>
               </ul>
             </div>

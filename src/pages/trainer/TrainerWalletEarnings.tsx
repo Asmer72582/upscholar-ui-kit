@@ -489,7 +489,7 @@ export const TrainerWalletEarnings: React.FC = () => {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span>Earn 90% when students enroll (10% platform fee)</span>
+                  <span>Earn 100% when students enroll</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />

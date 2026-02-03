@@ -106,88 +106,44 @@ export const ScheduleLecture: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateFormForDraft = () => {
-    const newErrors: Record<string, string> = {};
-
-    if (!formData.title.trim()) newErrors.title = 'Title is required';
-    if (!formData.description.trim()) newErrors.description = 'Description is required';
-    if (!formData.category) newErrors.category = 'Category is required';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e: React.FormEvent, isDraft: boolean = false) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // For drafts, only validate basic fields
-    if (isDraft) {
-      if (!validateFormForDraft()) {
-        toast({
-          title: 'Validation Error',
-          description: 'Please fill in title, description, and category.',
-          variant: 'destructive',
-        });
-        return;
-      }
-    } else {
-      // For publishing, validate all fields
-      if (!validateForm()) {
-        toast({
-          title: 'Validation Error',
-          description: 'Please fill in all required fields correctly.',
-          variant: 'destructive',
-        });
-        return;
-      }
+    if (!validateForm()) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fill in all required fields correctly.',
+        variant: 'destructive',
+      });
+      return;
     }
 
     setLoading(true);
 
     try {
-      // Prepare lecture data
-      let scheduledAt: Date;
-      
-      if (isDraft) {
-        // For drafts, use current date/time
-        scheduledAt = new Date();
-      } else {
-        // For publishing, use the scheduled date/time
-        scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
-      }
-      
-      // Build lecture data with conditional fields
-      // For drafts, use minimum valid values; for published, use actual values
+      const scheduledAt = new Date(`${formData.scheduledDate}T${formData.scheduledTime}`);
       const lectureData: any = {
         title: formData.title,
         description: formData.description,
         category: formData.category,
         tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        price: formData.price ? parseFloat(formData.price) : (isDraft ? 1 : 0),
-        duration: formData.duration ? parseInt(formData.duration) : (isDraft ? 30 : 0),
-        maxStudents: formData.maxStudents ? parseInt(formData.maxStudents) : 50,
+        price: parseFloat(formData.price),
+        duration: parseInt(formData.duration),
+        maxStudents: parseInt(formData.maxStudents),
         scheduledAt: scheduledAt.toISOString(),
-        isPublished: !isDraft,
+        isPublished: true,
       };
 
-      // Add optional fields if they have values
       if (formData.meetingLink) {
         lectureData.meetingLink = formData.meetingLink;
       }
 
       await lectureService.createLecture(lectureData);
 
-      if (isDraft) {
-        toast({
-          title: 'Draft Saved Successfully!',
-          description: `"${formData.title}" has been saved as a draft.`,
-        });
-      } else {
-        toast({
-          title: 'Lecture Scheduled Successfully!',
-          description: `"${formData.title}" has been scheduled for ${formData.scheduledDate} at ${formData.scheduledTime}.`,
-        });
-      }
+      toast({
+        title: 'Lecture Scheduled Successfully!',
+        description: `"${formData.title}" has been scheduled for ${formData.scheduledDate} at ${formData.scheduledTime}.`,
+      });
       
       navigate('/trainer/manage-lectures');
     } catch (error: any) {
@@ -217,7 +173,7 @@ export const ScheduleLecture: React.FC = () => {
           </Button>
           <h1 className="text-3xl font-bold mb-2">Create New Lecture</h1>
           <p className="text-muted-foreground">
-            Create a new lecture and save as draft or publish it for your students
+            Create a new lecture and publish it for your students
           </p>
         </div>
       </div>
@@ -436,41 +392,25 @@ export const ScheduleLecture: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-6 border-t">
-          <div className="flex space-x-3">
-            <Button 
-              type="button" 
-              variant="outline"
-              onClick={() => navigate('/trainer/dashboard')}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline"
-              onClick={(e) => handleSubmit(e as any, true)}
-              disabled={loading}
-            >
-              {loading ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <BookOpen className="w-4 h-4 mr-2" />
-              )}
-              Save as Draft
-            </Button>
-            <Button 
-              type="submit" 
-              className="btn-primary" 
-              disabled={loading}
-              onClick={(e) => handleSubmit(e as any, false)}
-            >
-              {loading ? (
-                <LoadingSpinner size="sm" className="mr-2" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
-              List Lecture
-            </Button>
-          </div>
+          <Button 
+            type="button" 
+            variant="outline"
+            onClick={() => navigate('/trainer/dashboard')}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            className="btn-primary" 
+            disabled={loading}
+          >
+            {loading ? (
+              <LoadingSpinner size="sm" className="mr-2" />
+            ) : (
+              <Plus className="w-4 h-4 mr-2" />
+            )}
+            Create Lecture
+          </Button>
         </div>
       </form>
     </div>

@@ -245,7 +245,7 @@ const MeetingUI: React.FC<{
         )}
       </div>
 
-      {/* Bottom controls */}
+      {/* Bottom controls - mic, camera, screen share, leave (CallControls includes all) */}
       <div className="bg-gray-800 border-t border-gray-700 p-4">
         <div className="flex items-center justify-center">
           <StreamTheme>
@@ -276,28 +276,29 @@ export const StreamMeetingRoom: React.FC = () => {
         : '/student/dashboard';
   }, [user?.role]);
 
+  const callRef = React.useRef<ReturnType<StreamVideoClient['call']> | null>(null);
+  const clientRef = React.useRef<StreamVideoClient | null>(null);
+
   useEffect(() => {
     if (!user || !lectureId) {
       navigate(getDashboardPath());
       return;
     }
 
+    let cancelled = false;
+
     const initializeStream = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Get auth token from localStorage
         const authToken = localStorage.getItem('upscholer_token');
         if (!authToken) {
           throw new Error('Not authenticated');
         }
 
-        // Get Stream token from backend
         const response = await fetch(`${API_URL}/stream/token`, {
-          headers: {
-            'x-auth-token': authToken,
-          },
+          headers: { 'x-auth-token': authToken },
         });
 
         if (!response.ok) {
@@ -311,48 +312,55 @@ export const StreamMeetingRoom: React.FC = () => {
           throw new Error('Video service not properly configured');
         }
 
-        // Initialize Stream Video client
+        const userName = `${(user as any).firstname ?? user?.firstName ?? ''} ${(user as any).lastname ?? user?.lastName ?? ''}`.trim() || user?.email || 'Participant';
+
         const videoClient = new StreamVideoClient({
           apiKey,
           user: {
             id: userId,
-            name: `${user.firstName} ${user.lastName}`,
+            name: userName,
             image: user.avatar,
           },
           token: streamToken,
         });
 
-        setClient(videoClient);
-
-        // Create/join the call
         const videoCall = videoClient.call('default', lectureId);
-        
         await videoCall.join({ create: true });
-        
+
+        if (cancelled) {
+          videoCall.leave().catch(console.error);
+          videoClient.disconnectUser().catch(console.error);
+          return;
+        }
+
+        clientRef.current = videoClient;
+        callRef.current = videoCall;
+        setClient(videoClient);
         setCall(videoCall);
         setIsLoading(false);
         toast.success('Connected to meeting');
-
       } catch (err) {
-        console.error('Error initializing Stream:', err);
-        setError(err instanceof Error ? err.message : 'Failed to connect to meeting');
-        setIsLoading(false);
-        toast.error('Failed to connect to meeting');
+        if (!cancelled) {
+          console.error('Error initializing Stream:', err);
+          setError(err instanceof Error ? err.message : 'Failed to connect to meeting');
+          setIsLoading(false);
+          toast.error('Failed to connect to meeting');
+        }
       }
     };
 
     initializeStream();
 
     return () => {
-      // Cleanup on unmount
-      if (call) {
-        call.leave().catch(console.error);
-      }
-      if (client) {
-        client.disconnectUser().catch(console.error);
-      }
+      cancelled = true;
+      const c = callRef.current;
+      const cl = clientRef.current;
+      callRef.current = null;
+      clientRef.current = null;
+      if (c) c.leave().catch(console.error);
+      if (cl) cl.disconnectUser().catch(console.error);
     };
-  }, [user, lectureId, navigate]);
+  }, [user, lectureId, navigate, getDashboardPath]);
 
   const handleLeave = useCallback(() => {
     navigate(getDashboardPath());
@@ -409,7 +417,7 @@ export const StreamMeetingRoom: React.FC = () => {
         <MeetingUI 
           onLeave={handleLeave}
           lectureId={lectureId || ''}
-          userName={`${user?.firstName} ${user?.lastName}`}
+          userName={`${(user as any)?.firstname ?? user?.firstName ?? ''} ${(user as any)?.lastname ?? user?.lastName ?? ''}`.trim() || user?.email || 'You'}
           userId={user?.id || ''}
         />
       </StreamCall>

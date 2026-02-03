@@ -8,19 +8,19 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    // EMERGENCY WORKAROUND: Proxy API requests to avoid mixed content
+    // Proxy API requests to api.upscholar.in (all server connections)
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'https://api.upscholar.in',
         changeOrigin: true,
-        secure: false,
-        ws: true, // For WebSocket support
+        secure: true,
+        ws: true,
       },
       '/socket.io': {
-        target: 'http://localhost:3000',
+        target: 'https://api.upscholar.in',
         changeOrigin: true,
-        secure: false,
-        ws: true, // For WebSocket support
+        secure: true,
+        ws: true,
       }
     }
   },

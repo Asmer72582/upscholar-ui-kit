@@ -84,10 +84,7 @@ export const LectureDetails: React.FC = () => {
     try {
       setEnrolling(true);
       
-      // Process payment first
-      await walletService.processPayment(id, lecture.price);
-      
-      // Then enroll in lecture
+      // Enroll in lecture (this handles payment deduction internally)
       await lectureService.enrollInLecture(id);
       
       toast.success('Successfully enrolled in lecture!');

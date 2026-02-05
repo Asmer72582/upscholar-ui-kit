@@ -498,10 +498,7 @@ export const ManageLectures: React.FC = () => {
                       <RefreshCw className="w-4 h-4 mr-1" />
                       Refresh
                     </Button>
-                    <Button size="sm" variant="outline">
-                      <Download className="w-4 h-4 mr-1" />
-                      Export
-                    </Button>
+                   
                   </div>
                 </div>
               </CardHeader>

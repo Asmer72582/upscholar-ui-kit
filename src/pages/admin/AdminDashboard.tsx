@@ -721,12 +721,7 @@ export const AdminDashboard: React.FC = () => {
                   <span className="text-sm font-medium">Analytics</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-orange-300 hover:bg-orange-50">
-                <Link to="/admin/support">
-                  <MessageSquare className="w-8 h-8 text-orange-600" />
-                  <span className="text-sm font-medium">Support</span>
-                </Link>
-              </Button>
+              
             </div>
           </CardContent>
         </Card>

@@ -121,6 +121,33 @@ export const ManageLectures: React.FC = () => {
     navigate(`/trainer/lectures/${lectureId}/edit`);
   };
 
+  // Check if lecture can be started (within 5 minutes before or 5 minutes after scheduled time)
+  const canStartLecture = (scheduledAt: string): { canStart: boolean; message: string } => {
+    const now = new Date();
+    const scheduledTime = new Date(scheduledAt);
+    const timeDiff = now.getTime() - scheduledTime.getTime();
+    const minutesDiff = timeDiff / (1000 * 60); // Convert to minutes
+    
+    // Allow starting 5 minutes before scheduled time (-5) to 5 minutes after scheduled time (+5)
+    if (minutesDiff < -5) {
+      const minutesToWait = Math.abs(Math.floor(minutesDiff)) - 5;
+      return {
+        canStart: false,
+        message: `Can start in ${minutesToWait} minute(s)`
+      };
+    } else if (minutesDiff > 5) {
+      return {
+        canStart: false,
+        message: 'Time window has passed'
+      };
+    } else {
+      return {
+        canStart: true,
+        message: 'Start Lecture'
+      };
+    }
+  };
+
   const filteredLectures = lectures.filter(lecture => {
     const matchesSearch = lecture.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          lecture.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -454,12 +481,19 @@ export const ManageLectures: React.FC = () => {
                                   </DropdownMenuItem>
                                 )}
                                 
-                                {lecture.status === 'scheduled' && (
-                                  <DropdownMenuItem onClick={() => handleStartMeeting(lecture.id, lecture.title)}>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Start Meeting
-                                  </DropdownMenuItem>
-                                )}
+                                {lecture.status === 'scheduled' && (() => {
+                                  const startInfo = canStartLecture(lecture.scheduledAt);
+                                  return (
+                                    <DropdownMenuItem 
+                                      onClick={() => handleStartMeeting(lecture.id, lecture.title)}
+                                      disabled={!startInfo.canStart}
+                                      className={!startInfo.canStart ? 'opacity-50 cursor-not-allowed' : ''}
+                                    >
+                                      <Play className="w-4 h-4 mr-2" />
+                                      {startInfo.message}
+                                    </DropdownMenuItem>
+                                  );
+                                })()}
                                 
                                 {lecture.status === 'live' && (
                                   <DropdownMenuItem 

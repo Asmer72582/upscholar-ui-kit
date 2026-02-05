@@ -491,10 +491,7 @@ export const TrainerWalletEarnings: React.FC = () => {
                   <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <span>Earn 100% when students enroll</span>
                 </li>
-                <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span>Creating lectures costs 50 UpCoins each</span>
-                </li>
+               
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
                   <span>Buy more UpCoins anytime via UPI/Card</span>

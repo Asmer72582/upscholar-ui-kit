@@ -83,9 +83,17 @@ interface LectureDetailsData {
   thumbnail?: string;
   createdAt: string;
   approvedAt?: string;
-  approvedBy?: string;
+  approvedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
   rejectedAt?: string;
-  rejectedBy?: string;
+  rejectedBy?: {
+    id: string;
+    name: string;
+    email: string;
+  };
   rejectionReason?: string;
 }
 
@@ -581,7 +589,7 @@ export const AdminLectureDetails: React.FC = () => {
                       {new Date(lecture.approvedAt).toLocaleDateString()}
                     </p>
                     {lecture.approvedBy && (
-                      <p className="text-xs text-muted-foreground">by {lecture.approvedBy}</p>
+                      <p className="text-xs text-muted-foreground">by {typeof lecture.approvedBy === 'string' ? lecture.approvedBy : (lecture.approvedBy.name || lecture.approvedBy.email)}</p>
                     )}
                   </div>
                 )}
@@ -593,7 +601,7 @@ export const AdminLectureDetails: React.FC = () => {
                       {new Date(lecture.rejectedAt).toLocaleDateString()}
                     </p>
                     {lecture.rejectedBy && (
-                      <p className="text-xs text-muted-foreground">by {lecture.rejectedBy}</p>
+                      <p className="text-xs text-muted-foreground">by {typeof lecture.rejectedBy === 'string' ? lecture.rejectedBy : (lecture.rejectedBy.name || lecture.rejectedBy.email)}</p>
                     )}
                     {lecture.rejectionReason && (
                       <div className="mt-2 p-2 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded">

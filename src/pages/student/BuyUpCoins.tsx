@@ -530,7 +530,7 @@ export const BuyUpCoins: React.FC = () => {
 
         {/* Support Note */}
         <div className="text-center mt-12 text-gray-500 text-sm">
-          <p>Need help? Contact our support team at support@upscholar.com</p>
+          <p>Need help? Contact our support team at support@upscholar.in</p>
         </div>
       </div>
     </div>

@@ -213,12 +213,15 @@ class AdminService {
         students: users.filter((u) => u.role === "student").length,
         trainers: users.filter((u) => u.role === "trainer").length,
         admins: users.filter((u) => u.role === "admin").length,
-        active: users.filter((u) => u.status === "approved" || u.isApproved)
-          .length,
-        pending: users.filter((u) => u.status === "pending").length,
-        suspended: users.filter(
-          (u) => u.status === "rejected" || u.status === "suspended"
+        // Active users: approved or active status, excluding suspended
+        active: users.filter((u) => 
+          (u.status === "approved" || u.status === "active") && 
+          u.status !== "suspended" &&
+          u.status !== "rejected"
         ).length,
+        pending: users.filter((u) => u.status === "pending").length,
+        // Suspended users: only those explicitly marked as suspended
+        suspended: users.filter((u) => u.status === "suspended").length,
       };
 
       return stats;

@@ -11,7 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Search, MoreHorizontal, MessageCircle, Mail, Download, Filter, Users, BookOpen, Clock, Loader2, Send, X, RefreshCw, TrendingUp } from 'lucide-react';
+import { Search, MoreHorizontal, MessageCircle, Mail, Download, Filter, Users, BookOpen, Clock, Loader2, Send, X, RefreshCw, TrendingUp, User, Calendar, CheckCircle2, AlertCircle } from 'lucide-react';
 import { trainerService } from '@/services/trainerService';
 import { useToast } from '@/hooks/use-toast';
 
@@ -52,6 +52,7 @@ export const Students: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailContent, setEmailContent] = useState('');
@@ -95,6 +96,16 @@ export const Students: React.FC = () => {
     setSelectedStudent(null);
     setEmailSubject('');
     setEmailContent('');
+  };
+
+  const handleOpenDetailsModal = (student: Student) => {
+    setSelectedStudent(student);
+    setDetailsModalOpen(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setDetailsModalOpen(false);
+    setSelectedStudent(null);
   };
 
   const handleSendEmail = async () => {
@@ -281,10 +292,7 @@ export const Students: React.FC = () => {
                     <CardTitle>Students</CardTitle>
                     <CardDescription>Manage your enrolled students</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
-                    <Download className="w-4 h-4 mr-1" />
-                    Export
-                  </Button>
+                 
                 </div>
               </CardHeader>
               <CardContent>
@@ -427,7 +435,12 @@ export const Students: React.FC = () => {
                                 <Mail className="w-3 h-3 mr-1" />
                                 Email
                               </Button>
-                              <Button size="sm" variant="outline" className="flex-1">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="flex-1"
+                                onClick={() => handleOpenDetailsModal(student)}
+                              >
                                 <MessageCircle className="w-3 h-3 mr-1" />
                                 Details
                               </Button>
@@ -593,6 +606,171 @@ export const Students: React.FC = () => {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Student Details Modal */}
+      <Dialog open={detailsModalOpen} onOpenChange={setDetailsModalOpen}>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <Avatar className="w-12 h-12">
+                <AvatarImage src={selectedStudent?.avatar} />
+                <AvatarFallback>
+                  {selectedStudent?.name.split(' ').map(n => n[0]).join('')}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="text-xl font-semibold">{selectedStudent?.name}</h3>
+                <p className="text-sm text-muted-foreground">{selectedStudent?.email}</p>
+              </div>
+            </DialogTitle>
+            <DialogDescription>
+              Complete student information and enrollment details
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedStudent && (
+            <div className="space-y-6 py-4">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Basic Information
+                </h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Status</label>
+                    <div className="mt-1">{getStatusBadge(selectedStudent.status)}</div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Enrollment Date</label>
+                    <p className="text-sm mt-1">{new Date(selectedStudent.enrolledDate).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Last Active</label>
+                    <p className="text-sm mt-1">{new Date(selectedStudent.lastActive).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Overall Progress</label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-sm font-semibold">{selectedStudent.progress}%</span>
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${getProgressColor(selectedStudent.progress)} transition-all`}
+                          style={{ width: `${selectedStudent.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enrollment Statistics */}
+              <div className="space-y-4">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  Enrollment Statistics
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Total Lectures</p>
+                    <p className="text-2xl font-bold mt-1">{selectedStudent.totalLectures}</p>
+                  </div>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Completed</p>
+                    <p className="text-2xl font-bold mt-1 text-green-600">{selectedStudent.completedLectures}</p>
+                  </div>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Attended</p>
+                    <p className="text-2xl font-bold mt-1 text-blue-600">{selectedStudent.attendedLectures}</p>
+                  </div>
+                  <div className="p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Enrolled Courses</p>
+                    <p className="text-2xl font-bold mt-1 text-purple-600">{selectedStudent.enrolledCourses.length}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enrolled Courses */}
+              <div className="space-y-4">
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Enrolled Courses ({selectedStudent.enrolledCourses.length})
+                </h4>
+                {selectedStudent.enrolledCourses.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <BookOpen className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No courses enrolled</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {selectedStudent.enrolledCourses.map((course, index) => (
+                      <Card key={index} className="hover:shadow-md transition-shadow">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <h5 className="font-semibold mb-2 truncate">{course.lectureTitle}</h5>
+                              <div className="space-y-1 text-sm">
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                  <Clock className="w-3 h-3" />
+                                  <span>
+                                    {new Date(course.scheduledAt).toLocaleDateString()} at{' '}
+                                    {new Date(course.scheduledAt).toLocaleTimeString([], { 
+                                      hour: '2-digit', 
+                                      minute: '2-digit' 
+                                    })}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {course.attended ? (
+                                    <div className="flex items-center gap-1 text-green-600">
+                                      <CheckCircle2 className="w-3 h-3" />
+                                      <span className="text-xs font-medium">Attended</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1 text-muted-foreground">
+                                      <AlertCircle className="w-3 h-3" />
+                                      <span className="text-xs">Not Attended</span>
+                                    </div>
+                                  )}
+                                  <Badge variant="outline" className="ml-2">
+                                    {course.status}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={handleCloseDetailsModal}
+                  className="flex-1"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Close
+                </Button>
+                <Button
+                  onClick={() => {
+                    handleCloseDetailsModal();
+                    handleOpenEmailModal(selectedStudent);
+                  }}
+                  className="flex-1"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Send Email
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

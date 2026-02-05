@@ -40,15 +40,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const currentUser = await authService.getCurrentUser();
           setUser(currentUser);
-        } catch (error) {
+        } catch (error: any) {
           console.error('Failed to get current user:', error);
-          // If token is invalid, clear it
+          // Clear token and user data
           localStorage.removeItem('upscholer_token');
-          toast({
-            title: 'Session Expired',
-            description: 'Please login again to continue.',
-            variant: 'destructive',
-          });
+          localStorage.removeItem('upscholer_user');
+          setUser(null);
+          
+          // Check if user is suspended
+          const errorMessage = error?.message || '';
+          if (errorMessage.includes('suspended')) {
+            toast({
+              title: 'Account Suspended',
+              description: errorMessage || 'Your account has been suspended. Please contact support for assistance.',
+              variant: 'destructive',
+            });
+          } else {
+            toast({
+              title: 'Session Expired',
+              description: 'Please login again to continue.',
+              variant: 'destructive',
+            });
+          }
         }
       }
       setLoading(false);

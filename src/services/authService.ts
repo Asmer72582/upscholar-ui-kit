@@ -225,7 +225,13 @@ class AuthService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Failed to get user");
+      // Preserve suspension reason if available
+      const errorMessage = error.message || "Failed to get user";
+      const errorWithDetails = new Error(errorMessage);
+      if (error.status === 'suspended' && error.suspensionReason) {
+        (errorWithDetails as any).suspensionReason = error.suspensionReason;
+      }
+      throw errorWithDetails;
     }
 
     const data = await response.json();

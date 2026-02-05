@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Search, MoreHorizontal, UserPlus, Shield, Ban, Mail, Download, Users, GraduationCap, UserCheck, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Search, MoreHorizontal, UserPlus, Shield, Ban, Download, Users, GraduationCap, UserCheck, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { User } from '@/types';
 import { adminService, UserStats, PendingTrainer } from '@/services/adminService';
@@ -451,10 +451,6 @@ export const ManageUsers: React.FC = () => {
                               }}>
                                 <Shield className="w-4 h-4 mr-2" />
                                 View Details
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Mail className="w-4 h-4 mr-2" />
-                                Send Email
                               </DropdownMenuItem>
                               {user.status === 'approved' || user.status === 'active' ? (
                                 <DropdownMenuItem 

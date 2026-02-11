@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { lectureService, Lecture } from '@/services/lectureService';
 
 
@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 
 export const BrowseLectures: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -37,6 +38,16 @@ export const BrowseLectures: React.FC = () => {
     total: 0,
     limit: 20
   });
+
+  // Read search term from URL parameters on component mount
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const urlSearch = searchParams.get('search') || '';
+    if (urlSearch && urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const categories = [
     'all',
@@ -95,6 +106,7 @@ export const BrowseLectures: React.FC = () => {
 
   useEffect(() => {
     fetchLectures();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedCategory, selectedLevel, sortBy, pagination.current]);
 
   // Filter out completed lectures from main feed
@@ -111,8 +123,6 @@ export const BrowseLectures: React.FC = () => {
           return 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950';
         case 'scheduled':
           return 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950';
-        case 'upcoming':
-          return 'border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950';
         default:
           return '';
       }
@@ -153,8 +163,7 @@ export const BrowseLectures: React.FC = () => {
                     className={cn(
                       "text-xs",
                       lecture.status === 'live' && "bg-green-500 text-white",
-                      lecture.status === 'scheduled' && "bg-blue-500 text-white",
-                      lecture.status === 'upcoming' && "bg-purple-500 text-white"
+                      lecture.status === 'scheduled' && "bg-blue-500 text-white"
                     )}
                   >
                     {lecture.status.toUpperCase()}

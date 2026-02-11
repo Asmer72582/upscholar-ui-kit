@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Search, Settings, Wallet, Coins, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,16 +20,27 @@ import { walletService, WalletBalance } from "@/services/walletService";
 export const ModernHeader: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [walletBalance, setWalletBalance] = useState<WalletBalance | null>(
     null
   );
   const [balanceLoading, setBalanceLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (user?.role === "student" || user?.role === "trainer") {
       fetchWalletBalance();
     }
   }, [user]);
+
+  // Sync search query with URL parameters when on browse lectures page
+  useEffect(() => {
+    if (location.pathname === '/student/browse-lectures' || location.pathname === '/trainer/manage-lectures') {
+      const searchParams = new URLSearchParams(location.search);
+      const urlSearch = searchParams.get('search') || '';
+      setSearchQuery(urlSearch);
+    }
+  }, [location.pathname, location.search]);
 
   const fetchWalletBalance = async () => {
     try {
@@ -55,6 +66,33 @@ export const ModernHeader: React.FC = () => {
     }
   };
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      if (user?.role === 'student') {
+        navigate(`/student/browse-lectures?search=${encodeURIComponent(searchQuery.trim())}`);
+      } else if (user?.role === 'trainer') {
+        navigate(`/trainer/manage-lectures?search=${encodeURIComponent(searchQuery.trim())}`);
+      }
+    } else {
+      if (user?.role === 'student') {
+        navigate('/student/browse-lectures');
+      } else if (user?.role === 'trainer') {
+        navigate('/trainer/manage-lectures');
+      }
+    }
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch(e as unknown as React.FormEvent);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -63,13 +101,16 @@ export const ModernHeader: React.FC = () => {
         <div className="flex items-center gap-4">
           <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
 
-          <div className="relative w-96 max-w-sm">
+          <form onSubmit={handleSearch} className="relative w-96 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
               placeholder="Search lectures, courses..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchKeyPress}
               className="pl-10 bg-muted/50 border-border/50 focus:bg-background"
             />
-          </div>
+          </form>
         </div>
 
         <div className="flex items-center gap-4">

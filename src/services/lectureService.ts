@@ -31,7 +31,7 @@ export interface Lecture {
     enrolledAt: string;
     attended: boolean;
   }>;
-  status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending';
   rejectionReason?: string;
   rejectedAt?: string;
   rejectedBy?: {
@@ -124,7 +124,7 @@ interface ApiLecture {
   scheduledAt: string;
   maxStudents: number;
   enrolledStudents: ApiEnrollment[];
-  status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending';
   rejectionReason?: string;
   rejectedAt?: string;
   rejectedBy?: ApiUser;
@@ -257,7 +257,7 @@ class LectureService {
         console.error('Create lecture validation error response:', errorBody);
 
         const message =
-          (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) ||
+          (errorBody && (errorBody.message || (errorBody as { message?: string; error?: string }).error || JSON.stringify(errorBody))) ||
           'Failed to create lecture';
 
         throw new Error(message);
@@ -580,7 +580,7 @@ class LectureService {
         enrolledAt: enrollment.enrolledAt,
         attended: enrollment.attended,
       })) || [],
-      status: lecture.status,
+      status: lecture.status as 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending',
       rejectionReason: lecture.rejectionReason,
       rejectedAt: lecture.rejectedAt,
       rejectedBy: lecture.rejectedBy ? {

@@ -33,10 +33,22 @@ export const TrainerLectureDetails: React.FC = () => {
   const navigate = useNavigate();
   const [lecture, setLecture] = useState<Lecture | null>(null);
   const [loading, setLoading] = useState(true);
+  const [autoCompleteTimer, setAutoCompleteTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadLecture();
+    return () => {
+      if (autoCompleteTimer) {
+        clearTimeout(autoCompleteTimer);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  useEffect(() => {
+    setupAutoCompleteTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lecture]);
 
   const loadLecture = async () => {
     if (!id) return;
@@ -55,6 +67,59 @@ export const TrainerLectureDetails: React.FC = () => {
       navigate('/trainer/manage-lectures');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const setupAutoCompleteTimer = () => {
+    if (!lecture || lecture.status !== 'live') {
+      return;
+    }
+
+    // Clear existing timer
+    if (autoCompleteTimer) {
+      clearTimeout(autoCompleteTimer);
+    }
+
+    const scheduledTime = new Date(lecture.scheduledAt);
+    const durationMs = lecture.duration * 60 * 1000; // Convert minutes to milliseconds
+    const bufferMs = 5 * 60 * 1000; // 5 minutes buffer
+    const autoCompleteTime = scheduledTime.getTime() + durationMs + bufferMs;
+    const now = Date.now();
+    const timeUntilAutoComplete = autoCompleteTime - now;
+
+    // If the auto-complete time has already passed, complete it immediately
+    if (timeUntilAutoComplete <= 0) {
+      autoCompleteLecture();
+      return;
+    }
+
+    // Set timer for auto-complete
+    const timer = setTimeout(() => {
+      autoCompleteLecture();
+    }, timeUntilAutoComplete);
+
+    setAutoCompleteTimer(timer);
+  };
+
+  const autoCompleteLecture = async () => {
+    if (!lecture || lecture.status !== 'live') {
+      return;
+    }
+
+    try {
+      await lectureService.completeLecture(lecture.id);
+      toast({
+        title: 'Lecture Auto-Completed',
+        description: 'This lecture has been automatically marked as completed.',
+      });
+      loadLecture(); // Refresh the lecture data
+    } catch (error) {
+      console.error('Error auto-completing lecture:', error);
+      toast({
+        title: 'Auto-Complete Error',
+        description: error instanceof Error ? error.message : 'Failed to auto-complete lecture',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -482,7 +547,7 @@ export const TrainerLectureDetails: React.FC = () => {
                         </div>
                       </div>
                       {lecture.status === 'completed' && (
-                        <Badge variant={enrollment.attended ? "success" : "secondary"}>
+                        <Badge variant={enrollment.attended ? "default" : "secondary"}>
                           {enrollment.attended ? "Attended" : "Absent"}
                         </Badge>
                       )}

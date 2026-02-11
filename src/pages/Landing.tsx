@@ -2,24 +2,25 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  GraduationCap,
   Video,
   MapPin,
   ArrowRight,
-  Users,
-  Clock,
-  CheckCircle,
   Phone,
   Mail,
-  Globe,
-  Star,
-  Building2,
-  Wifi,
+  Clock,
   BookOpen,
-  MessageCircle
+  Building2,
+  CheckCircle,
+  MessageCircle,
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  Globe,
+  Star
 } from 'lucide-react';
 
 // Offline Centre Details
@@ -69,201 +70,204 @@ export const Landing: React.FC = () => {
   }, [user, loading, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-[#F8F9FA] font-poppins text-slate-900">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
-        <div className="container mx-auto px-4 py-4">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm transition-all duration-300">
+        <div className="container mx-auto px-4 md:px-8 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg"> */}
-                {/* <GraduationCap className="w-7 h-7 text-white" /> */}
-                {/* <img src="/logo.jpg" alt="Upscholar Logo" className="w-7 h-7 text-white object-contain" /> */}
-              {/* </div> */}
-              {/* <span className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                Upscholar
-              </span> */}
-              <img src="/logo.jpg" alt="Upscholar Logo" className="w-100 h-10 text-white object-contain" />
+            <div className="flex items-center gap-2">
+              <img src="/mainlogo.png" alt="Upscholar Educational Hub" className="h-10 md:h-12 object-contain" />
+              
             </div>
-            <Button asChild variant="outline" className="hidden sm:flex">
-              <Link to="/auth">
-                Login / Register
-              </Link>
-            </Button>
+            <Link 
+              to="/auth" 
+              className="text-gray-500 hover:text-[#5B2C88] font-medium text-sm md:text-base transition-colors"
+            >
+              Login or Register
+            </Link>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="pt-24 pb-16">
+      <main className="pt-20">
         {!showOfflineCentres ? (
-          /* Main Selection Screen */
-          <div className="container mx-auto px-4">
-            <div className="max-w-4xl mx-auto text-center mb-16">
-              <Badge className="mb-6 px-4 py-2 bg-indigo-100 text-indigo-700 border-indigo-200">
-                <Star className="w-4 h-4 mr-2" />
-                Welcome to Upscholar
-              </Badge>
-              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4 leading-tight">
-                Learn with the Best
-                <br />
-                <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  Anytime, Anywhere
-                </span>
-              </h1>
-              
-              <p className="text-xl md:text-2xl text-gray-800 font-medium max-w-3xl mx-auto mb-6">
-                Live interactive classes for Grades 8–10 (SSC/CBSE/ICSE) | 11th–12th Science & Commerce | JEE & NEET Preparation
-              </p>
+          <>
+            {/* Hero Section */}
+            <section className="relative pb-32 pt-16 overflow-hidden">
+               {/* Background Elements */}
+               <div className="absolute inset-0 z-0 select-none pointer-events-none">
+                 {/* World Map Background */}
+                 <div 
+                   className="w-full h-full opacity-[0.04] bg-no-repeat bg-center bg-cover"
+                   style={{ 
+                     backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')`,
+                   }}
+                 />
+                 {/* Network Overlay Gradient */}
+                 <div className="absolute inset-0 bg-gradient-to-b from-white/0 via-purple-50/20 to-white/90" />
+                 
+                 {/* Decorative blurred orbs */}
+                 <div className="absolute top-20 left-10 w-64 h-64 bg-purple-200/20 rounded-full blur-3xl animate-pulse"></div>
+                 <div className="absolute top-40 right-10 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl animate-pulse delay-700"></div>
+               </div>
 
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                Choose your preferred mode of learning. We offer both online interactive classes 
-                and offline coaching centres across India.
-              </p>
-            </div> 
+               <div className="relative z-10 container mx-auto px-4 text-center">
+                  <h1 className="text-4xl md:text-6xl font-semibold text-gray-900 mb-6 tracking-tight leading-[1.15]">
+                    Learn With The Best
+                    <br />
+                    <span className="relative inline-block mt-2">
+                      <span className="absolute inset-0 bg-[#5B2C88] transform -skew-x-3 rounded-sm shadow-lg"></span>
+                      <span className="relative text-white px-6 py-1 font-bold">Anytime, Anywhere</span>
+                    </span>
+                  </h1>
 
-            {/* Two Options */}
-            <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-              {/* Online Teaching Card */}
-              <Card className="group relative overflow-hidden border-2 border-transparent hover:border-indigo-500 transition-all duration-500 hover:shadow-2xl cursor-pointer bg-white"
-                    onClick={() => navigate('/auth')}>
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5 group-hover:from-indigo-500/10 group-hover:to-purple-500/10 transition-all duration-500" />
-                <CardHeader className="relative pb-4">
-                  <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mb-6 shadow-xl group-hover:scale-110 transition-transform duration-500">
-                    <Video className="w-10 h-10 text-white" />
+                  <div className="max-w-4xl mx-auto mb-10">
+                    <p className="text-lg md:text-[1.35rem] text-gray-700 font-medium leading-relaxed tracking-wide">
+                      Live Interactive Classes For Grades 8-10 (Ssc/Cbse/Icse) | 11th-12th
+                      <br className="hidden md:block" />
+                      Science & Commerce <span className="font-extrabold text-[#5B2C88]">JEE & NEET</span> Preparation
+                    </p>
                   </div>
-                  <CardTitle className="text-3xl font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">
-                    Virtual Classroom
-                  </CardTitle>
-                  <CardDescription className="text-lg text-gray-600">
-                    Live interactive classes from expert trainers
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="relative">
-                  <ul className="space-y-4 mb-8">
-                    <li className="flex items-center gap-3 text-gray-700">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span>Live interactive video classes</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-gray-700">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span>Learn from anywhere, anytime</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-gray-700">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span>1000 Free UpCoins on signup!</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-gray-700">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span>Expert trainers & doubt sessions</span>
-                    </li>
-                  </ul>
-                  <Button className="w-full py-6 text-lg bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 group-hover:shadow-lg transition-all">
-                    <Wifi className="w-5 h-5 mr-2" />
-                    Start Learning Online
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
-              </Card>
 
-              {/* Offline Centres Card */}
-              <Card className="group relative overflow-hidden border-2 border-transparent hover:border-orange-500 transition-all duration-500 hover:shadow-2xl cursor-pointer bg-white"
-                    onClick={() => setShowOfflineCentres(true)}>
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-red-500/5 group-hover:from-orange-500/10 group-hover:to-red-500/10 transition-all duration-500" />
-                <CardHeader className="relative pb-4">
-                  <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mb-6 shadow-xl group-hover:scale-110 transition-transform duration-500">
-                    <Building2 className="w-10 h-10 text-white" />
+                  <p className="text-gray-500 max-w-2xl mx-auto mb-16 text-base md:text-lg font-light">
+                    Choose your preferred mode of learning. We offer both online
+                    interactive classes and offline coaching centres across India.
+                  </p>
+
+                  {/* Cards */}
+                  <div className="grid md:grid-cols-2 gap-8 lg:gap-12 max-w-6xl mx-auto px-2">
+                    {/* Virtual Classroom Card */}
+                    <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(8,112,184,0.07)] overflow-hidden border border-gray-100 flex flex-col group hover:-translate-y-2 transition-all duration-300">
+                      <div className="h-64 overflow-hidden relative">
+                         <img 
+                           src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=800&q=80" 
+                           alt="Virtual Classroom" 
+                           className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
+                         />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                      </div>
+                      <div className="p-8 lg:p-10 text-left flex-1 flex flex-col">
+                         <h3 className="text-[1.75rem] font-serif text-[#5B2C88] mb-1 font-bold tracking-tight">Virtual Classroom</h3>
+                         <p className="text-sm text-gray-500 mb-8 uppercase tracking-widest font-semibold">Live Interactive Classes From Expert Trainers</p>
+                         
+                         <ul className="space-y-4 mb-10 flex-1">
+                            {[
+                              'Live Interactive Video Classes', 
+                              'Learn From Anywhere, Anytime', 
+                              '1000 Free UpCoins On Signup!', 
+                              'Expert Trainers & Doubt Sessions'
+                            ].map((item, i) => (
+                              <li key={i} className="flex items-start gap-3 text-gray-700 font-medium text-[0.95rem]">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center mt-0.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                </span>
+                                {item}
+                              </li>
+                            ))}
+                         </ul>
+                         
+                         <Button 
+                           onClick={() => navigate('/auth')}
+                           className="w-full bg-[#5B2C88] hover:bg-[#4a2370] text-white rounded-full py-7 text-lg font-semibold shadow-lg shadow-purple-200/50 transition-all active:scale-[0.98]"
+                         >
+                           Start Learning Online <span className="ml-2">»</span>
+                         </Button>
+                      </div>
+                    </div>
+
+                    {/* Offline Centres Card */}
+                    <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(8,112,184,0.07)] overflow-hidden border border-gray-100 flex flex-col group hover:-translate-y-2 transition-all duration-300">
+                      <div className="h-64 overflow-hidden relative">
+                         <img 
+                           src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80" 
+                           alt="Offline Centres" 
+                           className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
+                         />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                      </div>
+                      <div className="p-8 lg:p-10 text-left flex-1 flex flex-col">
+                         <h3 className="text-[1.75rem] font-serif text-[#5B2C88] mb-1 font-bold tracking-tight">Offline Centres</h3>
+                         <p className="text-sm text-gray-500 mb-8 uppercase tracking-widest font-semibold">Physics Coaching Centres Across India</p>
+                         
+                         <ul className="space-y-4 mb-10 flex-1">
+                            {[
+                              'Physical classroom experience', 
+                              'Face-to-face interaction with teachers', 
+                              'Modern facilities & labs', 
+                              'Multiple locations across India'
+                            ].map((item, i) => (
+                              <li key={i} className="flex items-start gap-3 text-gray-700 font-medium text-[0.95rem]">
+                                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center mt-0.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                                </span>
+                                {item}
+                              </li>
+                            ))}
+                         </ul>
+                         
+                         <Button 
+                           onClick={() => setShowOfflineCentres(true)}
+                           className="w-full bg-[#5B2C88] hover:bg-[#4a2370] text-white rounded-full py-7 text-lg font-semibold shadow-lg shadow-purple-200/50 transition-all active:scale-[0.98]"
+                         >
+                           View Our Centres <span className="ml-2">»</span>
+                         </Button>
+                      </div>
+                    </div>
                   </div>
-                  <CardTitle className="text-3xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors">
-                    Offline Centres
-                  </CardTitle>
-                  <CardDescription className="text-lg text-gray-600">
-                    Physical coaching centres across India
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="relative">
-                  <ul className="space-y-4 mb-8">
-                    <li className="flex items-center gap-3 text-gray-700">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span>Physical classroom experience</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-gray-700">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span>Face-to-face interaction with teachers</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-gray-700">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span>Modern facilities & labs</span>
-                    </li>
-                    <li className="flex items-center gap-3 text-gray-700">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span>Multiple locations across India</span>
-                    </li>
-                  </ul>
-                  <Button className="w-full py-6 text-lg bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 group-hover:shadow-lg transition-all">
-                    <MapPin className="w-5 h-5 mr-2" />
-                    View Our Centres
-                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+               </div>
+            </section>
 
-            {/* Stats */}
-            <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
-              <div className="text-center p-6 bg-white rounded-2xl shadow-sm">
-                <div className="text-3xl font-bold text-indigo-600 mb-1">15,000+</div>
-                <div className="text-gray-600">Students</div>
-              </div>
-              <div className="text-center p-6 bg-white rounded-2xl shadow-sm">
-                <div className="text-3xl font-bold text-purple-600 mb-1">500+</div>
-                <div className="text-gray-600">Expert Trainers</div>
-              </div>
-              <div className="text-center p-6 bg-white rounded-2xl shadow-sm">
-                <div className="text-3xl font-bold text-orange-600 mb-1">50+</div>
-                <div className="text-gray-600">Subjects</div>
-              </div>
-              <div className="text-center p-6 bg-white rounded-2xl shadow-sm">
-                <div className="text-3xl font-bold text-green-600 mb-1">4.9/5</div>
-                <div className="text-gray-600">Rating</div>
-              </div>
-            </div>
-          </div>
+            {/* Stats Section */}
+            <section className="py-20 bg-white relative z-10">
+               <div className="container mx-auto px-4 max-w-7xl">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8">
+                     {/* Card 1: Students (White) */}
+                     <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] text-center border border-gray-50 flex flex-col items-center justify-center min-h-[180px] hover:shadow-lg transition-shadow">
+                        <div className="text-4xl md:text-5xl font-bold text-[#5B2C88] mb-2">15,000+</div>
+                        <div className="text-gray-500 font-medium text-lg">Students</div>
+                     </div>
+                     
+                     {/* Card 2: Trainers (Purple) */}
+                     <div className="bg-[#5B2C88] p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(91,44,136,0.3)] text-center flex flex-col items-center justify-center min-h-[180px] transform md:-translate-y-2 hover:-translate-y-3 transition-transform duration-300">
+                        <div className="text-4xl md:text-5xl font-bold text-white mb-2">500+</div>
+                        <div className="text-purple-100 font-medium text-lg">Expert Trainers</div>
+                     </div>
+                     
+                     {/* Card 3: Subjects (White) */}
+                     <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] text-center border border-gray-50 flex flex-col items-center justify-center min-h-[180px] hover:shadow-lg transition-shadow">
+                        <div className="text-4xl md:text-5xl font-bold text-[#5B2C88] mb-2">50+</div>
+                        <div className="text-gray-500 font-medium text-lg">Subjects</div>
+                     </div>
+                     
+                     {/* Card 4: Rating (Purple) */}
+                     <div className="bg-[#5B2C88] p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(91,44,136,0.3)] text-center flex flex-col items-center justify-center min-h-[180px] transform md:-translate-y-2 hover:-translate-y-3 transition-transform duration-300">
+                        <div className="text-4xl md:text-5xl font-bold text-white mb-2">4.9/5</div>
+                        <div className="text-purple-100 font-medium text-lg">Rating</div>
+                     </div>
+                  </div>
+               </div>
+            </section>
+          </>
         ) : (
           /* Offline Centres Details */
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-4 py-12">
             <div className="max-w-6xl mx-auto">
-              {/* Back Button */}
               <Button 
                 variant="ghost" 
-                className="mb-8 text-gray-600 hover:text-gray-900"
+                className="mb-8 text-gray-600 hover:text-gray-900 pl-0 hover:bg-transparent"
                 onClick={() => setShowOfflineCentres(false)}
               >
                 <ArrowRight className="w-4 h-4 mr-2 rotate-180" />
                 Back to Home
               </Button>
 
-              <div className="text-center mb-12">
-                <Badge className="mb-4 px-4 py-2 bg-orange-100 text-orange-700 border-orange-200">
+              <div className="text-center mb-16">
+                <Badge className="mb-4 px-4 py-2 bg-purple-100 text-purple-700 border-purple-200 rounded-full">
                   <Building2 className="w-4 h-4 mr-2" />
                   Our Physical Centres
                 </Badge>
-                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+                <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
                   Upscholar Offline Centres
                 </h1>
                 <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -271,73 +275,62 @@ export const Landing: React.FC = () => {
                 </p>
               </div>
 
-              {/* Centres Grid */}
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {offlineCentres.map((centre, index) => (
-                  <Card key={index} className="overflow-hidden hover:shadow-xl transition-all duration-300">
-                    <div className="relative h-48">
+                  <Card key={index} className="overflow-hidden hover:shadow-2xl transition-all duration-300 rounded-2xl border-gray-100 group">
+                    <div className="relative h-56 overflow-hidden">
                       <img 
                         src={centre.image} 
                         alt={centre.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                      <Badge className="absolute top-4 left-4 bg-white/90 text-gray-900">
-                        <MapPin className="w-3 h-3 mr-1" />
+                      <Badge className="absolute top-4 left-4 bg-white/95 text-gray-900 backdrop-blur-sm border-0 shadow-sm">
+                        <MapPin className="w-3 h-3 mr-1 text-[#5B2C88]" />
                         {centre.name.split(' - ')[1]}
                       </Badge>
                     </div>
-                    <CardHeader>
-                      <CardTitle className="text-xl">{centre.name}</CardTitle>
-                      <CardDescription className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 mt-1 flex-shrink-0 text-gray-400" />
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xl font-bold text-gray-900">{centre.name}</CardTitle>
+                      <CardDescription className="flex items-start gap-2 text-gray-500">
+                        <MapPin className="w-4 h-4 mt-1 flex-shrink-0" />
                         {centre.address}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      {/* Contact Info */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Phone className="w-4 h-4 text-indigo-500" />
+                    <CardContent className="space-y-6 pt-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#5B2C88]">
+                            <Phone className="w-4 h-4" />
+                          </div>
                           {centre.phone}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Mail className="w-4 h-4 text-indigo-500" />
+                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#5B2C88]">
+                            <Mail className="w-4 h-4" />
+                          </div>
                           {centre.email}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Clock className="w-4 h-4 text-indigo-500" />
+                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#5B2C88]">
+                            <Clock className="w-4 h-4" />
+                          </div>
                           {centre.timings}
                         </div>
                       </div>
 
-                      {/* Features */}
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Facilities:</p>
+                      <div className="pt-2">
+                        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Facilities</p>
                         <div className="flex flex-wrap gap-2">
                           {centre.features.map((feature, i) => (
-                            <Badge key={i} variant="secondary" className="text-xs">
+                            <Badge key={i} variant="secondary" className="text-xs bg-gray-100 text-gray-600 hover:bg-gray-200">
                               {feature}
                             </Badge>
                           ))}
                         </div>
                       </div>
 
-                      {/* Subjects */}
-                      <div>
-                        <p className="text-sm font-medium text-gray-700 mb-2">Courses Offered:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {centre.subjects.map((subject, i) => (
-                            <Badge key={i} variant="outline" className="text-xs">
-                              <BookOpen className="w-3 h-3 mr-1" />
-                              {subject}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* CTA */}
-                      <Button className="w-full mt-4 bg-orange-500 hover:bg-orange-600">
+                      <Button className="w-full bg-[#5B2C88] hover:bg-[#4a2370] text-white shadow-md shadow-purple-200 h-12 rounded-xl">
                         <Phone className="w-4 h-4 mr-2" />
                         Contact Centre
                       </Button>
@@ -345,99 +338,87 @@ export const Landing: React.FC = () => {
                   </Card>
                 ))}
               </div>
-
-              {/* Also Offer Online */}
-              <div className="mt-16 text-center p-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl text-white">
-                <h2 className="text-2xl font-bold mb-4">Prefer Online Learning?</h2>
-                <p className="text-lg text-white/90 mb-6 max-w-2xl mx-auto">
-                  Can't visit our centres? Join our online platform and learn from the same expert trainers from anywhere!
-                </p>
-                <Button 
-                  size="lg" 
-                  className="bg-white text-indigo-600 hover:bg-gray-100"
-                  onClick={() => navigate('/auth')}
-                >
-                  <Wifi className="w-5 h-5 mr-2" />
-                  Start Online Learning
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </div>
             </div>
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="container mx-auto px-4 py-12 md:py-16">
-          <div className="max-w-6xl mx-auto">
-            {/* Brand + Contact Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-12 mb-12">
-              {/* Brand */}
-              <div className="lg:col-span-1">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    {/* <img src="/logo.jpg" alt="Upscholar Logo" className="w-6 h-6 text-white object-contain" /> */}
-                  </div>
-                  <img src="/logo.jpg" alt="Upscholar Logo" className="w-100 h-100 text-white object-contain" />
-                  {/* <span className="text-xl font-bold bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">Upscholar</span> */}
-                </div>
-                <p className="text-sm text-gray-400 max-w-xs">
-                  Live interactive classes for Grades 8–12, JEE & NEET. Learn with the best, anytime, anywhere.
-                </p>
+      <footer className="bg-[#F3E5F5] pt-20 pb-8 text-gray-800">
+        <div className="container mx-auto px-4 md:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
+            {/* Brand Column */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-2">
+                <img src="/mainlogo.png" alt="Upscholar" className="h-50 object-contain" />
+                {/* <span className="font-bold text-[#5B2C88] text-xl tracking-tight">UPSCHOLAR</span> */}
               </div>
-
-              {/* Phone / WhatsApp */}
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-300 mb-4 flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" />
-                  Phone & WhatsApp
-                </h3>
-                <a href="tel:+917506002004" className="block text-gray-300 hover:text-white transition-colors mb-1">
-                  +91 750 600 2004
-                </a>
-                <a href="tel:+917506004002" className="block text-gray-300 hover:text-white transition-colors">
-                  +91 750 600 4002
-                </a>
-              </div>
-
-              {/* Email & Website */}
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-300 mb-4 flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Email & Web
-                </h3>
-                <a href="mailto:info@upscholar.in" className="block text-gray-300 hover:text-white transition-colors mb-2 break-all">
-                  info@upscholar.in
-                </a>
-                <a href="https://www.upscholar.in" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-gray-300 hover:text-white transition-colors">
-                  <Globe className="w-4 h-4 flex-shrink-0" />
-                  www.upscholar.in
-                </a>
-              </div>
-
-              {/* Address */}
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-indigo-300 mb-4 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Visit Us
-                </h3>
-                <address className="text-gray-300 not-italic leading-relaxed">
-                  Upscholar, 1st Floor, Asha Icon,<br />
-                  Survey No. 80, Next To Venkatesh Petrol Pump,<br />
-                  Kalyan Shil Road, Dombivli (E.), 421203
-                </address>
-              </div>
+              <p className="text-[15px] text-gray-600 leading-relaxed max-w-xs">
+                Live Interactive Classes For Grades 8-10, 11th-12th Science & Commerce. Learn with the best, anytime, anywhere.
+              </p>
             </div>
 
-            {/* Divider */}
-            <div className="border-t border-gray-700/80 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-sm text-gray-500">
-                © {new Date().getFullYear()} Upscholar. All rights reserved.
-              </p>
-              <div className="flex items-center gap-6 text-sm text-gray-500">
-                <a href="mailto:hr@upscholar.in" className="hover:text-indigo-400 transition-colors">Contact</a>
-                {/* <a href="https://www.upscholar.in" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-400 transition-colors">Website</a> */}
+            {/* Phone & WhatsApp */}
+            <div>
+               <h4 className="font-bold text-[#5B2C88] mb-6 flex items-center gap-2 text-lg">
+                 <Phone className="w-5 h-5" /> Phone & WhatsApp
+               </h4>
+               <ul className="space-y-3 text-[15px] text-gray-600">
+                  <li className="flex items-center gap-2 hover:text-[#5B2C88] transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
+                    +91 750 600 2004
+                  </li>
+                  <li className="flex items-center gap-2 hover:text-[#5B2C88] transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
+                    +91 750 600 4002
+                  </li>
+               </ul>
+            </div>
+
+            {/* Email & Web */}
+            <div>
+               <h4 className="font-bold text-[#5B2C88] mb-6 flex items-center gap-2 text-lg">
+                 <Mail className="w-5 h-5" /> Email & Web
+               </h4>
+               <ul className="space-y-3 text-[15px] text-gray-600">
+                  <li className="flex items-center gap-2 hover:text-[#5B2C88] transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
+                    info@upscholar.in
+                  </li>
+                  <li className="flex items-center gap-2 hover:text-[#5B2C88] transition-colors cursor-pointer">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
+                    www.upscholar.in
+                  </li>
+               </ul>
+            </div>
+
+            {/* Visit Us */}
+            <div>
+               <h4 className="font-bold text-[#5B2C88] mb-6 flex items-center gap-2 text-lg">
+                 <MapPin className="w-5 h-5" /> Visit Us
+               </h4>
+               <p className="text-[15px] text-gray-600 leading-relaxed">
+                 Upscholar, 1st Floor, Asha Icon, Survey No. 80, Next To Venkatesh Petrol Pump, Kalyan Shil Road, Dombivli (E.), 421203
+               </p>
+            </div>
+          </div>
+
+          <div className="border-t border-purple-200/60 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-gray-500 font-medium">
+              © 2026 Upscholar. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6">
+              <span className="text-sm font-semibold text-gray-700">Follow Us On</span>
+              <div className="flex gap-3">
+                 <a href="#" className="w-9 h-9 rounded-full bg-[#5B2C88] text-white flex items-center justify-center hover:bg-[#4a2370] hover:-translate-y-1 transition-all shadow-md shadow-purple-200">
+                    <Instagram className="w-4 h-4" />
+                 </a>
+                 <a href="#" className="w-9 h-9 rounded-full bg-[#5B2C88] text-white flex items-center justify-center hover:bg-[#4a2370] hover:-translate-y-1 transition-all shadow-md shadow-purple-200">
+                    <Facebook className="w-4 h-4" />
+                 </a>
+                 <a href="#" className="w-9 h-9 rounded-full bg-[#5B2C88] text-white flex items-center justify-center hover:bg-[#4a2370] hover:-translate-y-1 transition-all shadow-md shadow-purple-200">
+                    <Linkedin className="w-4 h-4" />
+                 </a>
               </div>
             </div>
           </div>

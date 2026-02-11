@@ -159,7 +159,7 @@ export const Analytics: React.FC = () => {
                     {dashboardStats?.revenue?.growth >= 0 ? '+' : ''}{dashboardStats?.revenue?.growth || 0}% growth
                   </p>
                 </div>
-                <DollarSign className="w-8 h-8 text-green-600" />
+                {/* <DollarSign className="w-8 h-8 text-green-600" /> */}
               </div>
             </CardContent>
           </Card>

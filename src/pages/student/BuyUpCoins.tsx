@@ -28,17 +28,67 @@ import { useAuth } from '@/contexts/AuthContext';
 
 declare global {
   interface Window {
-    Razorpay: any;
+    Razorpay: new (options: Record<string, unknown>) => {
+      open: () => void;
+    };
   }
 }
 
 export const BuyUpCoins: React.FC = () => {
-  const { user, refreshUser } = useAuth();
+  const { user, loading: authLoading, refreshUser } = useAuth();
   const { toast } = useToast();
   const [packages, setPackages] = useState<UpCoinPackage[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+
+  // Refresh user data when component mounts to get latest balance
+  useEffect(() => {
+    const initializeData = async () => {
+      try {
+        // Refresh user to get latest balance
+        if (refreshUser) {
+          await refreshUser();
+        }
+      } catch (error) {
+        console.error('Error refreshing user data:', error);
+      }
+    };
+
+    if (user) {
+      initializeData();
+    }
+  }, [user, refreshUser]);
+
+  // Additional effect to ensure balance is updated after any changes
+  useEffect(() => {
+    const refreshBalance = async () => {
+      if (user && refreshUser) {
+        try {
+          await refreshUser();
+        } catch (error) {
+          console.error('Error refreshing balance:', error);
+        }
+      }
+    };
+
+    // Refresh balance when the page becomes visible again (e.g., after payment)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshBalance();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also refresh every 30 seconds while on the page
+    const interval = setInterval(refreshBalance, 30000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, [user, refreshUser]);
 
   const fetchPackages = useCallback(async () => {
     try {
@@ -56,7 +106,7 @@ export const BuyUpCoins: React.FC = () => {
           console.error('Error loading packages:', error);
           toast({
             title: 'Error',
-            description: 'Failed to load UpCoin packages',
+            description: error instanceof Error ? error.message : 'Failed to load UpCoin packages',
             variant: 'destructive',
           });
         } finally {
@@ -68,7 +118,7 @@ export const BuyUpCoins: React.FC = () => {
       console.error('Error fetching packages:', error);
       toast({
         title: 'Error',
-        description: 'Failed to load UpCoin packages',
+        description: error instanceof Error ? error.message : 'Failed to load UpCoin packages',
         variant: 'destructive',
       });
     }
@@ -129,7 +179,11 @@ export const BuyUpCoins: React.FC = () => {
           color: '#7C3AED',
           backdrop_color: '#000000'
         },
-        handler: async function (response: any) {
+        handler: async function (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) {
           try {
             const verifyResponse = await paymentService.verifyPayment({
               razorpay_order_id: response.razorpay_order_id,
@@ -209,7 +263,7 @@ export const BuyUpCoins: React.FC = () => {
     return 'border border-gray-200';
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-50 via-white to-purple-50">
         <div className="container mx-auto px-4 py-12">
@@ -260,9 +314,14 @@ export const BuyUpCoins: React.FC = () => {
                   <div>
                     <p className="text-sm text-purple-200 font-medium">Your Balance</p>
                     <div className="flex items-baseline gap-2">
-                      <p className="text-4xl font-black">{user?.walletBalance || 0}</p>
+                      <p className="text-4xl font-black">{user?.walletBalance ?? 0}</p>
                       <span className="text-purple-200 font-medium">UpCoins</span>
                     </div>
+                    {user && (
+                      <p className="text-xs text-purple-300 mt-1">
+                        Last updated: {new Date().toLocaleTimeString()}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="hidden sm:flex flex-col items-end">

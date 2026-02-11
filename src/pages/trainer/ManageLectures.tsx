@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { API_URL } from '@/config/env';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,22 +33,34 @@ import { lectureService, Lecture } from '@/services/lectureService';
 
 export const ManageLectures: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [autoCompleteTimers, setAutoCompleteTimers] = useState<{[key: string]: NodeJS.Timeout}>({});
 
   useEffect(() => {
     loadLectures();
   }, []);
+
+  // Read search term from URL parameters on component mount
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const urlSearch = searchParams.get('search') || '';
+    if (urlSearch && urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const loadLectures = async () => {
     setLoading(true);
     try {
       const myLectures = await lectureService.getMyLectures();
       setLectures(myLectures);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error loading lectures:', error);
       toast({
         title: 'Error',
@@ -84,11 +96,11 @@ export const ManageLectures: React.FC = () => {
       
       // Navigate to meeting room
       navigate(`/meeting/${lectureId}`);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error starting meeting:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to start meeting',
+        description: error instanceof Error ? error.message : 'Failed to start meeting',
         variant: 'destructive',
       });
     }
@@ -106,11 +118,11 @@ export const ManageLectures: React.FC = () => {
         description: 'Lecture marked as completed successfully.',
       });
       loadLectures(); // Refresh the list
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error completing lecture:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to complete lecture.',
+        description: error instanceof Error ? error.message : 'Failed to complete lecture.',
         variant: 'destructive',
       });
     }
@@ -213,6 +225,74 @@ export const ManageLectures: React.FC = () => {
   };
 
   const stats = calculateStats();
+
+  // Auto-complete lecture functionality
+  const setupAutoCompleteTimer = (lecture: Lecture) => {
+    if (lecture.status !== 'live') return;
+
+    // Clear existing timer for this lecture
+    if (autoCompleteTimers[lecture.id]) {
+      clearTimeout(autoCompleteTimers[lecture.id]);
+    }
+
+    const scheduledTime = new Date(lecture.scheduledAt);
+    const durationMinutes = lecture.duration || 60; // Default to 60 minutes if not specified
+    const autoCompleteTime = new Date(scheduledTime.getTime() + (durationMinutes + 5) * 60 * 1000); // duration + 5 minutes
+    const now = new Date();
+    const timeUntilAutoComplete = autoCompleteTime.getTime() - now.getTime();
+
+    if (timeUntilAutoComplete > 0) {
+      const timer = setTimeout(async () => {
+        try {
+          await lectureService.completeLecture(lecture.id);
+          toast({
+            title: 'Auto-Completed',
+            description: `Lecture "${lecture.title}" was automatically completed after ${durationMinutes + 5} minutes.`,
+          });
+          loadLectures(); // Refresh the list
+        } catch (error) {
+          console.error('Error auto-completing lecture:', error);
+          toast({
+            title: 'Auto-Complete Error',
+            description: 'Failed to auto-complete lecture.',
+            variant: 'destructive',
+          });
+        }
+      }, timeUntilAutoComplete);
+
+      setAutoCompleteTimers(prev => ({ ...prev, [lecture.id]: timer }));
+    } else {
+      // If the auto-complete time has already passed, complete it immediately
+      handleCompleteLecture(lecture.id, lecture.title);
+    }
+  };
+
+  const clearAutoCompleteTimer = (lectureId: string) => {
+    if (autoCompleteTimers[lectureId]) {
+      clearTimeout(autoCompleteTimers[lectureId]);
+      setAutoCompleteTimers(prev => {
+        const newTimers = { ...prev };
+        delete newTimers[lectureId];
+        return newTimers;
+      });
+    }
+  };
+
+  // Setup auto-complete timers for live lectures
+  useEffect(() => {
+    lectures.forEach(lecture => {
+      if (lecture.status === 'live') {
+        setupAutoCompleteTimer(lecture);
+      } else {
+        clearAutoCompleteTimer(lecture.id);
+      }
+    });
+
+    return () => {
+      Object.values(autoCompleteTimers).forEach(timer => clearTimeout(timer));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lectures]);
 
   if (loading) {
     return (

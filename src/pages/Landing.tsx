@@ -69,19 +69,20 @@ export const Landing: React.FC = () => {
     }
   }, [user, loading, navigate]);
 
+  const BRAND = '#63559e';
+
   return (
-    <div className="min-h-screen bg-[#F8F9FA] font-poppins text-slate-900">
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-900" style={{ fontFamily: "'Montserrat', 'Gotham', sans-serif" }}>
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-sm transition-all duration-300">
         <div className="container mx-auto px-4 md:px-8 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <img src="/mainlogo.png" alt="Upscholar Educational Hub" className="h-10 md:h-12 object-contain" />
-              
             </div>
             <Link 
               to="/auth" 
-              className="text-gray-500 hover:text-[#5B2C88] font-medium text-sm md:text-base transition-colors"
+              className="text-gray-600 hover:text-[#63559e] font-medium text-sm md:text-base transition-colors"
             >
               Login or Register
             </Link>
@@ -95,38 +96,35 @@ export const Landing: React.FC = () => {
           <>
             {/* Hero Section */}
             <section className="relative pb-32 pt-16 overflow-hidden">
-               {/* Background Elements */}
+               {/* Background: use image from public if available */}
                <div className="absolute inset-0 z-0 select-none pointer-events-none">
-                 {/* World Map Background */}
                  <div 
-                   className="w-full h-full opacity-[0.04] bg-no-repeat bg-center bg-cover"
+                   className="w-full h-full bg-no-repeat bg-center bg-cover"
                    style={{ 
-                     backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')`,
+                     backgroundImage: `url('/background%20image%201400%20x%20800.jpg'), url('https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg')`,
+                     backgroundColor: '#e8e4f0',
                    }}
                  />
-                 {/* Network Overlay Gradient */}
-                 <div className="absolute inset-0 bg-gradient-to-b from-white/0 via-purple-50/20 to-white/90" />
-                 
-                 {/* Decorative blurred orbs */}
-                 <div className="absolute top-20 left-10 w-64 h-64 bg-purple-200/20 rounded-full blur-3xl animate-pulse"></div>
-                 <div className="absolute top-40 right-10 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl animate-pulse delay-700"></div>
+                 <div className="absolute inset-0 bg-[#63559e]/20" />
+                 <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-white/90" />
                </div>
 
                <div className="relative z-10 container mx-auto px-4 text-center">
-                  <h1 className="text-4xl md:text-6xl font-semibold text-gray-900 mb-6 tracking-tight leading-[1.15]">
-                    Learn With The Best
+                  <h1 className="text-4xl md:text-6xl text-gray-900 mb-4 tracking-tight leading-[1.2]">
+                    <span className="font-gotham-light font-light" style={{ fontFamily: "'Gotham Light','Gotham-Light','Montserrat',sans-serif", fontWeight: 300 }}>
+                      Learn With The Best
+                    </span>
                     <br />
-                    <span className="relative inline-block mt-2">
-                      <span className="absolute inset-0 bg-[#5B2C88] transform -skew-x-3 rounded-sm shadow-lg"></span>
-                      <span className="relative text-white px-6 py-1 font-bold">Anytime, Anywhere</span>
+                    <span className="inline-block mt-3 px-6 py-2 rounded-[1rem] text-white font-gotham-bold" style={{ backgroundColor: BRAND, fontFamily: "'Gotham Bold','Gotham-Bold','Montserrat',sans-serif", fontWeight: 700 }}>
+                      Anytime, Anywhere
                     </span>
                   </h1>
 
-                  <div className="max-w-4xl mx-auto mb-10">
-                    <p className="text-lg md:text-[1.35rem] text-gray-700 font-medium leading-relaxed tracking-wide">
+                  <div className="max-w-4xl mx-auto mb-8">
+                    <p className="text-lg md:text-[1.25rem] text-gray-700 font-medium leading-relaxed">
                       Live Interactive Classes For Grades 8-10 (Ssc/Cbse/Icse) | 11th-12th
                       <br className="hidden md:block" />
-                      Science & Commerce <span className="font-extrabold text-[#5B2C88]">JEE & NEET</span> Preparation
+                      Science & Commerce <span className="font-bold" style={{ color: BRAND }}>JEE & NEET Preparation</span>
                     </p>
                   </div>
 
@@ -148,8 +146,8 @@ export const Landing: React.FC = () => {
                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
                       <div className="p-8 lg:p-10 text-left flex-1 flex flex-col">
-                         <h3 className="text-[1.75rem] font-serif text-[#5B2C88] mb-1 font-bold tracking-tight">Virtual Classroom</h3>
-                         <p className="text-sm text-gray-500 mb-8 uppercase tracking-widest font-semibold">Live Interactive Classes From Expert Trainers</p>
+                         <h3 className="text-[1.75rem] font-bold tracking-tight text-gray-900 mb-1">Virtual Classroom</h3>
+                         <p className="text-sm text-gray-500 mb-8 font-medium">Live Interactive Classes From Expert Trainers</p>
                          
                          <ul className="space-y-4 mb-10 flex-1">
                             {[
@@ -169,7 +167,8 @@ export const Landing: React.FC = () => {
                          
                          <Button 
                            onClick={() => navigate('/auth')}
-                           className="w-full bg-[#5B2C88] hover:bg-[#4a2370] text-white rounded-full py-7 text-lg font-semibold shadow-lg shadow-purple-200/50 transition-all active:scale-[0.98]"
+                           className="w-full text-white rounded-xl py-7 text-lg font-semibold shadow-lg transition-all active:scale-[0.98]"
+                           style={{ backgroundColor: BRAND }}
                          >
                            Start Learning Online <span className="ml-2">»</span>
                          </Button>
@@ -187,8 +186,8 @@ export const Landing: React.FC = () => {
                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
                       <div className="p-8 lg:p-10 text-left flex-1 flex flex-col">
-                         <h3 className="text-[1.75rem] font-serif text-[#5B2C88] mb-1 font-bold tracking-tight">Offline Centres</h3>
-                         <p className="text-sm text-gray-500 mb-8 uppercase tracking-widest font-semibold">Physics Coaching Centres Across India</p>
+                         <h3 className="text-[1.75rem] font-bold tracking-tight text-gray-900 mb-1">Offline Centres</h3>
+                         <p className="text-sm text-gray-500 mb-8 font-medium">Physical Coaching Centres Across India</p>
                          
                          <ul className="space-y-4 mb-10 flex-1">
                             {[
@@ -208,7 +207,8 @@ export const Landing: React.FC = () => {
                          
                          <Button 
                            onClick={() => setShowOfflineCentres(true)}
-                           className="w-full bg-[#5B2C88] hover:bg-[#4a2370] text-white rounded-full py-7 text-lg font-semibold shadow-lg shadow-purple-200/50 transition-all active:scale-[0.98]"
+                           className="w-full text-white rounded-xl py-7 text-lg font-semibold shadow-lg transition-all active:scale-[0.98]"
+                           style={{ backgroundColor: BRAND }}
                          >
                            View Our Centres <span className="ml-2">»</span>
                          </Button>
@@ -218,32 +218,25 @@ export const Landing: React.FC = () => {
                </div>
             </section>
 
-            {/* Stats Section */}
+            {/* Stats Section — only "Expert Trainers" card is purple per reference */}
             <section className="py-20 bg-white relative z-10">
                <div className="container mx-auto px-4 max-w-7xl">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8">
-                     {/* Card 1: Students (White) */}
                      <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] text-center border border-gray-50 flex flex-col items-center justify-center min-h-[180px] hover:shadow-lg transition-shadow">
-                        <div className="text-4xl md:text-5xl font-bold text-[#5B2C88] mb-2">15,000+</div>
+                        <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">15,000+</div>
                         <div className="text-gray-500 font-medium text-lg">Students</div>
                      </div>
-                     
-                     {/* Card 2: Trainers (Purple) */}
-                     <div className="bg-[#5B2C88] p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(91,44,136,0.3)] text-center flex flex-col items-center justify-center min-h-[180px] transform md:-translate-y-2 hover:-translate-y-3 transition-transform duration-300">
-                        <div className="text-4xl md:text-5xl font-bold text-white mb-2">500+</div>
-                        <div className="text-purple-100 font-medium text-lg">Expert Trainers</div>
+                     <div className="p-8 rounded-[2rem] shadow-lg text-center flex flex-col items-center justify-center min-h-[180px] text-white" style={{ backgroundColor: BRAND }}>
+                        <div className="text-4xl md:text-5xl font-bold mb-2">500+</div>
+                        <div className="text-white/90 font-medium text-lg">Expert Trainers</div>
                      </div>
-                     
-                     {/* Card 3: Subjects (White) */}
                      <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] text-center border border-gray-50 flex flex-col items-center justify-center min-h-[180px] hover:shadow-lg transition-shadow">
-                        <div className="text-4xl md:text-5xl font-bold text-[#5B2C88] mb-2">50+</div>
+                        <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">50+</div>
                         <div className="text-gray-500 font-medium text-lg">Subjects</div>
                      </div>
-                     
-                     {/* Card 4: Rating (Purple) */}
-                     <div className="bg-[#5B2C88] p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(91,44,136,0.3)] text-center flex flex-col items-center justify-center min-h-[180px] transform md:-translate-y-2 hover:-translate-y-3 transition-transform duration-300">
-                        <div className="text-4xl md:text-5xl font-bold text-white mb-2">4.9/5</div>
-                        <div className="text-purple-100 font-medium text-lg">Rating</div>
+                     <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] text-center border border-gray-50 flex flex-col items-center justify-center min-h-[180px] hover:shadow-lg transition-shadow">
+                        <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">4.9/5</div>
+                        <div className="text-gray-500 font-medium text-lg">Rating</div>
                      </div>
                   </div>
                </div>
@@ -263,7 +256,7 @@ export const Landing: React.FC = () => {
               </Button>
 
               <div className="text-center mb-16">
-                <Badge className="mb-4 px-4 py-2 bg-purple-100 text-purple-700 border-purple-200 rounded-full">
+                <Badge className="mb-4 px-4 py-2 border rounded-full" style={{ backgroundColor: `${BRAND}20`, color: BRAND, borderColor: `${BRAND}40` }}>
                   <Building2 className="w-4 h-4 mr-2" />
                   Our Physical Centres
                 </Badge>
@@ -286,7 +279,7 @@ export const Landing: React.FC = () => {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       <Badge className="absolute top-4 left-4 bg-white/95 text-gray-900 backdrop-blur-sm border-0 shadow-sm">
-                        <MapPin className="w-3 h-3 mr-1 text-[#5B2C88]" />
+                        <MapPin className="w-3 h-3 mr-1" style={{ color: BRAND }} />
                         {centre.name.split(' - ')[1]}
                       </Badge>
                     </div>
@@ -300,19 +293,19 @@ export const Landing: React.FC = () => {
                     <CardContent className="space-y-6 pt-4">
                       <div className="space-y-3">
                         <div className="flex items-center gap-3 text-sm text-gray-600">
-                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#5B2C88]">
+                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center" style={{ color: BRAND }}>
                             <Phone className="w-4 h-4" />
                           </div>
                           {centre.phone}
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
-                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#5B2C88]">
+                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center" style={{ color: BRAND }}>
                             <Mail className="w-4 h-4" />
                           </div>
                           {centre.email}
                         </div>
                         <div className="flex items-center gap-3 text-sm text-gray-600">
-                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-[#5B2C88]">
+                          <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center" style={{ color: BRAND }}>
                             <Clock className="w-4 h-4" />
                           </div>
                           {centre.timings}
@@ -330,7 +323,7 @@ export const Landing: React.FC = () => {
                         </div>
                       </div>
 
-                      <Button className="w-full bg-[#5B2C88] hover:bg-[#4a2370] text-white shadow-md shadow-purple-200 h-12 rounded-xl">
+                      <Button className="w-full text-white shadow-md h-12 rounded-xl hover:opacity-90" style={{ backgroundColor: BRAND }}>
                         <Phone className="w-4 h-4 mr-2" />
                         Contact Centre
                       </Button>
@@ -343,58 +336,38 @@ export const Landing: React.FC = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="bg-[#F3E5F5] pt-20 pb-8 text-gray-800">
+      {/* Footer — light grey, exact copy from reference */}
+      <footer className="bg-[#eef0f2] pt-20 pb-8 text-gray-800">
         <div className="container mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-16">
-            {/* Brand Column */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <img src="/mainlogo.png" alt="Upscholar" className="h-50 object-contain" />
-                {/* <span className="font-bold text-[#5B2C88] text-xl tracking-tight">UPSCHOLAR</span> */}
+                <img src="/mainlogo.png" alt="Upscholar" className="h-10 object-contain" />
               </div>
               <p className="text-[15px] text-gray-600 leading-relaxed max-w-xs">
-                Live Interactive Classes For Grades 8-10, 11th-12th Science & Commerce. Learn with the best, anytime, anywhere.
+                Live interactive classes for Grades 8-12, JEE & NEET, learn anytime, anywhere.
               </p>
             </div>
-
-            {/* Phone & WhatsApp */}
             <div>
-               <h4 className="font-bold text-[#5B2C88] mb-6 flex items-center gap-2 text-lg">
+               <h4 className="font-bold mb-6 flex items-center gap-2 text-lg" style={{ color: BRAND }}>
                  <Phone className="w-5 h-5" /> Phone & WhatsApp
                </h4>
                <ul className="space-y-3 text-[15px] text-gray-600">
-                  <li className="flex items-center gap-2 hover:text-[#5B2C88] transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
-                    +91 750 600 2004
-                  </li>
-                  <li className="flex items-center gap-2 hover:text-[#5B2C88] transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
-                    +91 750 600 4002
-                  </li>
+                  <li className="flex items-center gap-2 hover:opacity-80">+91 750 600 2004</li>
+                  <li className="flex items-center gap-2 hover:opacity-80">+91 750 600 4002</li>
                </ul>
             </div>
-
-            {/* Email & Web */}
             <div>
-               <h4 className="font-bold text-[#5B2C88] mb-6 flex items-center gap-2 text-lg">
+               <h4 className="font-bold mb-6 flex items-center gap-2 text-lg" style={{ color: BRAND }}>
                  <Mail className="w-5 h-5" /> Email & Web
                </h4>
                <ul className="space-y-3 text-[15px] text-gray-600">
-                  <li className="flex items-center gap-2 hover:text-[#5B2C88] transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
-                    info@upscholar.in
-                  </li>
-                  <li className="flex items-center gap-2 hover:text-[#5B2C88] transition-colors cursor-pointer">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-300"></span>
-                    www.upscholar.in
-                  </li>
+                  <li>info@upscholar.in</li>
+                  <li>www.upscholar.in</li>
                </ul>
             </div>
-
-            {/* Visit Us */}
             <div>
-               <h4 className="font-bold text-[#5B2C88] mb-6 flex items-center gap-2 text-lg">
+               <h4 className="font-bold mb-6 flex items-center gap-2 text-lg" style={{ color: BRAND }}>
                  <MapPin className="w-5 h-5" /> Visit Us
                </h4>
                <p className="text-[15px] text-gray-600 leading-relaxed">
@@ -402,21 +375,20 @@ export const Landing: React.FC = () => {
                </p>
             </div>
           </div>
-
-          <div className="border-t border-purple-200/60 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="border-t border-gray-300 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-gray-500 font-medium">
               © 2026 Upscholar. All rights reserved.
             </p>
             <div className="flex items-center gap-6">
               <span className="text-sm font-semibold text-gray-700">Follow Us On</span>
               <div className="flex gap-3">
-                 <a href="#" className="w-9 h-9 rounded-full bg-[#5B2C88] text-white flex items-center justify-center hover:bg-[#4a2370] hover:-translate-y-1 transition-all shadow-md shadow-purple-200">
+                 <a href="#" className="w-9 h-9 rounded-full text-white flex items-center justify-center hover:opacity-90 transition-opacity" style={{ backgroundColor: BRAND }}>
                     <Instagram className="w-4 h-4" />
                  </a>
-                 <a href="#" className="w-9 h-9 rounded-full bg-[#5B2C88] text-white flex items-center justify-center hover:bg-[#4a2370] hover:-translate-y-1 transition-all shadow-md shadow-purple-200">
+                 <a href="#" className="w-9 h-9 rounded-full text-white flex items-center justify-center hover:opacity-90 transition-opacity" style={{ backgroundColor: BRAND }}>
                     <Facebook className="w-4 h-4" />
                  </a>
-                 <a href="#" className="w-9 h-9 rounded-full bg-[#5B2C88] text-white flex items-center justify-center hover:bg-[#4a2370] hover:-translate-y-1 transition-all shadow-md shadow-purple-200">
+                 <a href="#" className="w-9 h-9 rounded-full text-white flex items-center justify-center hover:opacity-90 transition-opacity" style={{ backgroundColor: BRAND }}>
                     <Linkedin className="w-4 h-4" />
                  </a>
               </div>

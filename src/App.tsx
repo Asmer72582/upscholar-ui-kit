@@ -44,6 +44,8 @@ import { TrainerLectureDetails } from "./pages/trainer/LectureDetails";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Support } from "./pages/student/Support";
 import { Settings as StudentSettings } from "./pages/student/Settings";
+import { StudentBidding } from "./pages/student/Bidding";
+import { TrainerBidding } from "./pages/trainer/Bidding";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +78,7 @@ const App = () => (
               <Route path="wallet" element={<StudentWallet />} />
               <Route path="buy-upcoins" element={<BuyUpCoins />} />
               <Route path="support" element={<Support />} />
+              <Route path="bidding" element={<StudentBidding />} />
               <Route path="settings" element={<StudentSettings />} />
             </Route>
 
@@ -91,6 +94,7 @@ const App = () => (
               <Route path="lectures/:id/edit" element={<EditLecture />} />
               <Route path="lectures/:id/details" element={<TrainerLectureDetails />} />
               <Route path="students" element={<Students />} />
+              <Route path="bidding" element={<TrainerBidding />} />
               <Route path="wallet" element={<TrainerWalletEarnings />} />
               <Route path="settings" element={<TrainerSettings />} />
               <Route path="support" element={<Support />} />

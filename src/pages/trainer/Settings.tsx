@@ -38,6 +38,8 @@ interface TrainerProfile {
   bio?: string;
   experience?: number;
   expertise?: string[];
+  grades?: string[];
+  boards?: string[];
   demoVideoUrl?: string;
   resume?: string;
   status: string;
@@ -64,6 +66,8 @@ export const Settings: React.FC = () => {
   const [bio, setBio] = useState('');
   const [demoVideoUrl, setDemoVideoUrl] = useState('');
   const [expertise, setExpertise] = useState<string[]>([]);
+  const [grades, setGrades] = useState<string[]>([]);
+  const [boards, setBoards] = useState<string[]>([]);
   const [experience, setExperience] = useState(0);
   const [newExpertise, setNewExpertise] = useState('');
 
@@ -88,6 +92,8 @@ export const Settings: React.FC = () => {
       setBio(data.bio || '');
       setDemoVideoUrl(data.demoVideoUrl || '');
       setExpertise(data.expertise || []);
+      setGrades(data.grades || []);
+      setBoards(data.boards || []);
       setExperience(data.experience || 0);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -108,20 +114,27 @@ export const Settings: React.FC = () => {
   const handleUpdateProfile = async () => {
     try {
       setSaving(true);
-      await trainerService.updateProfile({
+      const payload = {
         firstname,
         lastname,
         bio,
         demoVideoUrl,
         expertise,
-      });
+        grades: Array.isArray(grades) ? grades : [],
+        boards: Array.isArray(boards) ? boards : [],
+      };
+      const result = await trainerService.updateProfile(payload);
 
       toast({
         title: 'Success',
         description: 'Profile updated successfully',
       });
 
-      // Refresh profile data
+      // Apply returned trainer data so grades/boards are in sync
+      if (result?.trainer) {
+        setGrades(Array.isArray(result.trainer.grades) ? result.trainer.grades : []);
+        setBoards(Array.isArray(result.trainer.boards) ? result.trainer.boards : []);
+      }
       await fetchProfile();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
@@ -418,12 +431,15 @@ export const Settings: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Areas of Expertise</Label>
+                      <Label>Areas of Expertise (Subjects for Request & Bidding)</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Used to match you to student doubt requests. Use the same names students use: Mathematics, Physics, Chemistry, Biology, Science, English, Hindi, Social Studies, Accountancy, Business Studies, Economics, Computer Science, Other.
+                      </p>
                       <div className="flex gap-2">
                         <Input
                           value={newExpertise}
                           onChange={(e) => setNewExpertise(e.target.value)}
-                          placeholder="Add expertise (e.g., React, Node.js)"
+                          placeholder="e.g. Mathematics, Physics"
                           onKeyPress={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
@@ -446,6 +462,44 @@ export const Settings: React.FC = () => {
                             {item} ×
                           </Badge>
                         ))}
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <h4 className="font-semibold text-sm text-muted-foreground">Request & Bidding filters (optional)</h4>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Grades you teach</Label>
+                        <p className="text-xs text-muted-foreground">Leave empty to see all grades. Otherwise only matching requests appear.</p>
+                        <div className="flex flex-wrap gap-2">
+                          {['8', '9', '10', '11', '12'].map((g) => (
+                            <Badge
+                              key={g}
+                              variant={grades.includes(g) ? 'default' : 'outline'}
+                              className="cursor-pointer"
+                              onClick={() => setGrades((prev) => prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g])}
+                            >
+                              {g}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Boards you teach</Label>
+                        <p className="text-xs text-muted-foreground">Leave empty to see all boards.</p>
+                        <div className="flex flex-wrap gap-2">
+                          {['CBSE', 'ICSE', 'SSC', 'State Board', 'Other'].map((b) => (
+                            <Badge
+                              key={b}
+                              variant={boards.includes(b) ? 'default' : 'outline'}
+                              className="cursor-pointer"
+                              onClick={() => setBoards((prev) => prev.includes(b) ? prev.filter((x) => x !== b) : [...prev, b])}
+                            >
+                              {b}
+                            </Badge>
+                          ))}
+                        </div>
                       </div>
                     </div>
 

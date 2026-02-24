@@ -23,10 +23,15 @@
     <meta name="twitter:site" content="@upscholer" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts: Montserrat as Gotham alternative (Light 300, Bold 700) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      /* Gotham-style heading: use Montserrat as fallback until Gotham font files are added to public/fonts */
+      .font-gotham-light { font-family: 'Gotham Light', 'Gotham-Light', 'Montserrat', sans-serif; font-weight: 300; }
+      .font-gotham-bold { font-family: 'Gotham Bold', 'Gotham-Bold', 'Montserrat', sans-serif; font-weight: 700; }
+    </style>
 </head>
 
 <body>

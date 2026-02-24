@@ -345,6 +345,8 @@ class TrainerService {
     bio?: string;
     demoVideoUrl?: string;
     expertise?: string[];
+    grades?: string[];
+    boards?: string[];
   }): Promise<any> {
     try {
       const response = await fetch(`${API_URL}/trainer/profile`, {

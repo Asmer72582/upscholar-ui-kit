@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types';
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { GraduationCap, UserCheck, Users, Shield, Mail, Loader2 } from 'lucide-react';
+import { GraduationCap, UserCheck, Users, Shield, Mail, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { API_URL } from '@/config/env';
 import { authService } from '@/services/authService';
@@ -66,48 +66,61 @@ export const Auth: React.FC = () => {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
 
+  // Real-time email availability check (registration only)
+  const [emailCheckStatus, setEmailCheckStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
+
   const { login, register } = useAuth();
+
+  const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+
+  useEffect(() => {
+    if (isLogin) {
+      setEmailCheckStatus('idle');
+      return;
+    }
+    const email = formData.email.trim().toLowerCase();
+    if (!email) {
+      setEmailCheckStatus('idle');
+      return;
+    }
+    if (!emailRegex.test(email)) {
+      setEmailCheckStatus('invalid');
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setEmailCheckStatus('checking');
+      try {
+        const result = await authService.checkEmailAvailable(email);
+        setEmailCheckStatus(result.available ? 'available' : 'taken');
+      } catch {
+        setEmailCheckStatus('idle');
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData.email, isLogin]);
   const navigate = useNavigate();
 
   const handleSendOTP = async () => {
-    // Validate email and mobile
     if (!formData.email) {
-      toast({
-        title: 'Email Required',
-        description: 'Please enter your email address.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Email required', description: 'Please enter your email address.', variant: 'destructive' });
+      return;
+    }
+    if (!emailRegex.test(formData.email.trim())) {
+      toast({ title: 'Invalid email', description: 'Please enter a valid email address.', variant: 'destructive' });
+      return;
+    }
+    if (emailCheckStatus === 'taken') {
+      toast({ title: 'Email already registered', description: 'An account already exists with this email. Please sign in instead.', variant: 'destructive' });
       return;
     }
 
     if (!formData.mobile) {
-      toast({
-        title: 'Mobile Number Required',
-        description: 'Please enter your mobile number.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Mobile required', description: 'Please enter your mobile number.', variant: 'destructive' });
       return;
     }
-
-    // Validate mobile format (10-digit Indian number)
     const mobileRegex = /^[6-9]\d{9}$/;
     if (!mobileRegex.test(formData.mobile)) {
-      toast({
-        title: 'Invalid Mobile Number',
-        description: 'Please enter a valid 10-digit Indian mobile number.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Validate email format
-    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
-    if (!emailRegex.test(formData.email)) {
-      toast({
-        title: 'Invalid Email',
-        description: 'Please enter a valid email address.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid mobile', description: 'Please enter a valid 10-digit Indian mobile number.', variant: 'destructive' });
       return;
     }
 
@@ -246,8 +259,24 @@ export const Auth: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isLogin) {
+      if (!formData.email?.trim()) {
+        toast({ title: 'Email required', description: 'Please enter your email address.', variant: 'destructive' });
+        return;
+      }
+      if (!formData.password) {
+        toast({ title: 'Password required', description: 'Please enter your password.', variant: 'destructive' });
+        return;
+      }
+      if (!emailRegex.test(formData.email.trim())) {
+        toast({ title: 'Invalid email', description: 'Please enter a valid email address.', variant: 'destructive' });
+        return;
+      }
+      if (formData.password.length < 6) {
+        toast({ title: 'Invalid password', description: 'Password must be at least 6 characters.', variant: 'destructive' });
+        return;
+      }
       setLoading(true);
       try {
         await login(formData.email, formData.password, selectedRole);
@@ -257,9 +286,8 @@ export const Auth: React.FC = () => {
         });
         navigate(`/${selectedRole}/dashboard`);
       } catch (error: any) {
-        console.error('Auth error:', error);
         toast({
-          title: 'Authentication Error',
+          title: 'Login failed',
           description: error.message || 'Please check your credentials and try again.',
           variant: 'destructive',
         });
@@ -466,7 +494,39 @@ export const Auth: React.FC = () => {
                     onChange={handleInputChange}
                     placeholder="john@example.com"
                     disabled={otpStep === 'otp' || otpVerified}
+                    className={
+                      !isLogin && emailCheckStatus === 'taken' ? 'border-destructive focus-visible:ring-destructive' :
+                      !isLogin && emailCheckStatus === 'available' ? 'border-green-500 focus-visible:ring-green-500' : ''
+                    }
                   />
+                  {!isLogin && formData.email && (
+                    <div className="flex items-center gap-2 text-sm">
+                      {emailCheckStatus === 'checking' && (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                          <span className="text-muted-foreground">Checking availability...</span>
+                        </>
+                      )}
+                      {emailCheckStatus === 'available' && (
+                        <>
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="text-green-600">Email is available</span>
+                        </>
+                      )}
+                      {emailCheckStatus === 'taken' && (
+                        <>
+                          <XCircle className="h-4 w-4 text-destructive" />
+                          <span className="text-destructive">This email is already registered</span>
+                        </>
+                      )}
+                      {emailCheckStatus === 'invalid' && formData.email.length > 3 && (
+                        <>
+                          <AlertCircle className="h-4 w-4 text-amber-600" />
+                          <span className="text-amber-600">Please enter a valid email address</span>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {!isLogin && (

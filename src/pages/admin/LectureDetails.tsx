@@ -15,6 +15,7 @@ import {
   Star,
   CheckCircle,
   XCircle,
+  Loader2,
   Video,
   FileText,
   MessageSquare,
@@ -137,7 +138,6 @@ export const AdminLectureDetails: React.FC = () => {
         title: 'Success',
         description: 'Lecture approved successfully! Trainer has been notified.',
       });
-      // Redirect back to manage lectures page
       navigate('/admin/manage-lectures');
     } catch (error) {
       toast({
@@ -145,6 +145,7 @@ export const AdminLectureDetails: React.FC = () => {
         description: 'Failed to approve lecture',
         variant: 'destructive',
       });
+    } finally {
       setActionLoading(false);
     }
   };
@@ -261,8 +262,12 @@ export const AdminLectureDetails: React.FC = () => {
                 disabled={actionLoading}
                 className="bg-green-600 hover:bg-green-700"
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Approve
+                {actionLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                )}
+                {actionLoading ? 'Approving...' : 'Approve'}
               </Button>
               <Button 
                 variant="destructive"

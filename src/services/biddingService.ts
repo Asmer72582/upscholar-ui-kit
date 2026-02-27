@@ -9,7 +9,7 @@ const getAuthHeaders = (): HeadersInit => {
 };
 
 export type TicketStatus = 'Open' | 'Bidding' | 'Booked' | 'Completed' | 'Cancelled';
-export type ProposalStatus = 'Pending' | 'Accepted' | 'Rejected';
+export type ProposalStatus = 'Pending' | 'Accepted' | 'Rejected' | 'Cancelled';
 
 export interface Ticket {
   _id: string;
@@ -37,6 +37,8 @@ export interface Ticket {
   cancelReason?: string;
   createdAt: string;
   updatedAt: string;
+  hasRated?: boolean;
+  lecture?: string;
 }
 
 export interface Proposal {
@@ -90,7 +92,7 @@ export const biddingService = {
     return res.json();
   },
 
-  async getTickets(params?: { status?: string; page?: number; limit?: number }): Promise<{
+  async getTickets(params?: { status?: string; page?: number; limit?: number; search?: string }): Promise<{
     success: boolean;
     tickets: Ticket[];
     pagination: { page: number; limit: number; total: number; pages: number };
@@ -99,6 +101,7 @@ export const biddingService = {
     if (params?.status && params.status !== 'all') sp.set('status', params.status);
     if (params?.page != null) sp.set('page', String(params.page));
     if (params?.limit != null) sp.set('limit', String(params.limit));
+    if (params?.search && params.search.trim()) sp.set('search', params.search.trim());
     const q = sp.toString();
     const res = await fetch(`${BASE}/tickets${q ? `?${q}` : ''}`, {
       headers: getAuthHeaders(),
@@ -204,7 +207,7 @@ export const biddingService = {
     return res.json();
   },
 
-  async getMyProposals(params?: { status?: string; page?: number; limit?: number }): Promise<{
+  async getMyProposals(params?: { status?: string; page?: number; limit?: number; search?: string }): Promise<{
     success: boolean;
     proposals: Proposal[];
     pagination: { page: number; limit: number; total: number; pages: number };
@@ -213,6 +216,7 @@ export const biddingService = {
     if (params?.status && params.status !== 'all') sp.set('status', params.status);
     if (params?.page != null) sp.set('page', String(params.page));
     if (params?.limit != null) sp.set('limit', String(params.limit));
+    if (params?.search && params.search.trim()) sp.set('search', params.search.trim());
     const q = sp.toString();
     const res = await fetch(`${BASE}/proposals${q ? `?${q}` : ''}`, {
       headers: getAuthHeaders(),
@@ -221,6 +225,45 @@ export const biddingService = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to fetch proposals');
+    }
+    return res.json();
+  },
+
+  async getTrainerProfile(trainerId: string): Promise<{
+    success: boolean;
+    profile: {
+      name: string;
+      email: string;
+      bio: string;
+      experience: number;
+      expertise: string[];
+      averageRating: number;
+      totalRatings: number;
+      sessionsCompleted: number;
+      whyChooseMe: string[];
+    };
+    reviews: { rating: number; review: string; createdAt: string; studentName: string }[];
+  }> {
+    const res = await fetch(`${BASE}/trainers/${trainerId}/profile`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to load trainer profile');
+    }
+    return res.json();
+  },
+
+  async createLectureFromTicket(ticketId: string): Promise<{ success: boolean; message: string; lecture: { id: string; title: string; scheduledAt: string } }> {
+    const res = await fetch(`${BASE}/tickets/${ticketId}/create-lecture`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to create lecture');
     }
     return res.json();
   },

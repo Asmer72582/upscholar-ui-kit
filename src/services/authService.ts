@@ -11,6 +11,24 @@ const fetchConfig = {
 };
 
 class AuthService {
+  async checkEmailAvailable(email: string): Promise<{ available: boolean; message?: string }> {
+    try {
+      const trimmed = (email || "").trim().toLowerCase();
+      if (!trimmed) return { available: false, message: "Email is required" };
+      const response = await fetch(`${AUTH_API_URL}/check-email?email=${encodeURIComponent(trimmed)}`, {
+        ...fetchConfig,
+        method: "GET",
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        return { available: false, message: data.message || "Unable to check email" };
+      }
+      return { available: data.available, message: data.message };
+    } catch (error: any) {
+      return { available: false, message: error.message || "Unable to check email" };
+    }
+  }
+
   async sendOTP(email: string, mobile: string): Promise<{ success: boolean; message: string; expiresIn?: number }> {
     try {
       const response = await fetch(`${AUTH_API_URL}/send-otp`, {
@@ -80,7 +98,7 @@ class AuthService {
         lastName: data.user.lastname,
         name: data.user.name || `${data.user.firstname} ${data.user.lastname}`,
         role: data.user.role as UserRole,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.email}`,
+        avatar: data.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.email}`,
         createdAt: data.user.createdAt,
         isApproved: data.user.isApproved,
         status: data.user.status,
@@ -192,7 +210,7 @@ class AuthService {
         firstName: data.user.firstname,
         lastName: data.user.lastname,
         role: data.user.role as UserRole,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.email}`,
+        avatar: data.user.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.email}`,
         createdAt: data.user.createdAt,
         isApproved: data.user.isApproved,
         status: data.user.status,
@@ -244,7 +262,7 @@ class AuthService {
       name: data.name || `${data.firstname} ${data.lastname}`,
       mobile: data.mobile,
       role: data.role as UserRole,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email}`,
+      avatar: data.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.email}`,
       createdAt: data.createdAt,
       isApproved: data.isApproved,
       status: data.status,
@@ -292,7 +310,7 @@ class AuthService {
       name: updated.name || `${updated.firstname} ${updated.lastname}`,
       mobile: updated.mobile,
       role: updated.role as UserRole,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${updated.email}`,
+      avatar: updated.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${updated.email}`,
       createdAt: updated.createdAt,
       isApproved: updated.isApproved,
       status: updated.status,

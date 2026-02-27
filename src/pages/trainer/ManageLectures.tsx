@@ -26,10 +26,12 @@ import {
   CheckCircle,
   Settings,
   Radio,
-  Video
+  Video,
+  Loader2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { lectureService, Lecture } from '@/services/lectureService';
+import { trainerService } from '@/services/trainerService';
 
 export const ManageLectures: React.FC = () => {
   const navigate = useNavigate();
@@ -40,9 +42,27 @@ export const ManageLectures: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [autoCompleteTimers, setAutoCompleteTimers] = useState<{[key: string]: NodeJS.Timeout}>({});
+  const [spectatorPricePercent, setSpectatorPricePercent] = useState<number>(40);
+  const [spectatorPriceSaving, setSpectatorPriceSaving] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [startingLectureId, setStartingLectureId] = useState<string | null>(null);
 
   useEffect(() => {
     loadLectures();
+  }, []);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const profile = await trainerService.getProfile();
+        setSpectatorPricePercent(profile.spectatorPricePercent ?? 40);
+      } catch {
+        // use default 40
+      } finally {
+        setProfileLoaded(true);
+      }
+    };
+    loadProfile();
   }, []);
 
   // Read search term from URL parameters on component mount
@@ -74,6 +94,7 @@ export const ManageLectures: React.FC = () => {
 
 
   const handleStartMeeting = async (lectureId: string, lectureTitle: string) => {
+    setStartingLectureId(lectureId);
     try {
       const token = localStorage.getItem('upscholer_token');
       const response = await fetch(`${API_URL}/lectures/${lectureId}/start-meeting`, {
@@ -103,6 +124,8 @@ export const ManageLectures: React.FC = () => {
         description: error instanceof Error ? error.message : 'Failed to start meeting',
         variant: 'destructive',
       });
+    } finally {
+      setStartingLectureId(null);
     }
   };
 
@@ -324,6 +347,51 @@ export const ManageLectures: React.FC = () => {
       </div>
 
       <div className="space-y-6">
+        {/* Spectator price – applies to all lectures, editable even when lectures have enrollments */}
+        {profileLoaded && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Eye className="w-4 h-4" />
+                Spectator price
+              </CardTitle>
+              <CardDescription>
+                Non-enrolled students pay this percentage of the lecture price to watch live as spectator. Applies to all your lectures. You can change it anytime here or in Settings.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  className="w-20"
+                  value={spectatorPricePercent}
+                  onChange={(e) => setSpectatorPricePercent(Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                />
+                <span className="text-sm text-muted-foreground">% of lecture price</span>
+              </div>
+              <Button
+                size="sm"
+                disabled={spectatorPriceSaving}
+                onClick={async () => {
+                  try {
+                    setSpectatorPriceSaving(true);
+                    await trainerService.updateProfile({ spectatorPricePercent });
+                    toast({ title: 'Saved', description: 'Spectator price updated for all your lectures.' });
+                  } catch {
+                    toast({ title: 'Error', description: 'Failed to save spectator price.', variant: 'destructive' });
+                  } finally {
+                    setSpectatorPriceSaving(false);
+                  }
+                }}
+              >
+                {spectatorPriceSaving ? 'Saving...' : 'Save'}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Pending Alert Banner */}
         {stats.pendingLectures > 0 && (
           <Card className="bg-yellow-50 border-yellow-200">
@@ -563,14 +631,19 @@ export const ManageLectures: React.FC = () => {
                                 
                                 {lecture.status === 'scheduled' && (() => {
                                   const startInfo = canStartLecture(lecture.scheduledAt);
+                                  const isStarting = startingLectureId === lecture.id;
                                   return (
                                     <DropdownMenuItem 
                                       onClick={() => handleStartMeeting(lecture.id, lecture.title)}
-                                      disabled={!startInfo.canStart}
-                                      className={!startInfo.canStart ? 'opacity-50 cursor-not-allowed' : ''}
+                                      disabled={!startInfo.canStart || isStarting}
+                                      className={(!startInfo.canStart || isStarting) ? 'opacity-50 cursor-not-allowed' : ''}
                                     >
-                                      <Play className="w-4 h-4 mr-2" />
-                                      {startInfo.message}
+                                      {isStarting ? (
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      ) : (
+                                        <Play className="w-4 h-4 mr-2" />
+                                      )}
+                                      {isStarting ? 'Starting...' : startInfo.message}
                                     </DropdownMenuItem>
                                   );
                                 })()}

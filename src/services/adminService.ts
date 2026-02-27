@@ -616,6 +616,59 @@ class AdminService {
     }
   }
 
+  async getCancelledRequests(refundStatus?: 'pending' | 'approved' | 'rejected'): Promise<{ requests: CancelledRequest[] }> {
+    const url = refundStatus
+      ? `${API_URL}/admin/cancelled-requests?refundStatus=${refundStatus}`
+      : `${API_URL}/admin/cancelled-requests`;
+    const response = await fetch(url, { method: "GET", headers: getAuthHeaders(), ...fetchConfig });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to fetch cancelled requests");
+    }
+    return response.json();
+  }
+
+  async approveCancelledRequestRefund(ticketId: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_URL}/admin/cancelled-requests/${ticketId}/approve`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      ...fetchConfig,
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to approve refund");
+    }
+    return response.json();
+  }
+
+  async rejectCancelledRequestRefund(ticketId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_URL}/admin/cancelled-requests/${ticketId}/reject`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason: reason || "" }),
+      ...fetchConfig,
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to reject refund");
+    }
+    return response.json();
+  }
+}
+
+export interface CancelledRequest {
+  id: string;
+  ticketId: string;
+  subject: string;
+  grade: string;
+  board: string;
+  cancelReason: string;
+  cancelledAt: string;
+  refundStatus: 'pending' | 'approved' | 'rejected';
+  escrowAmount: number;
+  paymentStatus: string;
+  student: { id: string; name: string; email: string } | null;
+  trainerId?: string;
 }
 
 export const adminService = new AdminService();

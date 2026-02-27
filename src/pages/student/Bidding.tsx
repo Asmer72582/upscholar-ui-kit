@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
@@ -32,6 +33,10 @@ import {
   User,
   CheckCircle,
   Loader2,
+  Eye,
+  Lock,
+  Video,
+  Search,
 } from 'lucide-react';
 import { biddingService, type Ticket, type Proposal, type CreateTicketData } from '@/services/biddingService';
 import { toast } from 'sonner';
@@ -46,6 +51,8 @@ const SUBJECT_OPTIONS = [
 export const StudentBidding: React.FC = () => {
   const [activeTab, setActiveTab] = useState('create');
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 0 });
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -56,6 +63,17 @@ export const StudentBidding: React.FC = () => {
   const [rateValue, setRateValue] = useState(5);
   const [rateReview, setRateReview] = useState('');
   const [rateSubmitting, setRateSubmitting] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelTicketId, setCancelTicketId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelRequiresReason, setCancelRequiresReason] = useState(false);
+  const [cancelSubmitting, setCancelSubmitting] = useState(false);
+  const [profileModalProposal, setProfileModalProposal] = useState<Proposal | null>(null);
+  const [trainerProfile, setTrainerProfile] = useState<{
+    profile: { name: string; avatar?: string | null; bio: string; experience: number; expertise: string[]; averageRating: number; totalRatings: number; sessionsCompleted: number; whyChooseMe: string[] };
+    reviews: { rating: number; review: string; createdAt: string; studentName: string }[];
+  } | null>(null);
+  const [trainerProfileLoading, setTrainerProfileLoading] = useState(false);
 
   const [form, setForm] = useState<CreateTicketData>({
     grade: '',
@@ -72,7 +90,7 @@ export const StudentBidding: React.FC = () => {
   const fetchTickets = async (page = 1) => {
     setLoading(true);
     try {
-      const res = await biddingService.getTickets({ page, limit: 10 });
+      const res = await biddingService.getTickets({ page, limit: 10, search: debouncedSearch || undefined });
       setTickets(res.tickets);
       setPagination(res.pagination);
     } catch (e: any) {
@@ -83,8 +101,13 @@ export const StudentBidding: React.FC = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'requests') fetchTickets();
-  }, [activeTab]);
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (activeTab === 'requests') fetchTickets(1);
+  }, [activeTab, debouncedSearch]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +139,12 @@ export const StudentBidding: React.FC = () => {
     try {
       const res = await biddingService.getProposals(t._id);
       setProposals(res.proposals);
+      if (t.status === 'Completed') {
+        const ticketRes = await biddingService.getTicket(t._id);
+        if (ticketRes.ticket.hasRated === false) {
+          setTimeout(() => openRate(t._id), 300);
+        }
+      }
     } catch (e: any) {
       toast.error(e.message || 'Failed to load proposals');
     } finally {
@@ -128,10 +157,40 @@ export const StudentBidding: React.FC = () => {
       await biddingService.selectProposal(ticketId, proposalId);
       toast.success('Proposal selected. Payment held in escrow.');
       setSelectedTicket(null);
+      setProfileModalProposal(null);
+      setTrainerProfile(null);
       fetchTickets();
     } catch (e: any) {
       toast.error(e.message || 'Failed to select proposal');
     }
+  };
+
+  const openTrainerProfile = async (p: Proposal) => {
+    const raw = typeof p.trainer === 'object' && p.trainer !== null
+      ? (p.trainer as { _id?: string })._id
+      : p.trainer;
+    const trainerId = raw != null ? String(raw) : '';
+    if (!trainerId) {
+      toast.error('Trainer information is missing');
+      return;
+    }
+    setProfileModalProposal(p);
+    setTrainerProfile(null);
+    setTrainerProfileLoading(true);
+    try {
+      const res = await biddingService.getTrainerProfile(trainerId);
+      setTrainerProfile({ profile: res.profile, reviews: res.reviews });
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to load trainer profile');
+      setProfileModalProposal(null);
+    } finally {
+      setTrainerProfileLoading(false);
+    }
+  };
+
+  const closeProfileModal = () => {
+    setProfileModalProposal(null);
+    setTrainerProfile(null);
   };
 
   const handleComplete = async (ticketId: string) => {
@@ -168,15 +227,30 @@ export const StudentBidding: React.FC = () => {
     }
   };
 
-  const handleCancel = async (ticketId: string) => {
-    if (!confirm('Cancel this request? If payment was held, it will be refunded.')) return;
+  const openCancel = (ticketId: string, isBooked: boolean) => {
+    setCancelTicketId(ticketId);
+    setCancelReason('');
+    setCancelRequiresReason(isBooked);
+    setCancelOpen(true);
+  };
+
+  const handleCancelSubmit = async () => {
+    if (!cancelTicketId) return;
+    if (cancelRequiresReason && (!cancelReason.trim() || cancelReason.trim().length < 10)) {
+      toast.error('Please provide a valid reason (at least 10 characters) to cancel this booked session and request a refund.');
+      return;
+    }
+    setCancelSubmitting(true);
     try {
-      await biddingService.cancelTicket(ticketId);
-      toast.success('Request cancelled.');
+      await biddingService.cancelTicket(cancelTicketId, cancelReason.trim() || undefined);
+      toast.success(cancelRequiresReason ? 'Request cancelled. Refund has been processed.' : 'Request cancelled.');
+      setCancelOpen(false);
       setSelectedTicket(null);
       fetchTickets();
     } catch (e: any) {
       toast.error(e.message || 'Failed to cancel');
+    } finally {
+      setCancelSubmitting(false);
     }
   };
 
@@ -194,7 +268,7 @@ export const StudentBidding: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Request & Bidding</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Ask an Expert</h1>
         <p className="text-muted-foreground">Create a doubt request and get proposals from trainers. Compare and book a session.</p>
       </div>
 
@@ -211,7 +285,7 @@ export const StudentBidding: React.FC = () => {
         <TabsContent value="create" className="mt-6">
           <Card>
             <CardHeader>
-              <CardTitle>New doubt request</CardTitle>
+              <CardTitle>Post Your Doubt Details</CardTitle>
               <CardDescription>Fill in the details. Trainers matching your subject, grade and board will be notified.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -293,7 +367,7 @@ export const StudentBidding: React.FC = () => {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label>Description of your doubt *</Label>
+                  <Label>Describe Your Doubt *</Label>
                   <Textarea
                     value={form.description}
                     onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -312,6 +386,22 @@ export const StudentBidding: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="requests" className="mt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by ticket ID, subject, chapter, topic, book..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            {searchQuery && (
+              <Button variant="ghost" size="sm" onClick={() => setSearchQuery('')}>
+                Clear
+              </Button>
+            )}
+          </div>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -405,11 +495,16 @@ export const StudentBidding: React.FC = () => {
                               <span className="flex items-center gap-1"><Coins className="h-4 w-4" /> {p.price} UpCoins</span>
                             </div>
                             {p.message && <p className="text-sm text-muted-foreground mt-1">{p.message}</p>}
-                            {canSelect && (
-                              <Button size="sm" className="mt-2 gap-1" onClick={() => handleSelectProposal(selectedTicket._id, p._id)}>
-                                <CheckCircle className="h-4 w-4" /> Select & pay
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <Button size="sm" variant="outline" className="gap-1" onClick={(e) => { e.stopPropagation(); openTrainerProfile(p); }}>
+                                <Eye className="h-4 w-4" /> View profile
                               </Button>
-                            )}
+                              {canSelect && (
+                                <Button size="sm" className="gap-1" onClick={() => handleSelectProposal(selectedTicket._id, p._id)}>
+                                  <CheckCircle className="h-4 w-4" /> Select & pay
+                                </Button>
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       );
@@ -420,7 +515,7 @@ export const StudentBidding: React.FC = () => {
                 {selectedTicket.status === 'Booked' && (
                   <div className="flex flex-wrap gap-2 pt-4 border-t">
                     <Button size="sm" onClick={() => handleComplete(selectedTicket._id)}>Mark session completed</Button>
-                    <Button size="sm" variant="outline" onClick={() => handleCancel(selectedTicket._id)}>Cancel request</Button>
+                    <Button size="sm" variant="outline" onClick={() => openCancel(selectedTicket._id, true)}>Cancel request</Button>
                   </div>
                 )}
                 {selectedTicket.status === 'Completed' && (
@@ -429,7 +524,7 @@ export const StudentBidding: React.FC = () => {
                   </Button>
                 )}
                 {['Open', 'Bidding'].includes(selectedTicket.status) && (
-                  <Button size="sm" variant="outline" className="mt-2" onClick={() => handleCancel(selectedTicket._id)}>Cancel request</Button>
+                  <Button size="sm" variant="outline" className="mt-2" onClick={() => openCancel(selectedTicket._id, false)}>Cancel request</Button>
                 )}
               </div>
             )}
@@ -439,6 +534,179 @@ export const StudentBidding: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Trainer profile modal (when viewing a proposal) */}
+      <Dialog open={!!profileModalProposal} onOpenChange={(open) => !open && closeProfileModal()}>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Trainer profile</DialogTitle>
+            <DialogDescription id="trainer-profile-desc">
+              {trainerProfileLoading ? 'Loading trainer details…' : profileModalProposal && trainerProfile ? 'Review trainer details and book this session.' : profileModalProposal ? 'Could not load profile.' : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {trainerProfileLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : profileModalProposal && trainerProfile ? (
+            <>
+              <div className="space-y-6 pb-2">
+                {/* Trainer header */}
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-16 w-16 shrink-0 ring-2 ring-border">
+                      <AvatarImage src={trainerProfile.profile.avatar ?? undefined} alt={trainerProfile.profile.name} className="object-cover" />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xl">
+                        {trainerProfile.profile.name.split(/\s+/).map((n) => n[0]).join('').slice(0, 2) || 'T'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-xl">{trainerProfile.profile.name}</span>
+                        <CheckCircle className="h-5 w-5 text-primary" aria-label="Verified" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {trainerProfile.profile.expertise?.length ? trainerProfile.profile.expertise.join(', ') : 'Expert'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {trainerProfile.profile.experience ? `${trainerProfile.profile.experience}+ Years Experience` : ''}
+                        {trainerProfile.profile.expertise?.length ? ` · ${trainerProfile.profile.expertise[0]} Expert` : ''}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{trainerProfile.profile.sessionsCompleted}+ Sessions Completed</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="flex items-center gap-1 font-medium">
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                          {trainerProfile.profile.averageRating?.toFixed(1) ?? '0'}
+                        </span>
+                        <span className="text-sm text-muted-foreground">({trainerProfile.profile.totalRatings} Reviews)</span>
+                        <span className="text-xs text-muted-foreground">Avg. Response Time: 5 mins</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Why Choose Me - from trainer profile (saved in Settings) */}
+                <div className="rounded-xl border bg-muted/30 p-4">
+                  <h4 className="font-semibold text-base mb-3">Why Choose Me?</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    {(trainerProfile.profile.whyChooseMe?.filter(Boolean).length
+                      ? trainerProfile.profile.whyChooseMe.filter(Boolean)
+                      : ['Best Value on Platform', 'Top 10% Rated Tutor', 'Fast Response Time']
+                    ).map((point, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600 shrink-0" />
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Session details (from proposal) */}
+                <div className="rounded-xl border p-4 space-y-2">
+                  <h4 className="font-semibold text-base">Session details</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                    <span className="flex items-center gap-2"><Lock className="h-4 w-4" /> Price: {profileModalProposal.price} UC</span>
+                    <span className="flex items-center gap-2"><Clock className="h-4 w-4" /> Duration: {profileModalProposal.duration} Minutes</span>
+                    <span className="flex items-center gap-2 sm:col-span-2"><Calendar className="h-4 w-4" /> Available: {new Date(profileModalProposal.date).toLocaleDateString()}, {profileModalProposal.time}</span>
+                    <span className="flex items-center gap-2 sm:col-span-2"><Video className="h-4 w-4" /> Live Video · Chat · Whiteboard</span>
+                    <span className="flex items-center gap-2 sm:col-span-2"><CheckCircle className="h-4 w-4 text-green-600" /> Satisfaction Guaranteed · Partial Refund if Unsatisfied</span>
+                  </div>
+                </div>
+
+                {/* About Me */}
+                {trainerProfile.profile.bio && (
+                  <div className="rounded-xl border p-4">
+                    <h4 className="font-semibold text-base mb-2">About Me</h4>
+                    <p className="text-sm text-muted-foreground">{trainerProfile.profile.bio}</p>
+                  </div>
+                )}
+
+                {/* Student Reviews */}
+                <div className="rounded-xl border border-border/80 bg-card p-5 shadow-sm">
+                  <div className="mb-1">
+                    <h4 className="font-semibold text-base text-foreground">Student Reviews</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">From completed 1-on-1 sessions</p>
+                  </div>
+                  <div className="space-y-4 mt-4">
+                    {!trainerProfile.reviews?.length ? (
+                      <p className="text-sm text-muted-foreground py-4 text-center">No session reviews yet.</p>
+                    ) : (
+                      trainerProfile.reviews.slice(0, 5).map((r, i) => (
+                        <div
+                          key={i}
+                          className="flex gap-4 p-4 rounded-lg bg-muted/30 border border-border/50 hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="flex flex-col items-center shrink-0 w-14">
+                            <span className="flex gap-0.5 text-amber-500" aria-label={`${r.rating} out of 5 stars`}>
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <Star key={n} className={`h-4 w-4 ${n <= r.rating ? 'fill-amber-500 text-amber-500' : 'text-muted-foreground/50'}`} />
+                              ))}
+                            </span>
+                            <span className="text-xs text-muted-foreground mt-1">{r.rating}/5</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-foreground">{r.studentName}</p>
+                            <p className={`text-sm mt-1 ${r.review ? 'text-foreground/90' : 'text-muted-foreground italic'}`}>
+                              {r.review || 'No written review'}
+                            </p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={closeProfileModal}>Close</Button>
+                {(selectedTicket?.status === 'Open' || selectedTicket?.status === 'Bidding') && profileModalProposal.status === 'Pending' && (
+                  <Button onClick={() => handleSelectProposal(selectedTicket._id, profileModalProposal._id)}>
+                    Book Session ({profileModalProposal.price} UC)
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          ) : profileModalProposal ? (
+            <div className="py-8 text-center text-muted-foreground">Could not load profile.</div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
+
+      {/* Cancel request dialog */}
+      <Dialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel request</DialogTitle>
+            <DialogDescription>
+              {cancelRequiresReason
+                ? 'This session is booked and payment is held. To request a refund, you must provide a valid reason (min 10 characters).'
+                : 'Cancel this request? No payment has been held.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason {cancelRequiresReason ? '(required for refund)' : '(optional)'}</Label>
+              <Textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder={cancelRequiresReason ? 'e.g. Schedule conflict, need to reschedule...' : 'Optional'}
+                rows={3}
+                minLength={cancelRequiresReason ? 10 : undefined}
+              />
+              {cancelRequiresReason && (
+                <p className="text-xs text-muted-foreground">
+                  Minimum 10 characters. Refund will be processed after you submit.
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelOpen(false)}>Back</Button>
+            <Button variant="destructive" onClick={handleCancelSubmit} disabled={cancelSubmitting}>
+              {cancelSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Cancel request'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Rate dialog */}
       <Dialog open={rateOpen} onOpenChange={setRateOpen}>

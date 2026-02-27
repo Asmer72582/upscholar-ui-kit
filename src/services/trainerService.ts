@@ -9,6 +9,11 @@ const getAuthHeaders = () => {
   };
 };
 
+const getAuthHeadersForUpload = () => {
+  const token = localStorage.getItem('upscholer_token');
+  return { 'x-auth-token': token || '' };
+};
+
 const fetchConfig = {
   credentials: 'include' as RequestCredentials,
 };
@@ -339,6 +344,22 @@ class TrainerService {
     }
   }
 
+  async uploadProfilePhoto(file: File): Promise<{ avatar: string }> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await fetch(`${API_URL}/trainer/profile/avatar`, {
+      method: 'POST',
+      headers: getAuthHeadersForUpload(),
+      body: formData,
+      ...fetchConfig,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to upload profile picture');
+    }
+    return response.json();
+  }
+
   async updateProfile(data: {
     firstname?: string;
     lastname?: string;
@@ -347,6 +368,9 @@ class TrainerService {
     expertise?: string[];
     grades?: string[];
     boards?: string[];
+    whyChooseMe?: string[];
+    spectatorPricePercent?: number;
+    avatar?: string;
   }): Promise<any> {
     try {
       const response = await fetch(`${API_URL}/trainer/profile`, {

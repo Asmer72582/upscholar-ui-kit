@@ -17,7 +17,8 @@ import {
   ClipboardList,
   ChevronRight,
   LogOut,
-  HelpCircle
+  HelpCircle,
+  XCircle
 } from 'lucide-react';
 import {
   Sidebar,
@@ -80,7 +81,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Dashboard', href: '/student/dashboard', icon: Home },
           { title: 'Browse Lectures', href: '/student/browse-lectures', icon: BookOpen },
           { title: 'My Lectures', href: '/student/my-lectures', icon: GraduationCap },
-          { title: 'Request & Bidding', href: '/student/bidding', icon: ClipboardList },
+          { title: 'Doubt Solutions', href: '/student/bidding', icon: ClipboardList },
           { title: 'Wallet', href: '/student/wallet', icon: Wallet },
           { title: 'Buy UpCoins', href: '/student/buy-upcoins', icon: CreditCard },
           { title: 'Support', href: '/student/support', icon: HelpCircle },
@@ -91,7 +92,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Dashboard', href: '/trainer/dashboard', icon: Home },
           { title: 'List Lecture', href: '/trainer/schedule-lecture', icon: PlusCircle },
           { title: 'Manage Lectures', href: '/trainer/manage-lectures', icon: Calendar },
-          { title: 'Request & Bidding', href: '/trainer/bidding', icon: ClipboardList },
+          { title: 'Doubt Solutions', href: '/trainer/bidding', icon: ClipboardList },
           { title: 'Students', href: '/trainer/students', icon: Users },
           { title: 'Wallet & Earnings', href: '/trainer/wallet', icon: Wallet },
           { title: 'Support', href: '/trainer/support', icon: HelpCircle },
@@ -103,6 +104,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Manage Users', href: '/admin/manage-users', icon: Users, badge: pendingCount },
           { title: 'Manage Lectures', href: '/admin/manage-lectures', icon: BookOpen },
           { title: 'Withdrawal Requests', href: '/admin/withdrawals', icon: Wallet },
+          { title: 'Cancelled Requests', href: '/admin/cancelled-requests', icon: XCircle },
           { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
           { title: 'Settings', href: '/admin/settings', icon: Settings },
         ];

@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +8,14 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { 
@@ -22,11 +32,40 @@ import {
   Calendar,
   Users,
   BookOpen,
-  CheckCircle
+  CheckCircle,
+  Camera,
+  Upload
 } from 'lucide-react';
 import { trainerService } from '@/services/trainerService';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+
+function centerAspectCrop(mediaWidth: number, mediaHeight: number, aspect: number): Crop {
+  return centerCrop(
+    makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
+    mediaWidth,
+    mediaHeight
+  );
+}
+
+function getCroppedCanvas(image: HTMLImageElement, crop: Crop): Promise<Blob> {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return Promise.reject(new Error('No canvas context'));
+  const scaleX = image.naturalWidth / image.width;
+  const scaleY = image.naturalHeight / image.height;
+  const unit = crop.unit ?? '%';
+  const sx = unit === '%' ? (crop.x / 100) * image.naturalWidth : crop.x * scaleX;
+  const sy = unit === '%' ? (crop.y / 100) * image.naturalHeight : crop.y * scaleY;
+  const sw = unit === '%' ? (crop.width / 100) * image.naturalWidth : crop.width * scaleX;
+  const sh = unit === '%' ? (crop.height / 100) * image.naturalHeight : crop.height * scaleY;
+  canvas.width = Math.floor(sw);
+  canvas.height = Math.floor(sh);
+  ctx.drawImage(image, sx, sy, sw, sh, 0, 0, sw, sh);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Canvas toBlob failed'))), 'image/jpeg', 0.92);
+  });
+}
 
 interface TrainerProfile {
   _id: string;
@@ -35,13 +74,16 @@ interface TrainerProfile {
   lastname: string;
   email: string;
   role: string;
+  avatar?: string;
   bio?: string;
   experience?: number;
   expertise?: string[];
   grades?: string[];
   boards?: string[];
+  whyChooseMe?: string[];
   demoVideoUrl?: string;
   resume?: string;
+  spectatorPricePercent?: number;
   status: string;
   isApproved: boolean;
   createdAt: string;
@@ -53,12 +95,21 @@ interface TrainerProfile {
   };
 }
 
+const MAX_AVATAR_MB = 5;
+const MAX_AVATAR_BYTES = MAX_AVATAR_MB * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
 export const Settings: React.FC = () => {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<TrainerProfile | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarCropFile, setAvatarCropFile] = useState<File | null>(null);
+  const [avatarCropPreview, setAvatarCropPreview] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop>({ unit: '%', width: 90, height: 90, x: 5, y: 5 });
+  const cropImgRef = useRef<HTMLImageElement | null>(null);
   
   // Profile form state
   const [firstname, setFirstname] = useState('');
@@ -68,7 +119,9 @@ export const Settings: React.FC = () => {
   const [expertise, setExpertise] = useState<string[]>([]);
   const [grades, setGrades] = useState<string[]>([]);
   const [boards, setBoards] = useState<string[]>([]);
+  const [whyChooseMe, setWhyChooseMe] = useState<string[]>(['', '', '']);
   const [experience, setExperience] = useState(0);
+  const [spectatorPricePercent, setSpectatorPricePercent] = useState(40);
   const [newExpertise, setNewExpertise] = useState('');
 
   // Password form state
@@ -94,7 +147,10 @@ export const Settings: React.FC = () => {
       setExpertise(data.expertise || []);
       setGrades(data.grades || []);
       setBoards(data.boards || []);
+      const wcm = data.whyChooseMe || [];
+      setWhyChooseMe([wcm[0] || '', wcm[1] || '', wcm[2] || '']);
       setExperience(data.experience || 0);
+      setSpectatorPricePercent(data.spectatorPricePercent ?? 40);
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast({
@@ -122,6 +178,8 @@ export const Settings: React.FC = () => {
         expertise,
         grades: Array.isArray(grades) ? grades : [],
         boards: Array.isArray(boards) ? boards : [],
+        whyChooseMe: [whyChooseMe[0] || '', whyChooseMe[1] || '', whyChooseMe[2] || ''],
+        spectatorPricePercent,
       };
       const result = await trainerService.updateProfile(payload);
 
@@ -130,10 +188,12 @@ export const Settings: React.FC = () => {
         description: 'Profile updated successfully',
       });
 
-      // Apply returned trainer data so grades/boards are in sync
+      // Apply returned trainer data so grades/boards/whyChooseMe are in sync
       if (result?.trainer) {
         setGrades(Array.isArray(result.trainer.grades) ? result.trainer.grades : []);
         setBoards(Array.isArray(result.trainer.boards) ? result.trainer.boards : []);
+        const wcm = result.trainer.whyChooseMe || [];
+        setWhyChooseMe([wcm[0] || '', wcm[1] || '', wcm[2] || '']);
       }
       await fetchProfile();
     } catch (error) {
@@ -146,6 +206,57 @@ export const Settings: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      toast({ title: 'Invalid file', description: 'Use JPEG, PNG, WebP or GIF only.', variant: 'destructive' });
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      toast({ title: 'File too large', description: `Maximum size is ${MAX_AVATAR_MB}MB.`, variant: 'destructive' });
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setAvatarCropFile(file);
+    setAvatarCropPreview(url);
+    setCrop({ unit: '%', width: 90, height: 90, x: 5, y: 5 });
+  };
+
+  const onCropImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    setCrop(centerAspectCrop(width, height, 1));
+  };
+
+  const handleCropUpload = async () => {
+    if (!avatarCropPreview || !avatarCropFile || !cropImgRef.current) return;
+    setAvatarUploading(true);
+    try {
+      const blob = await getCroppedCanvas(cropImgRef.current, crop);
+      const file = new File([blob], avatarCropFile.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' });
+      const result = await trainerService.uploadProfilePhoto(file);
+      setProfile((prev) => (prev ? { ...prev, avatar: result.avatar } : null));
+      await refreshUser();
+      toast({ title: 'Success', description: 'Profile picture updated.' });
+      handleCropCancel();
+    } catch (err) {
+      toast({
+        title: 'Upload failed',
+        description: err instanceof Error ? err.message : 'Could not upload profile picture',
+        variant: 'destructive',
+      });
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
+  const handleCropCancel = () => {
+    if (avatarCropPreview) URL.revokeObjectURL(avatarCropPreview);
+    setAvatarCropFile(null);
+    setAvatarCropPreview(null);
   };
 
   const handleChangePassword = async () => {
@@ -253,12 +364,28 @@ export const Settings: React.FC = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-col items-center text-center">
-              <Avatar className="w-24 h-24 mb-4">
-                <AvatarImage src={profile.avatar} />
-                <AvatarFallback className="text-2xl">
-                  {profile.firstname[0]}{profile.lastname[0]}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative mb-4">
+                <Avatar className="w-24 h-24 ring-2 ring-border">
+                  <AvatarImage src={profile.avatar} alt={profile.name} className="object-cover" />
+                  <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                    {profile.firstname[0]}{profile.lastname[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleAvatarFileChange}
+                />
+                <Label
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-0 right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition hover:bg-primary/90"
+                >
+                  <Camera className="h-4 w-4" />
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground mb-1">JPEG, PNG, WebP or GIF · max 5MB</p>
               <h3 className="text-xl font-semibold">{profile.name}</h3>
               <p className="text-sm text-muted-foreground">{profile.email}</p>
               <div className="flex gap-2 mt-3">
@@ -316,6 +443,48 @@ export const Settings: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Crop & upload profile photo dialog */}
+        <Dialog open={!!avatarCropPreview} onOpenChange={(open) => !open && handleCropCancel()}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Crop profile photo</DialogTitle>
+              <DialogDescription>
+                Adjust the crop area. Only the cropped region will be uploaded (square, max 5MB).
+              </DialogDescription>
+            </DialogHeader>
+            {avatarCropPreview && (
+              <div className="flex flex-col gap-4">
+                <div className="relative max-h-[70vh] overflow-hidden rounded-lg bg-muted">
+                  <ReactCrop
+                    crop={crop}
+                    onChange={(_crop, percentCrop) => setCrop(percentCrop)}
+                    aspect={1}
+                    circularCrop
+                    className="max-h-[60vh]"
+                  >
+                    <img
+                      ref={cropImgRef}
+                      src={avatarCropPreview}
+                      alt="Crop"
+                      style={{ maxHeight: '60vh', width: 'auto' }}
+                      onLoad={onCropImageLoad}
+                    />
+                  </ReactCrop>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={handleCropCancel} disabled={avatarUploading}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCropUpload} disabled={avatarUploading}>
+                    {avatarUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    {avatarUploading ? ' Uploading…' : ' Upload'}
+                  </Button>
+                </DialogFooter>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Settings Tabs */}
         <div className="lg:col-span-2">
@@ -431,7 +600,48 @@ export const Settings: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Areas of Expertise (Subjects for Request & Bidding)</Label>
+                      <Label className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        Why Choose Me? (3 points)
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        These points are shown to students when they view your profile in Doubt Solutions. Add up to 3 reasons why students should choose you.
+                      </p>
+                      {[0, 1, 2].map((i) => (
+                        <Input
+                          key={i}
+                          value={whyChooseMe[i] ?? ''}
+                          onChange={(e) => setWhyChooseMe((prev) => {
+                            const next = [...prev];
+                            next[i] = e.target.value;
+                            return next;
+                          })}
+                          placeholder={`Point ${i + 1} (e.g. Best value on platform, Top rated tutor)`}
+                          className="mt-1"
+                          maxLength={200}
+                        />
+                      ))}
+                      <p className="text-xs text-muted-foreground">Max 200 characters per point</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Spectator price (% of lecture price)</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Default price for non-enrolled students to watch your live lectures as spectator. Applies to all your lectures. Example: 40% of a 100 UC lecture = 40 UC.
+                      </p>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={spectatorPricePercent}
+                        onChange={(e) => setSpectatorPricePercent(Math.min(100, Math.max(0, parseInt(e.target.value, 10) || 0)))}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground ml-2">%</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Areas of Expertise (Subjects for Doubt Solutions)</Label>
                       <p className="text-xs text-muted-foreground">
                         Used to match you to student doubt requests. Use the same names students use: Mathematics, Physics, Chemistry, Biology, Science, English, Hindi, Social Studies, Accountancy, Business Studies, Economics, Computer Science, Other.
                       </p>
@@ -467,7 +677,7 @@ export const Settings: React.FC = () => {
 
                     <Separator />
 
-                    <h4 className="font-semibold text-sm text-muted-foreground">Request & Bidding filters (optional)</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground">Doubt Solutions filters (optional)</h4>
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Grades you teach</Label>

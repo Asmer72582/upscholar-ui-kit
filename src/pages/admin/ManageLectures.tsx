@@ -13,7 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Clock, Download, Video, Users, Calendar, RefreshCw, Plus, Edit, Trash2 } from 'lucide-react';
+import { Search, MoreHorizontal, Eye, CheckCircle, XCircle, Clock, Download, Video, Users, Calendar, RefreshCw, Plus, Edit, Trash2, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { adminService } from '@/services/adminService';
 import { lectureService, CreateLectureData } from '@/services/lectureService';
@@ -642,7 +642,11 @@ export const ManageLectures: React.FC = () => {
                                     onClick={() => approveLecture(lecture.id)}
                                     disabled={actionLoading === lecture.id}
                                   >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    {actionLoading === lecture.id ? (
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    ) : (
+                                      <CheckCircle className="w-4 h-4 mr-2" />
+                                    )}
                                     {actionLoading === lecture.id ? 'Approving...' : 'Approve'}
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
@@ -702,7 +706,11 @@ export const ManageLectures: React.FC = () => {
                                 onClick={() => approveLecture(lecture.id)}
                                 disabled={actionLoading === lecture.id}
                               >
-                                <CheckCircle className="w-3 h-3 mr-1" />
+                                {actionLoading === lecture.id ? (
+                                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                )}
                                 {actionLoading === lecture.id ? 'Approving...' : 'Approve'}
                               </Button>
                               <Button 

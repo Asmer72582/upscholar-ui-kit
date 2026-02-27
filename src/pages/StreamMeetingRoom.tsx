@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { API_URL } from '@/config/env';
@@ -44,7 +44,8 @@ const MeetingUI: React.FC<{
   lectureId: string;
   userName: string;
   userId: string;
-}> = ({ onLeave, lectureId, userName, userId }) => {
+  isSpectator?: boolean;
+}> = ({ onLeave, lectureId, userName, userId, isSpectator = false }) => {
   const call = useCall();
   const { useCallCallingState, useParticipantCount, useLocalParticipant, useRemoteParticipants } = useCallStateHooks();
   const callingState = useCallCallingState();
@@ -121,41 +122,49 @@ const MeetingUI: React.FC<{
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 p-4 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold">Meeting Room</h1>
+          <h1 className="text-xl font-semibold">
+            {isSpectator ? 'Watching as spectator' : 'Meeting Room'}
+          </h1>
+          {isSpectator && (
+            <span className="px-2 py-0.5 text-xs font-medium rounded bg-amber-600/80 text-white">
+              View only · No mic, no chat
+            </span>
+          )}
           <span className="text-sm text-gray-400">
             {participantCount} participant{participantCount !== 1 ? 's' : ''}
           </span>
         </div>
-        
+
         <div className="flex items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={copyMeetingUrl}
-            className="border-gray-600"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? 'Copied!' : 'Copy URL'}
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowChat(!showChat)}
-            className="border-gray-600"
-          >
-            <MessageSquare className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            className="border-gray-600"
-          >
-            <Users className="h-4 w-4" />
-            {participantCount}
-          </Button>
-          
+          {!isSpectator && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyMeetingUrl}
+                className="border-gray-600"
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? 'Copied!' : 'Copy URL'}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowChat(!showChat)}
+                className="border-gray-600"
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-gray-600"
+              >
+                <Users className="h-4 w-4" />
+                {participantCount}
+              </Button>
+            </>
+          )}
           <Button
             variant="destructive"
             size="sm"
@@ -169,14 +178,14 @@ const MeetingUI: React.FC<{
 
       <div className="flex h-[calc(100vh-140px)]">
         {/* Main video area */}
-        <div className={`${showChat ? 'flex-1' : 'w-full'} p-4 transition-all duration-300`}>
+        <div className={`${!isSpectator && showChat ? 'flex-1' : 'w-full'} p-4 transition-all duration-300`}>
           <StreamTheme>
             <SpeakerLayout participantsBarPosition="bottom" />
           </StreamTheme>
         </div>
 
-        {/* Chat sidebar */}
-        {showChat && (
+        {/* Chat sidebar - hidden for spectators */}
+        {!isSpectator && showChat && (
           <div className="w-80 bg-gray-800 border-l border-gray-700 flex flex-col">
             <div className="p-4 border-b border-gray-700 flex items-center justify-between">
               <h3 className="font-semibold">Chat</h3>
@@ -189,7 +198,7 @@ const MeetingUI: React.FC<{
                 ×
               </Button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 ? (
                 <div className="text-center text-gray-400 mt-8">
@@ -199,11 +208,11 @@ const MeetingUI: React.FC<{
                 </div>
               ) : (
                 messages.map((message) => (
-                  <div 
-                    key={message.id} 
+                  <div
+                    key={message.id}
                     className={`p-3 rounded-lg ${
-                      message.userId === userId 
-                        ? 'bg-blue-600 ml-auto max-w-[80%]' 
+                      message.userId === userId
+                        ? 'bg-blue-600 ml-auto max-w-[80%]'
                         : 'bg-gray-700 max-w-[80%]'
                     }`}
                   >
@@ -221,7 +230,7 @@ const MeetingUI: React.FC<{
               )}
               <div ref={chatEndRef} />
             </div>
-            
+
             <div className="p-4 border-t border-gray-700">
               <div className="flex space-x-2">
                 <Input
@@ -232,8 +241,8 @@ const MeetingUI: React.FC<{
                   onKeyPress={(e: React.KeyboardEvent<HTMLInputElement>) => e.key === 'Enter' && sendMessage()}
                   className="flex-1 bg-gray-700 border-gray-600 text-white placeholder-gray-400"
                 />
-                <Button 
-                  onClick={sendMessage} 
+                <Button
+                  onClick={sendMessage}
                   size="sm"
                   disabled={!newMessage.trim()}
                 >
@@ -245,12 +254,19 @@ const MeetingUI: React.FC<{
         )}
       </div>
 
-      {/* Bottom controls - mic, camera, screen share, leave (CallControls includes all) */}
+      {/* Bottom controls - only Leave for spectators; full CallControls for participants */}
       <div className="bg-gray-800 border-t border-gray-700 p-4">
         <div className="flex items-center justify-center">
-          <StreamTheme>
-            <CallControls onLeave={handleLeave} />
-          </StreamTheme>
+          {isSpectator ? (
+            <Button variant="destructive" onClick={handleLeave}>
+              <PhoneOff className="h-4 w-4 mr-2" />
+              Leave
+            </Button>
+          ) : (
+            <StreamTheme>
+              <CallControls onLeave={handleLeave} />
+            </StreamTheme>
+          )}
         </div>
       </div>
     </div>
@@ -259,8 +275,10 @@ const MeetingUI: React.FC<{
 
 export const StreamMeetingRoom: React.FC = () => {
   const { lectureId } = useParams<{ lectureId: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isSpectator = searchParams.get('spectator') === 'true';
   
   const [client, setClient] = useState<StreamVideoClient | null>(null);
   const [call, setCall] = useState<ReturnType<StreamVideoClient['call']> | null>(null);
@@ -419,6 +437,7 @@ export const StreamMeetingRoom: React.FC = () => {
           lectureId={lectureId || ''}
           userName={`${(user as any)?.firstname ?? user?.firstName ?? ''} ${(user as any)?.lastname ?? user?.lastName ?? ''}`.trim() || user?.email || 'You'}
           userId={user?.id || ''}
+          isSpectator={isSpectator}
         />
       </StreamCall>
     </StreamVideo>

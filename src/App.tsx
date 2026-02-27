@@ -37,6 +37,7 @@ import { ManageCourses as ManageCoursesAdmin } from "./pages/admin/ManageCourses
 import { AdminSettings } from "./pages/admin/Settings";
 import { Analytics } from "./pages/admin/Analytics";
 import { WithdrawalRequests } from "./pages/admin/WithdrawalRequests";
+import { CancelledRequests } from "./pages/admin/CancelledRequests";
 import { LiveLecture } from "./pages/LiveLecture";
 import { StreamMeetingRoom } from "./pages/StreamMeetingRoom";
 import { TrainerApplicationSuccess } from "./pages/TrainerApplicationSuccess";
@@ -112,6 +113,7 @@ const App = () => (
               <Route path="lectures/:id" element={<AdminLectureDetails />} />
               <Route path="manage-courses" element={<ManageCoursesAdmin />} />
               <Route path="withdrawals" element={<WithdrawalRequests />} />
+              <Route path="cancelled-requests" element={<CancelledRequests />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>

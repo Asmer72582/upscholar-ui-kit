@@ -67,6 +67,9 @@ export interface Lecture {
   enrolledCount: number;
   isFull: boolean;
   canBeCancelled: boolean;
+  spectatorPrice?: number;
+  spectatorPriceRaw?: number | null;
+  hasPaidSpectator?: boolean;
 }
 
 export interface CreateLectureData {
@@ -79,6 +82,7 @@ export interface CreateLectureData {
   scheduledAt: string;
   maxStudents: number;
   meetingLink?: string;
+  spectatorPrice?: number | null;
 }
 
 // API Response Interfaces
@@ -222,6 +226,7 @@ class LectureService {
       const response = await fetch(`${LECTURE_API_URL}/${id}`, {
         ...fetchConfig,
         method: 'GET',
+        headers: getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -548,6 +553,9 @@ class LectureService {
     enrolledCount?: number;
     isFull?: boolean;
     canBeCancelled?: boolean;
+    spectatorPrice?: number;
+    spectatorPriceRaw?: number | null;
+    hasPaidSpectator?: boolean;
   }): Lecture {
     return {
       id: lecture._id,
@@ -611,7 +619,23 @@ class LectureService {
       enrolledCount: lecture.enrolledCount || lecture.enrolledStudents?.length || 0,
       isFull: lecture.isFull || false,
       canBeCancelled: lecture.canBeCancelled || false,
+      spectatorPrice: lecture.spectatorPrice,
+      spectatorPriceRaw: lecture.spectatorPriceRaw,
+      hasPaidSpectator: lecture.hasPaidSpectator,
     };
+  }
+
+  async payForSpectator(lectureId: string): Promise<{ success: boolean; alreadyPaid?: boolean; amount: number; message: string }> {
+    const response = await fetch(`${LECTURE_API_URL}/${lectureId}/spectator-pay`, {
+      ...fetchConfig,
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to pay for spectator access');
+    }
+    return response.json();
   }
 }
 

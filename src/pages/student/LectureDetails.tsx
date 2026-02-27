@@ -27,6 +27,8 @@ export const LectureDetails: React.FC = () => {
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [showSpectatorPayDialog, setShowSpectatorPayDialog] = useState(false);
+  const [payingSpectator, setPayingSpectator] = useState(false);
 
   useEffect(() => {
     const fetchBalance = async () => {
@@ -176,6 +178,30 @@ export const LectureDetails: React.FC = () => {
   const handleJoinMeeting = () => {
     if (lecture) {
       navigate(`/meeting/${lecture.id}`);
+    }
+  };
+
+  const handlePaySpectator = async () => {
+    if (!id || !lecture) return;
+    const spectatorPrice = lecture.spectatorPrice ?? Math.round(lecture.price * 0.4);
+    if (userBalance < spectatorPrice) {
+      toast.error('Insufficient balance');
+      return;
+    }
+    try {
+      setPayingSpectator(true);
+      await lectureService.payForSpectator(id);
+      toast.success('Payment successful. Joining as spectator...');
+      setShowSpectatorPayDialog(false);
+      const balance = await walletService.getBalance();
+      setUserBalance(balance.balance);
+      const updated = await lectureService.getLectureById(id);
+      setLecture(updated);
+      navigate(`/meeting/${lecture.id}?spectator=true`);
+    } catch (e: any) {
+      toast.error(e.message || 'Payment failed');
+    } finally {
+      setPayingSpectator(false);
     }
   };
 
@@ -520,8 +546,52 @@ export const LectureDetails: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  // Not enrolled - show enrollment options
+                  // Not enrolled - show enrollment options or spectator when live
                   <div>
+                    {getLectureStatus() === 'live' && (
+                      <div className="mb-4 p-4 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Not enrolled? You can still watch</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Join as spectator: view and listen only. No mic, no chat, no camera.</p>
+                        {(() => {
+                          const spectatorPrice = lecture.spectatorPrice ?? Math.round(lecture.price * 0.4);
+                          const hasPaid = lecture.hasPaidSpectator === true;
+                          const canAffordSpectator = userBalance >= spectatorPrice;
+                          if (spectatorPrice > 0 && !hasPaid) {
+                            return (
+                              <>
+                                <div className="flex items-center justify-between text-sm mb-3">
+                                  <span className="text-slate-600 dark:text-slate-400">Spectator cost:</span>
+                                  <span className="font-medium">{spectatorPrice} UC</span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm mb-3">
+                                  <span className="text-slate-600 dark:text-slate-400">Your balance:</span>
+                                  <span className={canAffordSpectator ? 'text-green-600' : 'text-red-600'}>{userBalance} UC</span>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  className="w-full border-slate-400"
+                                  disabled={!canAffordSpectator}
+                                  onClick={() => setShowSpectatorPayDialog(true)}
+                                >
+                                  <Coins className="w-4 h-4 mr-2" />
+                                  Pay {spectatorPrice} UC and watch as spectator
+                                </Button>
+                              </>
+                            );
+                          }
+                          return (
+                            <Button
+                              variant="outline"
+                              className="w-full border-slate-400"
+                              onClick={() => navigate(`/meeting/${lecture.id}?spectator=true`)}
+                            >
+                              <Video className="w-4 h-4 mr-2" />
+                              {hasPaid ? 'Watch as spectator' : 'Watch as spectator (free)'}
+                            </Button>
+                          );
+                        })()}
+                      </div>
+                    )}
                     {isPastLecture() ? (
                       <div className="p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-center">
                         <AlertCircle className="w-8 h-8 text-amber-600 mx-auto mb-2" />
@@ -530,7 +600,7 @@ export const LectureDetails: React.FC = () => {
                           This lecture has already ended. You cannot enroll in past lectures.
                         </p>
                       </div>
-                    ) : (
+                    ) : getLectureStatus() === 'live' ? null : (
                       <>
                     <div className="text-center mb-4">
                       <p className="text-2xl font-bold flex items-center justify-center gap-2">
@@ -539,7 +609,7 @@ export const LectureDetails: React.FC = () => {
                       </p>
                       <p className="text-sm text-muted-foreground">One-time payment</p>
                     </div>
-                    
+
                     <div className="mb-4 p-3 bg-muted rounded-lg">
                       <div className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-2">
@@ -665,6 +735,46 @@ export const LectureDetails: React.FC = () => {
             </Card>
           </div>
         </div>
+
+        {/* Spectator payment dialog */}
+        <Dialog open={showSpectatorPayDialog} onOpenChange={setShowSpectatorPayDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Pay to watch as spectator</DialogTitle>
+              <DialogDescription>
+                View and listen only. No mic, no chat, no camera.
+              </DialogDescription>
+            </DialogHeader>
+            {lecture && (
+              <div className="space-y-4">
+                <div className="p-4 border rounded-lg space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span>Spectator cost:</span>
+                    <span className="font-medium">{lecture.spectatorPrice ?? Math.round(lecture.price * 0.4)} UC</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Your balance:</span>
+                    <span className={userBalance >= (lecture.spectatorPrice ?? Math.round(lecture.price * 0.4)) ? 'text-green-600' : 'text-red-600'}>
+                      {userBalance} UC
+                    </span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setShowSpectatorPayDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={userBalance < (lecture.spectatorPrice ?? Math.round(lecture.price * 0.4)) || payingSpectator}
+                    onClick={handlePaySpectator}
+                  >
+                    {payingSpectator ? 'Processing...' : 'Pay and watch'}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Review Dialog */}
         <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>

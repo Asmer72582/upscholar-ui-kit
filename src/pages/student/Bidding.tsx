@@ -193,17 +193,6 @@ export const StudentBidding: React.FC = () => {
     setTrainerProfile(null);
   };
 
-  const handleComplete = async (ticketId: string) => {
-    try {
-      await biddingService.completeTicket(ticketId);
-      toast.success('Session marked complete. You can now rate the trainer.');
-      setSelectedTicket(null);
-      fetchTickets();
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to complete');
-    }
-  };
-
   const openRate = (ticketId: string) => {
     setRateTicketId(ticketId);
     setRateValue(5);
@@ -514,7 +503,6 @@ export const StudentBidding: React.FC = () => {
 
                 {selectedTicket.status === 'Booked' && (
                   <div className="flex flex-wrap gap-2 pt-4 border-t">
-                    <Button size="sm" onClick={() => handleComplete(selectedTicket._id)}>Mark session completed</Button>
                     <Button size="sm" variant="outline" onClick={() => openCancel(selectedTicket._id, true)}>Cancel request</Button>
                   </div>
                 )}
@@ -609,7 +597,6 @@ export const StudentBidding: React.FC = () => {
                     <span className="flex items-center gap-2"><Clock className="h-4 w-4" /> Duration: {profileModalProposal.duration} Minutes</span>
                     <span className="flex items-center gap-2 sm:col-span-2"><Calendar className="h-4 w-4" /> Available: {new Date(profileModalProposal.date).toLocaleDateString()}, {profileModalProposal.time}</span>
                     <span className="flex items-center gap-2 sm:col-span-2"><Video className="h-4 w-4" /> Live Video · Chat · Whiteboard</span>
-                    <span className="flex items-center gap-2 sm:col-span-2"><CheckCircle className="h-4 w-4 text-green-600" /> Satisfaction Guaranteed · Partial Refund if Unsatisfied</span>
                   </div>
                 </div>
 

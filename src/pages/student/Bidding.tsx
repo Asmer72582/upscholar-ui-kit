@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,8 @@ import {
   Lock,
   Video,
   Search,
+  Paperclip,
+  X,
 } from 'lucide-react';
 import { biddingService, type Ticket, type Proposal, type CreateTicketData } from '@/services/biddingService';
 import { toast } from 'sonner';
@@ -78,6 +80,7 @@ export const StudentBidding: React.FC = () => {
   const [form, setForm] = useState<CreateTicketData>({
     grade: '',
     board: '',
+    state: '',
     subject: '',
     bookName: '',
     publicationName: '',
@@ -85,7 +88,10 @@ export const StudentBidding: React.FC = () => {
     chapterName: '',
     topicName: '',
     description: '',
+    attachments: [],
   });
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchTickets = async (page = 1) => {
     setLoading(true);
@@ -115,13 +121,17 @@ export const StudentBidding: React.FC = () => {
       toast.error('Please fill all required fields');
       return;
     }
+    if (form.board === 'SSC' && !form.state?.trim()) {
+      toast.error('Please specify your state for SSC board');
+      return;
+    }
     setLoading(true);
     try {
       await biddingService.createTicket(form);
       toast.success('Request created. Trainers will be notified.');
       setForm({
-        grade: '', board: '', subject: '', bookName: '', publicationName: '', authorName: '',
-        chapterName: '', topicName: '', description: '',
+        grade: '', board: '', state: '', subject: '', bookName: '', publicationName: '', authorName: '',
+        chapterName: '', topicName: '', description: '', attachments: [],
       });
       setActiveTab('requests');
       fetchTickets(1);
@@ -291,7 +301,18 @@ export const StudentBidding: React.FC = () => {
                   </div>
                   <div className="space-y-2">
                     <Label>Board *</Label>
-                    <Select value={form.board || undefined} onValueChange={(v) => setForm((f) => ({ ...f, board: v }))} required>
+                    <Select
+                      value={form.board || undefined}
+                      onValueChange={(v) =>
+                        setForm((f) => ({
+                          ...f,
+                          board: v,
+                          // Clear state when switching away from SSC so we don't send stale data
+                          state: v === 'SSC' ? f.state : '',
+                        }))
+                      }
+                      required
+                    >
                       <SelectTrigger><SelectValue placeholder="Select board" /></SelectTrigger>
                       <SelectContent>
                         {BOARD_OPTIONS.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
@@ -309,6 +330,20 @@ export const StudentBidding: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {form.board === 'SSC' && (
+                    <div className="space-y-2">
+                      <Label>State (for SSC board) *</Label>
+                      <Input
+                        value={form.state || ''}
+                        onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+                        placeholder="e.g. Maharashtra, Gujarat, Karnataka"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Required when you select SSC board so we can match trainers from your state syllabus.
+                      </p>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label>Book name *</Label>
                     <Input
@@ -365,6 +400,86 @@ export const StudentBidding: React.FC = () => {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1">
+                    <Paperclip className="h-4 w-4" /> Attachments (optional)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Upload images or PDF to better explain your doubt. Max 10MB per file.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      multiple
+                      className="sr-only"
+                      disabled={uploadingFile}
+                      onChange={async (e) => {
+                        const files = e.target.files;
+                        if (!files?.length) return;
+                        setUploadingFile(true);
+                        try {
+                          for (let i = 0; i < files.length; i++) {
+                            const file = files[i];
+                            if (file.size > 10 * 1024 * 1024) {
+                              toast.error(`${file.name} is over 10MB. Skipped.`);
+                              continue;
+                            }
+                            const result = await biddingService.uploadDoubtFile(file);
+                            setForm((f) => ({
+                              ...f,
+                              attachments: [...(f.attachments || []), { url: result.url, name: result.name || file.name }],
+                            }));
+                          }
+                        } catch (err: unknown) {
+                          toast.error(err instanceof Error ? err.message : 'Failed to upload file');
+                        } finally {
+                          setUploadingFile(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1"
+                      disabled={uploadingFile}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      {uploadingFile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                      {uploadingFile ? 'Uploading...' : 'Add file'}
+                    </Button>
+                    {(form.attachments?.length ?? 0) > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {form.attachments?.map((att, idx) => (
+                          <span
+                            key={`${att.url}-${idx}`}
+                            className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-sm"
+                          >
+                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate max-w-[140px]">
+                              {att.name || 'Attachment'}
+                            </a>
+                            <button
+                              type="button"
+                              aria-label="Remove"
+                              className="text-muted-foreground hover:text-foreground"
+                              onClick={() =>
+                                setForm((f) => ({
+                                  ...f,
+                                  attachments: f.attachments?.filter((_, i) => i !== idx) ?? [],
+                                }))
+                              }
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 <Button type="submit" disabled={loading} className="gap-2">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   Submit request
@@ -413,6 +528,7 @@ export const StudentBidding: React.FC = () => {
                       </div>
                       <span className="text-sm text-muted-foreground">
                         {t.subject} · {t.grade} · {t.board}
+                        {t.board === 'SSC' && (t as any).state ? ` · ${(t as any).state}` : ''}
                       </span>
                     </div>
                     <p className="mt-2 font-medium">{t.chapterName} – {t.topicName}</p>
@@ -442,10 +558,30 @@ export const StudentBidding: React.FC = () => {
                 <Badge className={getStatusColor(selectedTicket.status)}>{selectedTicket.status}</Badge>
               </DialogTitle>
               <DialogDescription>
-                {selectedTicket.subject} · Grade {selectedTicket.grade} · {selectedTicket.board} · {selectedTicket.chapterName} – {selectedTicket.topicName}
+                {selectedTicket.subject} · Grade {selectedTicket.grade} · {selectedTicket.board}
+                {selectedTicket.board === 'SSC' && (selectedTicket as any).state ? ` · ${(selectedTicket as any).state}` : ''} · {selectedTicket.chapterName} – {selectedTicket.topicName}
               </DialogDescription>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">{selectedTicket.description}</p>
+            {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">Attachments</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedTicket.attachments.map((att, i) => (
+                    <a
+                      key={i}
+                      href={att.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                    >
+                      <Paperclip className="h-3.5 w-3.5" />
+                      {att.name || 'Attachment'}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {detailLoading ? (
               <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin" /></div>

@@ -528,19 +528,23 @@ export const TrainerLectureDetails: React.FC = () => {
             <CardContent>
               {lecture.enrolledStudents.length > 0 ? (
                 <div className="space-y-4">
-                  {lecture.enrolledStudents.map((enrollment) => (
+                  {lecture.enrolledStudents.map((enrollment) => {
+                    const studentName = (enrollment.student.firstname && enrollment.student.lastname)
+                      ? `${enrollment.student.firstname} ${enrollment.student.lastname}`
+                      : (enrollment.student as { name?: string }).name || 'Student';
+                    const initials = (enrollment.student.firstname?.[0] || '') + (enrollment.student.lastname?.[0] || '') || studentName.slice(0, 2).toUpperCase();
+                    return (
                     <div key={enrollment.student.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Avatar className="w-8 h-8">
                           <AvatarImage src={enrollment.student.avatar} />
-                          <AvatarFallback>
-                            {enrollment.student.firstname[0]}{enrollment.student.lastname[0]}
-                          </AvatarFallback>
+                          <AvatarFallback>{initials}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="text-sm font-medium">
-                            {enrollment.student.firstname} {enrollment.student.lastname}
-                          </p>
+                          <p className="text-sm font-medium">{studentName}</p>
+                          {enrollment.student.email && (
+                            <p className="text-xs text-muted-foreground">{enrollment.student.email}</p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             Enrolled on {new Date(enrollment.enrolledAt).toLocaleDateString()}
                           </p>
@@ -552,7 +556,8 @@ export const TrainerLectureDetails: React.FC = () => {
                         </Badge>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-4">

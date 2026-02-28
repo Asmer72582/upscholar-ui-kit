@@ -582,6 +582,7 @@ class LectureService {
           id: enrollment.student._id,
           firstname: enrollment.student.firstname,
           lastname: enrollment.student.lastname,
+          name: enrollment.student.name,
           email: enrollment.student.email,
           avatar: enrollment.student.avatar,
         },

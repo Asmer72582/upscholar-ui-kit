@@ -17,6 +17,7 @@ export interface Ticket {
   student: string | { _id: string; name?: string; email?: string };
   grade: string;
   board: string;
+  state?: string;
   subject: string;
   bookName: string;
   publicationName?: string;
@@ -25,6 +26,7 @@ export interface Ticket {
   topicName: string;
   description: string;
   status: TicketStatus;
+  attachments?: Array<{ url: string; name?: string }>;
   biddingStartedAt?: string;
   selectedProposal?: string | Proposal;
   escrowAmount?: number;
@@ -58,6 +60,7 @@ export interface Proposal {
 export interface CreateTicketData {
   grade: string;
   board: string;
+  state?: string;
   subject: string;
   bookName: string;
   publicationName?: string;
@@ -65,6 +68,7 @@ export interface CreateTicketData {
   chapterName: string;
   topicName: string;
   description: string;
+  attachments?: Array<{ url: string; name?: string }>;
 }
 
 export interface CreateProposalData {
@@ -77,7 +81,28 @@ export interface CreateProposalData {
 
 const BASE = `${API_URL}/bidding`;
 
+const getAuthHeadersForUpload = (): HeadersInit => {
+  const token = localStorage.getItem('upscholer_token');
+  return { 'x-auth-token': token || '' };
+};
+
 export const biddingService = {
+  async uploadDoubtFile(file: File): Promise<{ url: string; name?: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE}/upload-doubt-file`, {
+      method: 'POST',
+      headers: getAuthHeadersForUpload(),
+      body: formData,
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to upload file');
+    }
+    return res.json();
+  },
+
   async createTicket(data: CreateTicketData): Promise<{ success: boolean; ticket: { id: string; ticketId: string; status: string; createdAt: string } }> {
     const res = await fetch(`${BASE}/tickets`, {
       method: 'POST',

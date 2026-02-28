@@ -605,7 +605,7 @@ export const Settings: React.FC = () => {
                         Why Choose Me? (3 points)
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        These points are shown to students when they view your profile in Doubt Solutions. Add up to 3 reasons why students should choose you.
+                        These points are shown to students when they view your profile in Bit and Teach. Add up to 3 reasons why students should choose you.
                       </p>
                       {[0, 1, 2].map((i) => (
                         <Input
@@ -641,7 +641,7 @@ export const Settings: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Areas of Expertise (Subjects for Doubt Solutions)</Label>
+                      <Label>Areas of Expertise (Subjects for Bit and Teach)</Label>
                       <p className="text-xs text-muted-foreground">
                         Used to match you to student doubt requests. Use the same names students use: Mathematics, Physics, Chemistry, Biology, Science, English, Hindi, Social Studies, Accountancy, Business Studies, Economics, Computer Science, Other.
                       </p>
@@ -677,7 +677,7 @@ export const Settings: React.FC = () => {
 
                     <Separator />
 
-                    <h4 className="font-semibold text-sm text-muted-foreground">Doubt Solutions filters (optional)</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground">Bit and Teach filters (optional)</h4>
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Grades you teach</Label>

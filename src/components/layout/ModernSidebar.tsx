@@ -92,7 +92,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Dashboard', href: '/trainer/dashboard', icon: Home },
           { title: 'List Lecture', href: '/trainer/schedule-lecture', icon: PlusCircle },
           { title: 'Manage Lectures', href: '/trainer/manage-lectures', icon: Calendar },
-          { title: 'Doubt Solutions', href: '/trainer/bidding', icon: ClipboardList },
+          { title: 'Bit and Teach', href: '/trainer/bidding', icon: ClipboardList },
           { title: 'Students', href: '/trainer/students', icon: Users },
           { title: 'Wallet & Earnings', href: '/trainer/wallet', icon: Wallet },
           { title: 'Support', href: '/trainer/support', icon: HelpCircle },

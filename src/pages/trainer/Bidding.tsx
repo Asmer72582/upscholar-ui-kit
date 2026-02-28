@@ -27,6 +27,11 @@ import {
   Info,
   BookOpen,
   Search,
+  Paperclip,
+  ExternalLink,
+  Eye,
+  Download,
+  User,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { biddingService, type Ticket, type Proposal, type CreateProposalData } from '@/services/biddingService';
@@ -49,6 +54,7 @@ export const TrainerBidding: React.FC = () => {
   const [paginationTickets, setPaginationTickets] = useState({ page: 1, limit: 10, total: 0, pages: 0 });
   const [paginationProposals, setPaginationProposals] = useState({ page: 1, limit: 10, total: 0, pages: 0 });
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [detailsTicket, setDetailsTicket] = useState<Ticket | null>(null);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [proposalForm, setProposalForm] = useState<CreateProposalData>({
     date: '',
@@ -98,6 +104,7 @@ export const TrainerBidding: React.FC = () => {
   }, [activeTab, debouncedSearchTickets, debouncedSearchProposals]);
 
   const openSubmitProposal = (t: Ticket) => {
+    setDetailsTicket(null);
     setSelectedTicket(t);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -109,6 +116,10 @@ export const TrainerBidding: React.FC = () => {
       message: '',
     });
     setSubmitOpen(true);
+  };
+
+  const openDetails = (t: Ticket) => {
+    setDetailsTicket(t);
   };
 
   const submitProposal = async (e: React.FormEvent) => {
@@ -155,7 +166,7 @@ export const TrainerBidding: React.FC = () => {
     setCreatingLectureTicketId(ticketId);
     try {
       const res = await biddingService.createLectureFromTicket(ticketId);
-      toast.success(res.message || 'Lecture created. Student is already enrolled.');
+      toast.success(res.message || 'Lecture created and scheduled. Student is already enrolled.');
       fetchProposals();
     } catch (e: any) {
       toast.error(e.message || 'Failed to create lecture');
@@ -167,7 +178,7 @@ export const TrainerBidding: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Doubt Solutions</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Bit and Teach</h1>
         <p className="text-muted-foreground">Browse doubt requests from students and submit your proposals (up to 3 per request).</p>
       </div>
 
@@ -228,8 +239,15 @@ export const TrainerBidding: React.FC = () => {
                       <span className="font-mono font-medium">{t.ticketId}</span>
                       <Badge className={getStatusColor(t.status)}>{t.status}</Badge>
                     </div>
+                    {typeof t.student === 'object' && t.student && (
+                      <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
+                        <User className="h-3.5 w-3.5" />
+                        Requested by: {t.student.name || t.student.email || 'Student'}
+                      </p>
+                    )}
                     <p className="mt-2 text-sm text-muted-foreground">
                       {t.subject} · Grade {t.grade} · {t.board}
+                      {t.board === 'SSC' && (t as any).state ? ` · ${(t as any).state}` : ''}
                     </p>
                     <p className="font-medium">{t.chapterName} – {t.topicName}</p>
                     <p className="text-sm text-muted-foreground line-clamp-2">{t.description}</p>
@@ -237,9 +255,20 @@ export const TrainerBidding: React.FC = () => {
                       Book: {t.bookName}
                       {t.publicationName && ` · ${t.publicationName}`}
                     </p>
-                    <Button size="sm" className="mt-3 gap-1" onClick={() => openSubmitProposal(t)}>
-                      <Send className="h-4 w-4" /> Submit proposal
-                    </Button>
+                    {(t as Ticket & { attachments?: Array<{ url: string; name?: string }> }).attachments?.length ? (
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                        <Paperclip className="h-3.5 w-3.5" />
+                        {(t as Ticket & { attachments?: unknown[] }).attachments?.length} attachment(s)
+                      </p>
+                    ) : null}
+                    <div className="flex gap-2 mt-3">
+                      <Button size="sm" variant="outline" className="gap-1" onClick={() => openDetails(t)}>
+                        <Eye className="h-4 w-4" /> View details
+                      </Button>
+                      <Button size="sm" className="gap-1" onClick={() => openSubmitProposal(t)}>
+                        <Send className="h-4 w-4" /> Submit proposal
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
@@ -302,9 +331,17 @@ export const TrainerBidding: React.FC = () => {
                         </div>
                       </div>
                       {ticket && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {ticket.subject} · {ticket.chapterName} – {ticket.topicName}
-                        </p>
+                        <>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {ticket.subject} · {ticket.chapterName} – {ticket.topicName}
+                          </p>
+                          {typeof ticket.student === 'object' && ticket.student && (
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <User className="h-3.5 w-3.5" />
+                              Requested by: {ticket.student.name || ticket.student.email || 'Student'}
+                            </p>
+                          )}
+                        </>
                       )}
                       <div className="mt-2 flex flex-wrap gap-4 text-sm">
                         <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {new Date(p.date).toLocaleDateString()} · {p.time}</span>
@@ -327,7 +364,7 @@ export const TrainerBidding: React.FC = () => {
                             )}
                             Create Lecture
                           </Button>
-                          <p className="text-xs text-muted-foreground mt-1">Creates a 1-on-1 lecture (pending). Student is already enrolled; no further enrollments. Admin must approve the lecture.</p>
+                          <p className="text-xs text-muted-foreground mt-1">Creates a 1-on-1 lecture and schedules it. Student is already enrolled; no further enrollments.</p>
                         </div>
                       )}
                       {p.status === 'Accepted' && ticket && (ticket as Ticket).lecture && (
@@ -355,9 +392,133 @@ export const TrainerBidding: React.FC = () => {
         </TabsContent>
       </Tabs>
 
+      {/* Request details modal */}
+      <Dialog open={!!detailsTicket} onOpenChange={(open) => !open && setDetailsTicket(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {detailsTicket && (
+                <>
+                  <span className="font-mono">{detailsTicket.ticketId}</span>
+                  <Badge className={getStatusColor(detailsTicket.status)}>{detailsTicket.status}</Badge>
+                </>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {detailsTicket && (
+                <>Request details · {detailsTicket.subject} · Grade {detailsTicket.grade} · {detailsTicket.board}
+                  {detailsTicket.board === 'SSC' && (detailsTicket as Ticket & { state?: string }).state ? ` · ${(detailsTicket as Ticket & { state?: string }).state}` : ''}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {detailsTicket && (
+            <div className="space-y-4 py-2">
+              {typeof detailsTicket.student === 'object' && detailsTicket.student && (
+                <div className="rounded-lg border bg-muted/30 p-3">
+                  <p className="text-xs text-muted-foreground mb-1 flex items-center gap-1">
+                    <User className="h-4 w-4" /> Requested by
+                  </p>
+                  <p className="font-medium">{detailsTicket.student.name || 'Student'}</p>
+                  {detailsTicket.student.email && (
+                    <p className="text-sm text-muted-foreground">{detailsTicket.student.email}</p>
+                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Subject</p>
+                  <p className="font-medium">{detailsTicket.subject}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Grade · Board</p>
+                  <p className="font-medium">{detailsTicket.grade} · {detailsTicket.board}
+                    {detailsTicket.board === 'SSC' && (detailsTicket as Ticket & { state?: string }).state ? ` · ${(detailsTicket as Ticket & { state?: string }).state}` : ''}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Chapter · Topic</p>
+                  <p className="font-medium">{detailsTicket.chapterName} · {detailsTicket.topicName}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Book</p>
+                  <p className="font-medium">{detailsTicket.bookName}
+                    {detailsTicket.publicationName && ` · ${detailsTicket.publicationName}`}
+                    {detailsTicket.authorName && ` · ${detailsTicket.authorName}`}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-sm mb-1">Description</p>
+                <p className="text-sm rounded-md border bg-muted/30 p-3">{detailsTicket.description}</p>
+              </div>
+              {detailsTicket.attachments && detailsTicket.attachments.length > 0 && (
+                <div>
+                  <p className="text-muted-foreground text-sm mb-2 flex items-center gap-1">
+                    <Paperclip className="h-4 w-4" /> Attachments
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    {detailsTicket.attachments.map((att, i) => {
+                      const isImage = /\.(jpe?g|png|gif|webp|bmp)$/i.test(att.name || '');
+                      const fileName = att.name || `attachment-${i + 1}`;
+                      return (
+                        <div key={i} className="rounded-lg border bg-muted/20 p-3 flex flex-col gap-2 min-w-[140px]">
+                          {isImage ? (
+                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="block rounded border overflow-hidden bg-muted w-32 h-32 shrink-0">
+                              <img src={att.url} alt={fileName} className="w-full h-full object-cover" />
+                            </a>
+                          ) : (
+                            <div className="w-32 h-32 rounded border bg-muted flex items-center justify-center shrink-0">
+                              <FileText className="h-10 w-10 text-muted-foreground" />
+                            </div>
+                          )}
+                          <p className="text-xs font-medium truncate max-w-[140px]" title={fileName}>{fileName}</p>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 flex-1"
+                              asChild
+                            >
+                              <a href={att.url} target="_blank" rel="noopener noreferrer">
+                                <Eye className="h-3.5 w-3.5" /> View
+                              </a>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 flex-1"
+                              asChild
+                            >
+                              <a href={att.url} download={fileName} target="_blank" rel="noopener noreferrer">
+                                <Download className="h-3.5 w-3.5" /> Download
+                              </a>
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <DialogFooter className="pt-4 border-t">
+                <Button type="button" variant="outline" onClick={() => setDetailsTicket(null)}>
+                  Close
+                </Button>
+                <Button onClick={() => openSubmitProposal(detailsTicket)} className="gap-1">
+                  <Send className="h-4 w-4" /> Submit proposal
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Submit proposal dialog */}
       <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Submit proposal</DialogTitle>
             <DialogDescription>
@@ -366,6 +527,46 @@ export const TrainerBidding: React.FC = () => {
               )}
             </DialogDescription>
           </DialogHeader>
+          {selectedTicket && (
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+              <p className="text-sm font-medium">Doubt details</p>
+              <p className="text-sm text-muted-foreground">{selectedTicket.description}</p>
+              {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Attachments</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTicket.attachments.map((att, i) => {
+                      const isImage = /\.(jpe?g|png|gif|webp|bmp)$/i.test(att.name || '');
+                      return (
+                        <div key={i} className="flex flex-col gap-1">
+                          {isImage ? (
+                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="block rounded border overflow-hidden bg-muted w-24 h-24">
+                              <img src={att.url} alt={att.name || 'Attachment'} className="w-full h-full object-cover" />
+                            </a>
+                          ) : (
+                            <a
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                              {att.name || 'View file'}
+                            </a>
+                          )}
+                          {att.name && isImage && (
+                            <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline truncate max-w-[96px]">
+                              {att.name}
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           <form onSubmit={submitProposal} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

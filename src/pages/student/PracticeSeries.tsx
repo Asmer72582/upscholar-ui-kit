@@ -741,12 +741,26 @@ export const PracticeSeries: React.FC = () => {
                       <CardContent className="pt-0 pb-4 px-4 mt-auto flex flex-wrap items-center gap-2">
                         {hasAccess && s.canViewSheet && s.pdfUrl && (
                           <Button size="sm" variant="default" className="h-8 text-xs" asChild>
-                            <a href={s.pdfUrl} target="_blank" rel="noopener noreferrer"><Download className="h-3 w-3 mr-1" /> Sheet</a>
+                            <a
+                              href={s.pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download={`${s.title || 'sheet'}.pdf`}
+                            >
+                              <Download className="h-3 w-3 mr-1" /> Sheet
+                            </a>
                           </Button>
                         )}
                         {hasAccess && s.canViewAnswers && s.answerPdfUrl && (
                           <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-                            <a href={s.answerPdfUrl} target="_blank" rel="noopener noreferrer"><FileText className="h-3 w-3 mr-1" /> Answers</a>
+                            <a
+                              href={s.answerPdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              download={`${s.title || 'answers'}.pdf`}
+                            >
+                              <FileText className="h-3 w-3 mr-1" /> Answers
+                            </a>
                           </Button>
                         )}
                         {hasAccess && !s.canViewSheet && !s.canViewAnswers && (
@@ -775,12 +789,26 @@ export const PracticeSeries: React.FC = () => {
                         <div className="flex gap-2 shrink-0">
                           {hasAccess && s.canViewSheet && s.pdfUrl && (
                             <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-                              <a href={s.pdfUrl} target="_blank" rel="noopener noreferrer"><Download className="h-3 w-3 mr-1" /> Sheet</a>
+                              <a
+                                href={s.pdfUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={`${s.title || 'sheet'}.pdf`}
+                              >
+                                <Download className="h-3 w-3 mr-1" /> Sheet
+                              </a>
                             </Button>
                           )}
                           {hasAccess && s.canViewAnswers && s.answerPdfUrl && (
                             <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-                              <a href={s.answerPdfUrl} target="_blank" rel="noopener noreferrer"><FileText className="h-3 w-3 mr-1" /> Answers</a>
+                              <a
+                                href={s.answerPdfUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={`${s.title || 'answers'}.pdf`}
+                              >
+                                <FileText className="h-3 w-3 mr-1" /> Answers
+                              </a>
                             </Button>
                           )}
                           {hasAccess && !s.canViewSheet && !s.canViewAnswers && <span className="text-xs text-muted-foreground">Not yet available</span>}

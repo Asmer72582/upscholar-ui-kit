@@ -232,6 +232,16 @@ export const practiceSeriesService = {
     if (!res.ok) throw new Error(data.message || 'Upload failed');
     return data;
   },
+  async adminDisplayAnswers(sheetId: string) {
+    const res = await fetch(`${BASE}/admin/sheets/${sheetId}/answers/display`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'Failed to display answers');
+    return data;
+  },
   async adminGetSheets() {
     const res = await fetch(`${BASE}/admin/sheets`, {
       headers: getAuthHeaders(),
@@ -239,6 +249,16 @@ export const practiceSeriesService = {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.message || 'Failed to fetch');
+    return data;
+  },
+  async adminDeleteSheet(sheetId: string) {
+    const res = await fetch(`${BASE}/admin/sheets/${sheetId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'Failed to delete sheet');
     return data;
   },
   async adminGetMarksheets() {

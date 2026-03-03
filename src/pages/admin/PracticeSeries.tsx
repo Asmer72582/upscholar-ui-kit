@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Upload, Loader2, CheckCircle, XCircle, Eye, Mail, ExternalLink, Trash2 } from 'lucide-react';
@@ -12,6 +13,25 @@ import { practiceSeriesService } from '@/services/practiceSeriesService';
 import { adminService } from '@/services/adminService';
 
 export const AdminPracticeSeries: React.FC = () => {
+  const SUBJECT_OPTIONS = [
+    'Mathematics',
+    'Physics',
+    'Chemistry',
+    'Biology',
+    'Science',
+    'English',
+    'Hindi',
+    'Social Studies',
+    'History',
+    'Geography',
+    'Civics',
+    'Economics',
+    'Computer Science',
+    'Programming',
+    'Web Development',
+    'Data Science',
+    'Other',
+  ];
   const [sheets, setSheets] = useState<any[]>([]);
   const [marksheets, setMarksheets] = useState<any[]>([]);
   const [freeAccessMarks, setFreeAccessMarks] = useState(80);
@@ -20,6 +40,9 @@ export const AdminPracticeSeries: React.FC = () => {
   const [marksheetMaxSizeMB, setMarksheetMaxSizeMB] = useState(10);
   const [percentInputs, setPercentInputs] = useState<Record<string, string>>({});
   const [notifyLoading, setNotifyLoading] = useState<Record<string, boolean>>({});
+  const [answerUploadLoading, setAnswerUploadLoading] = useState<Record<string, boolean>>({});
+  const [displayAnswersLoading, setDisplayAnswersLoading] = useState<Record<string, boolean>>({});
+  const [deleteSheetLoading, setDeleteSheetLoading] = useState<Record<string, boolean>>({});
   const [deleteLoading, setDeleteLoading] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -119,6 +142,46 @@ export const AdminPracticeSeries: React.FC = () => {
     }
   };
 
+  const handleUploadAnswer = async (sheetId: string, file: File) => {
+    setAnswerUploadLoading((prev) => ({ ...prev, [sheetId]: true }));
+    try {
+      await practiceSeriesService.adminUploadAnswer(sheetId, file);
+      toast.success('Answer key uploaded (PDF).');
+      loadSheets();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to upload answer key');
+    } finally {
+      setAnswerUploadLoading((prev) => ({ ...prev, [sheetId]: false }));
+    }
+  };
+
+  const handleDisplayAnswers = async (sheetId: string) => {
+    setDisplayAnswersLoading((prev) => ({ ...prev, [sheetId]: true }));
+    try {
+      await practiceSeriesService.adminDisplayAnswers(sheetId);
+      toast.success('Answer key is now visible to students. Question sheet hidden.');
+      loadSheets();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to display answer key');
+    } finally {
+      setDisplayAnswersLoading((prev) => ({ ...prev, [sheetId]: false }));
+    }
+  };
+
+  const handleDeleteSheet = async (sheetId: string, title: string) => {
+    if (!window.confirm(`Delete practice sheet "${title}"? This cannot be undone.`)) return;
+    setDeleteSheetLoading((prev) => ({ ...prev, [sheetId]: true }));
+    try {
+      await practiceSeriesService.adminDeleteSheet(sheetId);
+      toast.success('Practice sheet deleted.');
+      loadSheets();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to delete sheet');
+    } finally {
+      setDeleteSheetLoading((prev) => ({ ...prev, [sheetId]: false }));
+    }
+  };
+
   const handleNotify = async (id: string) => {
     setNotifyLoading((prev) => ({ ...prev, [id]: true }));
     try {
@@ -187,7 +250,21 @@ export const AdminPracticeSeries: React.FC = () => {
                 </div>
                 <div>
                   <Label>Subject *</Label>
-                  <Input value={uploadSubject} onChange={(e) => setUploadSubject(e.target.value)} placeholder="e.g. Mathematics" />
+                  <Select
+                    value={uploadSubject || undefined}
+                    onValueChange={(v) => setUploadSubject(v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select subject" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SUBJECT_OPTIONS.map((sub) => (
+                        <SelectItem key={sub} value={sub}>
+                          {sub}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label>Category (optional)</Label>
@@ -223,23 +300,92 @@ export const AdminPracticeSeries: React.FC = () => {
               ) : (
                 <div className="space-y-3">
                   {sheets.map((s) => (
-                    <div key={s._id} className="flex items-center justify-between border rounded p-3">
+                    <div key={s._id} className="flex flex-col md:flex-row md:items-center justify-between border rounded p-3 gap-3">
                       <div>
                         <p className="font-medium">{s.title}</p>
                         <p className="text-sm text-muted-foreground">{s.subject} · {s.category || '-'}</p>
                         <p className="text-xs text-muted-foreground">
                           Uploaded {new Date(s.uploadedAt).toLocaleDateString()} · Answers release {new Date(s.answerReleaseDate).toLocaleDateString()}
                         </p>
-                        <div className="flex gap-2 mt-1">
+                        <div className="flex flex-wrap gap-2 mt-1">
                           <Badge variant={s.sheetActive ? 'default' : 'secondary'}>{s.sheetActive ? 'Sheet active' : 'Sheet inactive'}</Badge>
                           <Badge variant={s.answersActive ? 'default' : 'secondary'}>{s.answersActive ? 'Answers active' : 'Answers inactive'}</Badge>
                         </div>
                       </div>
-                      {s.pdfUrl && (
-                        <a href={s.pdfUrl} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" variant="outline"><Eye className="h-4 w-4 mr-1" /> View</Button>
-                        </a>
-                      )}
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {s.pdfUrl && (
+                            <a href={s.pdfUrl} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="outline"><Eye className="h-4 w-4 mr-1" /> View question PDF</Button>
+                            </a>
+                          )}
+                          {s.answerPdfUrl && (
+                            <a href={s.answerPdfUrl} target="_blank" rel="noopener noreferrer">
+                              <Button size="sm" variant="outline"><Eye className="h-4 w-4 mr-1" /> View answer PDF</Button>
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <label className="inline-flex items-center">
+                            <Input
+                              type="file"
+                              accept="application/pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleUploadAnswer(s._id, file);
+                                  e.target.value = '';
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              disabled={!!answerUploadLoading[s._id]}
+                              onClick={(e) => {
+                                const input = (e.currentTarget.previousSibling as HTMLInputElement | null);
+                                if (input) input.click();
+                              }}
+                            >
+                              {answerUploadLoading[s._id] ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Upload className="h-4 w-4 mr-1" />
+                              )}
+                              Answer key
+                            </Button>
+                          </label>
+                          {s.answerPdfUrl && !s.answersActive && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              disabled={!!displayAnswersLoading[s._id]}
+                              onClick={() => handleDisplayAnswers(s._id)}
+                            >
+                              {displayAnswersLoading[s._id] ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                'Display answer key'
+                              )}
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            disabled={!!deleteSheetLoading[s._id]}
+                            onClick={() => handleDeleteSheet(s._id, s.title)}
+                          >
+                            {deleteSheetLoading[s._id] ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 mr-1" />
+                            )}
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>

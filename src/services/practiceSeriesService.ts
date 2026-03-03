@@ -153,6 +153,44 @@ export const practiceSeriesService = {
     return { subjects: data.subjects || [], categories: data.categories || [] };
   },
 
+  /** Download sheet PDF via proxy so it is served as application/pdf with correct filename. */
+  async downloadSheetPdf(sheetId: string, filenameBase: string) {
+    const res = await fetch(`${BASE}/sheets/${sheetId}/pdf`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || 'Failed to download PDF');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(filenameBase || 'sheet').replace(/[^\w\s.-]/g, '').replace(/\s+/g, '_').slice(0, 100) || 'sheet'}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
+  /** Download answer key PDF via proxy as application/pdf. */
+  async downloadSheetAnswersPdf(sheetId: string, filenameBase: string) {
+    const res = await fetch(`${BASE}/sheets/${sheetId}/answers-pdf`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || 'Failed to download PDF');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(filenameBase || 'answers').replace(/[^\w\s.-]/g, '').replace(/\s+/g, '_').slice(0, 100) || 'answers'}-answers.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   // Marksheet
   async uploadMarksheet(file: File) {
     const formData = new FormData();

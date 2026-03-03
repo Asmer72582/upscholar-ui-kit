@@ -61,8 +61,10 @@ export const PracticeSeries: React.FC = () => {
   const [marksheetMaxSizeMB, setMarksheetMaxSizeMB] = useState(10);
   const [pricePerSubject, setPricePerSubject] = useState(1999);
   const [notEligibleForFreeAccess, setNotEligibleForFreeAccess] = useState(false);
+  const [accessibleSubjects, setAccessibleSubjects] = useState<string[]>([]);
   const [paySubject, setPaySubject] = useState('');
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [pdfDownloadLoading, setPdfDownloadLoading] = useState<Record<string, 'sheet' | 'answers' | null>>({});
   const [marksheetInfo, setMarksheetInfo] = useState<{
     marksheetUrl: string | null;
     marksheetStatus: string | null;
@@ -152,6 +154,7 @@ export const PracticeSeries: React.FC = () => {
       if (res.marksheetMaxSizeMB != null) setMarksheetMaxSizeMB(res.marksheetMaxSizeMB);
       if (res.pricePerSubject != null) setPricePerSubject(res.pricePerSubject);
       if (res.notEligibleForFreeAccess != null) setNotEligibleForFreeAccess(res.notEligibleForFreeAccess);
+      if (Array.isArray(res.accessibleSubjects)) setAccessibleSubjects(res.accessibleSubjects);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load sheets';
       toast.error(msg);
@@ -254,6 +257,29 @@ export const PracticeSeries: React.FC = () => {
       toast.error(e instanceof Error ? e.message : 'Failed to remove');
     } finally {
       setMarksheetRemoveLoading(false);
+    }
+  };
+
+  const handleDownloadSheetPdf = async (sheetId: string, title: string) => {
+    setPdfDownloadLoading((prev) => ({ ...prev, [sheetId]: 'sheet' }));
+    try {
+      await practiceSeriesService.downloadSheetPdf(sheetId, title);
+      toast.success('Download started');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Download failed');
+    } finally {
+      setPdfDownloadLoading((prev) => ({ ...prev, [sheetId]: null }));
+    }
+  };
+  const handleDownloadAnswersPdf = async (sheetId: string, title: string) => {
+    setPdfDownloadLoading((prev) => ({ ...prev, [sheetId]: 'answers' }));
+    try {
+      await practiceSeriesService.downloadSheetAnswersPdf(sheetId, title);
+      toast.success('Download started');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Download failed');
+    } finally {
+      setPdfDownloadLoading((prev) => ({ ...prev, [sheetId]: null }));
     }
   };
 
@@ -572,6 +598,12 @@ export const PracticeSeries: React.FC = () => {
   const hasMarksheetUploaded = !!(marksheetInfo.marksheetUrl || (marksheetInfo.marksheetStatus && marksheetInfo.marksheetStatus !== 'removed'));
   const showSheetsAndFilters = hasAccess || notEligibleForFreeAccess;
 
+  // Subjects the user can pay for: use backend accessibleSubjects vs all subjects so pay option works on any page
+  const allSubjects = filterOptions.subjects.length > 0 ? filterOptions.subjects : [...new Set(sheets.map((s: { subject?: string }) => s.subject).filter(Boolean))] as string[];
+  const hasFullAccess = accessibleSubjects.includes('All');
+  const unpaidSubjectList = hasFullAccess ? [] : allSubjects.filter((sub: string) => !accessibleSubjects.some((a: string) => (a || '').toLowerCase() === (sub || '').toLowerCase()));
+  const showPayOption = unpaidSubjectList.length > 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-2">
@@ -649,15 +681,17 @@ export const PracticeSeries: React.FC = () => {
             </Card>
           ) : (
             <>
-              {notEligibleForFreeAccess && (
+              {showPayOption && (
                 <div className="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/20 px-4 py-3">
-                  <span className="text-sm text-amber-800 dark:text-amber-200">Not eligible for free access. Pay ₹{pricePerSubject}/subject to unlock.</span>
+                  <span className="text-sm text-amber-800 dark:text-amber-200">
+                    {notEligibleForFreeAccess ? 'Not eligible for free access. ' : ''}Pay ₹{pricePerSubject} per subject to unlock.
+                  </span>
                   <Select value={paySubject} onValueChange={setPaySubject}>
                     <SelectTrigger className="w-[120px] h-8 text-xs">
                       <SelectValue placeholder="Subject" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(filterOptions.subjects.length > 0 ? filterOptions.subjects : [...new Set(sheets.map((s: { subject?: string }) => s.subject).filter(Boolean))]).map((sub: string) => (
+                      {unpaidSubjectList.map((sub: string) => (
                         <SelectItem key={sub} value={sub}>{sub}</SelectItem>
                       ))}
                     </SelectContent>
@@ -740,33 +774,33 @@ export const PracticeSeries: React.FC = () => {
                       </CardHeader>
                       <CardContent className="pt-0 pb-4 px-4 mt-auto flex flex-wrap items-center gap-2">
                         {hasAccess && s.canViewSheet && s.pdfUrl && (
-                          <Button size="sm" variant="default" className="h-8 text-xs" asChild>
-                            <a
-                              href={s.pdfUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download={`${s.title || 'sheet'}.pdf`}
-                            >
-                              <Download className="h-3 w-3 mr-1" /> Sheet
-                            </a>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="h-8 text-xs"
+                            disabled={pdfDownloadLoading[s._id] === 'sheet'}
+                            onClick={() => handleDownloadSheetPdf(s._id, s.title)}
+                          >
+                            {pdfDownloadLoading[s._id] === 'sheet' ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Download className="h-3 w-3 mr-1" />}
+                            Sheet
                           </Button>
                         )}
                         {hasAccess && s.canViewAnswers && s.answerPdfUrl && (
-                          <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-                            <a
-                              href={s.answerPdfUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download={`${s.title || 'answers'}.pdf`}
-                            >
-                              <FileText className="h-3 w-3 mr-1" /> Answers
-                            </a>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 text-xs"
+                            disabled={pdfDownloadLoading[s._id] === 'answers'}
+                            onClick={() => handleDownloadAnswersPdf(s._id, s.title)}
+                          >
+                            {pdfDownloadLoading[s._id] === 'answers' ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />}
+                            Answers
                           </Button>
                         )}
                         {hasAccess && !s.canViewSheet && !s.canViewAnswers && (
                           <span className="text-xs text-muted-foreground">Not yet available</span>
                         )}
-                        {notEligibleForFreeAccess && (
+                        {showPayOption && unpaidSubjectList.includes(s.subject) && (
                           <span className="text-xs text-muted-foreground">Pay ₹{pricePerSubject} to access</span>
                         )}
                       </CardContent>
@@ -788,31 +822,31 @@ export const PracticeSeries: React.FC = () => {
                         </div>
                         <div className="flex gap-2 shrink-0">
                           {hasAccess && s.canViewSheet && s.pdfUrl && (
-                            <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-                              <a
-                                href={s.pdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download={`${s.title || 'sheet'}.pdf`}
-                              >
-                                <Download className="h-3 w-3 mr-1" /> Sheet
-                              </a>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs"
+                              disabled={pdfDownloadLoading[s._id] === 'sheet'}
+                              onClick={() => handleDownloadSheetPdf(s._id, s.title)}
+                            >
+                              {pdfDownloadLoading[s._id] === 'sheet' ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Download className="h-3 w-3 mr-1" />}
+                              Sheet
                             </Button>
                           )}
                           {hasAccess && s.canViewAnswers && s.answerPdfUrl && (
-                            <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-                              <a
-                                href={s.answerPdfUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download={`${s.title || 'answers'}.pdf`}
-                              >
-                                <FileText className="h-3 w-3 mr-1" /> Answers
-                              </a>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 text-xs"
+                              disabled={pdfDownloadLoading[s._id] === 'answers'}
+                              onClick={() => handleDownloadAnswersPdf(s._id, s.title)}
+                            >
+                              {pdfDownloadLoading[s._id] === 'answers' ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileText className="h-3 w-3 mr-1" />}
+                              Answers
                             </Button>
                           )}
                           {hasAccess && !s.canViewSheet && !s.canViewAnswers && <span className="text-xs text-muted-foreground">Not yet available</span>}
-                          {notEligibleForFreeAccess && <span className="text-xs text-muted-foreground">Pay ₹{pricePerSubject}</span>}
+                          {showPayOption && unpaidSubjectList.includes(s.subject) && <span className="text-xs text-muted-foreground">Pay ₹{pricePerSubject}</span>}
                         </div>
                       </CardContent>
                     </Card>

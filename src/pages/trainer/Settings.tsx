@@ -73,6 +73,7 @@ interface TrainerProfile {
   firstname: string;
   lastname: string;
   email: string;
+  mobile?: string;
   role: string;
   avatar?: string;
   bio?: string;
@@ -114,6 +115,7 @@ export const Settings: React.FC = () => {
   // Profile form state
   const [firstname, setFirstname] = useState('');
   const [lastname, setLastname] = useState('');
+  const [mobile, setMobile] = useState('');
   const [bio, setBio] = useState('');
   const [demoVideoUrl, setDemoVideoUrl] = useState('');
   const [expertise, setExpertise] = useState<string[]>([]);
@@ -142,6 +144,7 @@ export const Settings: React.FC = () => {
       // Populate form fields
       setFirstname(data.firstname || '');
       setLastname(data.lastname || '');
+      setMobile(data.mobile || '');
       setBio(data.bio || '');
       setDemoVideoUrl(data.demoVideoUrl || '');
       setExpertise(data.expertise || []);
@@ -173,6 +176,7 @@ export const Settings: React.FC = () => {
       const payload = {
         firstname,
         lastname,
+        mobile: mobile.trim().replace(/\D/g, '') || undefined,
         bio,
         demoVideoUrl,
         expertise,
@@ -196,6 +200,7 @@ export const Settings: React.FC = () => {
         setWhyChooseMe([wcm[0] || '', wcm[1] || '', wcm[2] || '']);
       }
       await fetchProfile();
+      await refreshUser();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
       toast({
@@ -544,6 +549,18 @@ export const Settings: React.FC = () => {
                         className="bg-gray-50"
                       />
                       <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="mobile">Mobile Number</Label>
+                      <Input
+                        id="mobile"
+                        type="tel"
+                        value={mobile}
+                        onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 20))}
+                        placeholder="Contact number (4–20 digits)"
+                        maxLength={20}
+                      />
+                      <p className="text-xs text-muted-foreground">Optional. Used for Practice Series and notifications.</p>
                     </div>
                   </div>
 

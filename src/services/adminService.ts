@@ -568,6 +568,63 @@ class AdminService {
     }
   }
 
+  async getPracticeSeriesSettings(): Promise<{
+    freeAccessMarks: number;
+    answerKeyDurationDays: number;
+    pricePerSubject: number;
+    marksheetMaxSizeMB: number;
+    sheetMaxSizeMB: number;
+  }> {
+    try {
+      const response = await fetch(`${API_URL}/admin/settings/practice-series`, {
+        ...fetchConfig,
+        method: "GET",
+        headers: getAuthHeaders(),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to fetch Practice Series settings");
+      }
+      const result = await response.json();
+      return result.settings;
+    } catch (error) {
+      console.error("Error fetching Practice Series settings:", error);
+      throw error;
+    }
+  }
+
+  async updatePracticeSeriesSettings(settings: {
+    freeAccessMarks?: number;
+    answerKeyDurationDays?: number;
+    pricePerSubject?: number;
+    marksheetMaxSizeMB?: number;
+    sheetMaxSizeMB?: number;
+  }): Promise<{
+    freeAccessMarks: number;
+    answerKeyDurationDays: number;
+    pricePerSubject: number;
+    marksheetMaxSizeMB: number;
+    sheetMaxSizeMB: number;
+  }> {
+    try {
+      const response = await fetch(`${API_URL}/admin/settings/practice-series`, {
+        ...fetchConfig,
+        method: "PUT",
+        headers: getAuthHeaders(),
+        body: JSON.stringify(settings),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to update Practice Series settings");
+      }
+      const result = await response.json();
+      return result.settings;
+    } catch (error) {
+      console.error("Error updating Practice Series settings:", error);
+      throw error;
+    }
+  }
+
   async updateSignupBonusSettings(enabled: boolean, amount: number): Promise<{ enabled: boolean; amount: number }> {
     try {
       const response = await fetch(`${API_URL}/admin/settings/signup-bonus`, {

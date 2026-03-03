@@ -35,6 +35,7 @@ import { ManageLectures as ManageLecturesAdmin } from "./pages/admin/ManageLectu
 import { AdminLectureDetails } from "./pages/admin/LectureDetails";
 import { ManageCourses as ManageCoursesAdmin } from "./pages/admin/ManageCourses";
 import { AdminSettings } from "./pages/admin/Settings";
+import { AdminPracticeSeries } from "./pages/admin/PracticeSeries";
 import { Analytics } from "./pages/admin/Analytics";
 import { WithdrawalRequests } from "./pages/admin/WithdrawalRequests";
 import { CancelledRequests } from "./pages/admin/CancelledRequests";
@@ -46,6 +47,7 @@ import { ResetPassword } from "./pages/ResetPassword";
 import { Support } from "./pages/student/Support";
 import { Settings as StudentSettings } from "./pages/student/Settings";
 import { StudentBidding } from "./pages/student/Bidding";
+import { PracticeSeries } from "./pages/student/PracticeSeries";
 import { TrainerBidding } from "./pages/trainer/Bidding";
 import NotFound from "./pages/NotFound";
 
@@ -80,6 +82,7 @@ const App = () => (
               <Route path="buy-upcoins" element={<BuyUpCoins />} />
               <Route path="support" element={<Support />} />
               <Route path="bidding" element={<StudentBidding />} />
+              <Route path="practice-series" element={<PracticeSeries />} />
               <Route path="settings" element={<StudentSettings />} />
             </Route>
 
@@ -116,6 +119,7 @@ const App = () => (
               <Route path="cancelled-requests" element={<CancelledRequests />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<AdminSettings />} />
+              <Route path="practice-series" element={<AdminPracticeSeries />} />
             </Route>
 
             {/* Live Lecture Route */}

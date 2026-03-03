@@ -101,11 +101,13 @@ export const Auth: React.FC = () => {
   const navigate = useNavigate();
 
   const handleSendOTP = async () => {
-    if (!formData.email) {
+    const email = formData.email.trim().toLowerCase();
+    const mobile = formData.mobile.trim().replace(/\D/g, '');
+    if (!email) {
       toast({ title: 'Email required', description: 'Please enter your email address.', variant: 'destructive' });
       return;
     }
-    if (!emailRegex.test(formData.email.trim())) {
+    if (!emailRegex.test(email)) {
       toast({ title: 'Invalid email', description: 'Please enter a valid email address.', variant: 'destructive' });
       return;
     }
@@ -114,19 +116,19 @@ export const Auth: React.FC = () => {
       return;
     }
 
-    if (!formData.mobile) {
+    if (!mobile) {
       toast({ title: 'Mobile required', description: 'Please enter your mobile number.', variant: 'destructive' });
       return;
     }
     const mobileRegex = /^[6-9]\d{9}$/;
-    if (!mobileRegex.test(formData.mobile)) {
-      toast({ title: 'Invalid mobile', description: 'Please enter a valid 10-digit Indian mobile number.', variant: 'destructive' });
+    if (!mobileRegex.test(mobile)) {
+      toast({ title: 'Invalid mobile', description: 'Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).', variant: 'destructive' });
       return;
     }
 
     try {
       setSendingOTP(true);
-      const result = await authService.sendOTP(formData.email, formData.mobile);
+      const result = await authService.sendOTP(email, mobile);
       
       if (result.success) {
         setOtpStep('otp');
@@ -312,10 +314,24 @@ export const Auth: React.FC = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    // Sanitize mobile: digits only, max 10, Indian format (starts 6-9)
+    const sanitized = name === 'mobile' ? value.replace(/\D/g, '').slice(0, 10) : value;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: sanitized,
     }));
+  };
+
+  // Sync autofilled values to state (browser autofill may not fire onChange)
+  const handleInputBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    const fieldName = name as keyof typeof formData;
+    if (!(fieldName in formData)) return;
+    const trimmed = (name === 'mobile' ? value.replace(/\D/g, '').slice(0, 10) : value.trim()) || '';
+    if (trimmed && formData[fieldName] !== trimmed) {
+      setFormData(prev => ({ ...prev, [fieldName]: trimmed }));
+    }
   };
 
   const handleTrainerDataChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -465,6 +481,7 @@ export const Auth: React.FC = () => {
                         required
                         value={formData.firstName}
                         onChange={handleInputChange}
+                        onBlur={handleInputBlur}
                         placeholder="John"
                       />
                     </div>
@@ -477,6 +494,7 @@ export const Auth: React.FC = () => {
                         required
                         value={formData.lastName}
                         onChange={handleInputChange}
+                        onBlur={handleInputBlur}
                         placeholder="Doe"
                       />
                     </div>
@@ -492,6 +510,7 @@ export const Auth: React.FC = () => {
                     required
                     value={formData.email}
                     onChange={handleInputChange}
+                    onBlur={handleInputBlur}
                     placeholder="john@example.com"
                     disabled={otpStep === 'otp' || otpVerified}
                     className={
@@ -539,6 +558,7 @@ export const Auth: React.FC = () => {
                       required
                       value={formData.mobile}
                       onChange={handleInputChange}
+                      onBlur={handleInputBlur}
                       placeholder="9876543210"
                       maxLength={10}
                       disabled={otpStep === 'otp' || otpVerified}

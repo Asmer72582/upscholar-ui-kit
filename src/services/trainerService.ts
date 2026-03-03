@@ -363,6 +363,7 @@ class TrainerService {
   async updateProfile(data: {
     firstname?: string;
     lastname?: string;
+    mobile?: string;
     bio?: string;
     demoVideoUrl?: string;
     expertise?: string[];

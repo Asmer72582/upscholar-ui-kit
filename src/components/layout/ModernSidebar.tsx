@@ -82,6 +82,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Browse Lectures', href: '/student/browse-lectures', icon: BookOpen },
           { title: 'My Lectures', href: '/student/my-lectures', icon: GraduationCap },
           { title: 'Doubt Solutions', href: '/student/bidding', icon: ClipboardList },
+          { title: 'Practice Series', href: '/student/practice-series', icon: BookOpen },
           { title: 'Wallet', href: '/student/wallet', icon: Wallet },
           { title: 'Buy UpCoins', href: '/student/buy-upcoins', icon: CreditCard },
           { title: 'Support', href: '/student/support', icon: HelpCircle },
@@ -106,6 +107,7 @@ export const ModernSidebar: React.FC = () => {
           { title: 'Withdrawal Requests', href: '/admin/withdrawals', icon: Wallet },
           { title: 'Cancelled Requests', href: '/admin/cancelled-requests', icon: XCircle },
           { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+          { title: 'Practice Series', href: '/admin/practice-series', icon: BookOpen },
           { title: 'Settings', href: '/admin/settings', icon: Settings },
         ];
       default:

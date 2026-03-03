@@ -109,8 +109,22 @@ export const BrowseLectures: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedCategory, selectedLevel, sortBy, pagination.current]);
 
-  // Filter out completed lectures from main feed
-  const filteredLectures = lectures.filter(lecture => lecture.status !== 'completed');
+  // Split lectures: live/upcoming vs missed
+  const now = new Date();
+  const upcomingAndLiveLectures = lectures.filter((lecture) => {
+    if (lecture.status === 'live') return true;
+    if (lecture.status === 'scheduled' && lecture.scheduledAt) {
+      return new Date(lecture.scheduledAt) >= now;
+    }
+    return false;
+  });
+  const missedLectures = lectures.filter(
+    (lecture) =>
+      (lecture.status === 'missed') ||
+      (lecture.status === 'scheduled' &&
+        lecture.scheduledAt &&
+        new Date(lecture.scheduledAt) < now)
+  );
 
   const LectureCard = ({ lecture, isListView = false }: { lecture: Lecture; isListView?: boolean }) => {
     const trainerName = `${lecture.trainer.firstname} ${lecture.trainer.lastname}`;
@@ -324,7 +338,7 @@ export const BrowseLectures: React.FC = () => {
       {/* Results Summary */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Showing {filteredLectures.length} lectures
+          Showing {upcomingAndLiveLectures.length} live & upcoming lectures
         </p>
         <div className="flex items-center space-x-2">
           <Filter className="w-4 h-4 text-muted-foreground" />
@@ -357,14 +371,14 @@ export const BrowseLectures: React.FC = () => {
       )}
 
       {/* Lectures Grid/List */}
-      {!loading && (
+      {!loading && upcomingAndLiveLectures.length > 0 && (
         <div className={cn(
           "gap-6",
           viewMode === 'grid' 
             ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" 
             : "space-y-4"
         )}>
-          {filteredLectures.map((lecture) => (
+          {upcomingAndLiveLectures.map((lecture) => (
             <LectureCard 
               key={lecture.id} 
               lecture={lecture} 
@@ -375,7 +389,7 @@ export const BrowseLectures: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {!loading && pagination.pages > 1 && (
+      {!loading && upcomingAndLiveLectures.length > 0 && pagination.pages > 1 && (
         <div className="flex justify-center items-center space-x-2">
           <Button
             variant="outline"
@@ -399,15 +413,15 @@ export const BrowseLectures: React.FC = () => {
         </div>
       )}
 
-      {!loading && filteredLectures.length === 0 && (
+      {!loading && upcomingAndLiveLectures.length === 0 && (
         <Card className="card-elevated">
           <CardContent className="text-center py-12">
             <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No lectures found</h3>
+            <h3 className="text-lg font-medium mb-2">No live or upcoming lectures</h3>
             <p className="text-muted-foreground mb-4">
-              Try adjusting your search criteria or browse different categories
+              Try adjusting your search criteria or browse different categories, or check again later.
             </p>
-            <Button 
+            <Button
               onClick={() => {
                 setSearchTerm('');
                 setSelectedCategory('all');
@@ -419,6 +433,35 @@ export const BrowseLectures: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* Missed lectures */}
+      {!loading && missedLectures.length > 0 && (
+        <div className="space-y-3 mt-6">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            Missed lectures
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            These lectures were scheduled but the time has already passed.
+          </p>
+          <div
+            className={cn(
+              "gap-4",
+              viewMode === "grid"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                : "space-y-3"
+            )}
+          >
+            {missedLectures.map((lecture) => (
+              <LectureCard
+                key={lecture.id}
+                lecture={lecture}
+                isListView={viewMode === "list"}
+              />
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

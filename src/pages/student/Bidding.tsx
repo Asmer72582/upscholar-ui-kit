@@ -121,8 +121,8 @@ export const StudentBidding: React.FC = () => {
       toast.error('Please fill all required fields');
       return;
     }
-    if (form.board === 'SSC' && !form.state?.trim()) {
-      toast.error('Please specify your state for SSC board');
+    if (form.board === 'State Board' && !form.state?.trim()) {
+      toast.error('Please specify your state for State Board');
       return;
     }
     setLoading(true);
@@ -307,8 +307,8 @@ export const StudentBidding: React.FC = () => {
                         setForm((f) => ({
                           ...f,
                           board: v,
-                          // Clear state when switching away from SSC so we don't send stale data
-                          state: v === 'SSC' ? f.state : '',
+                          // Clear state when switching away from State Board
+                          state: v === 'State Board' ? f.state : '',
                         }))
                       }
                       required
@@ -330,9 +330,9 @@ export const StudentBidding: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {form.board === 'SSC' && (
+                  {form.board === 'State Board' && (
                     <div className="space-y-2">
-                      <Label>State (for SSC board) *</Label>
+                      <Label>State (for State Board) *</Label>
                       <Input
                         value={form.state || ''}
                         onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
@@ -340,7 +340,7 @@ export const StudentBidding: React.FC = () => {
                         required
                       />
                       <p className="text-xs text-muted-foreground">
-                        Required when you select SSC board so we can match trainers from your state syllabus.
+                        Required when you select State Board so we can match trainers from your state syllabus.
                       </p>
                     </div>
                   )}
@@ -528,7 +528,7 @@ export const StudentBidding: React.FC = () => {
                       </div>
                       <span className="text-sm text-muted-foreground">
                         {t.subject} · {t.grade} · {t.board}
-                        {t.board === 'SSC' && (t as any).state ? ` · ${(t as any).state}` : ''}
+                        {t.board === 'State Board' && (t as any).state ? ` · ${(t as any).state}` : ''}
                       </span>
                     </div>
                     <p className="mt-2 font-medium">{t.chapterName} – {t.topicName}</p>
@@ -559,7 +559,7 @@ export const StudentBidding: React.FC = () => {
               </DialogTitle>
               <DialogDescription>
                 {selectedTicket.subject} · Grade {selectedTicket.grade} · {selectedTicket.board}
-                {selectedTicket.board === 'SSC' && (selectedTicket as any).state ? ` · ${(selectedTicket as any).state}` : ''} · {selectedTicket.chapterName} – {selectedTicket.topicName}
+                {selectedTicket.board === 'State Board' && (selectedTicket as any).state ? ` · ${(selectedTicket as any).state}` : ''} · {selectedTicket.chapterName} – {selectedTicket.topicName}
               </DialogDescription>
             </DialogHeader>
             <p className="text-sm text-muted-foreground">{selectedTicket.description}</p>

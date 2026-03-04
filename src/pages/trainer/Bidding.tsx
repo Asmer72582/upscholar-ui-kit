@@ -247,7 +247,7 @@ export const TrainerBidding: React.FC = () => {
                     )}
                     <p className="mt-2 text-sm text-muted-foreground">
                       {t.subject} · Grade {t.grade} · {t.board}
-                      {t.board === 'SSC' && (t as any).state ? ` · ${(t as any).state}` : ''}
+                      {t.board === 'State Board' && (t as any).state ? ` · ${(t as any).state}` : ''}
                     </p>
                     <p className="font-medium">{t.chapterName} – {t.topicName}</p>
                     <p className="text-sm text-muted-foreground line-clamp-2">{t.description}</p>
@@ -407,7 +407,7 @@ export const TrainerBidding: React.FC = () => {
             <DialogDescription>
               {detailsTicket && (
                 <>Request details · {detailsTicket.subject} · Grade {detailsTicket.grade} · {detailsTicket.board}
-                  {detailsTicket.board === 'SSC' && (detailsTicket as Ticket & { state?: string }).state ? ` · ${(detailsTicket as Ticket & { state?: string }).state}` : ''}
+                  {detailsTicket.board === 'State Board' && (detailsTicket as Ticket & { state?: string }).state ? ` · ${(detailsTicket as Ticket & { state?: string }).state}` : ''}
                 </>
               )}
             </DialogDescription>
@@ -433,7 +433,7 @@ export const TrainerBidding: React.FC = () => {
                 <div>
                   <p className="text-muted-foreground">Grade · Board</p>
                   <p className="font-medium">{detailsTicket.grade} · {detailsTicket.board}
-                    {detailsTicket.board === 'SSC' && (detailsTicket as Ticket & { state?: string }).state ? ` · ${(detailsTicket as Ticket & { state?: string }).state}` : ''}
+                    {detailsTicket.board === 'State Board' && (detailsTicket as Ticket & { state?: string }).state ? ` · ${(detailsTicket as Ticket & { state?: string }).state}` : ''}
                   </p>
                 </div>
                 <div>

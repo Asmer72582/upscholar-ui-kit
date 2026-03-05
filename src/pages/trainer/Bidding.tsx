@@ -178,7 +178,7 @@ export const TrainerBidding: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Bit and Teach</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Expert Desk</h1>
         <p className="text-muted-foreground">Browse doubt requests from students and submit your proposals (up to 3 per request).</p>
       </div>
 

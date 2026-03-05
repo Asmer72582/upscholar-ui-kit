@@ -37,8 +37,14 @@ import {
   Settings,
   FileText,
   TrendingDown,
-  Sparkles
+  Sparkles,
+  Receipt,
+  Percent,
+  List,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { adminService } from '@/services/adminService';
 import { toast } from 'sonner';
 
@@ -56,7 +62,7 @@ interface DashboardStats {
     active: number;
     completed: number;
     scheduled: number;
-    pending: number;
+    pending?: number;
     growth: number;
     newThisMonth: number;
   };
@@ -93,6 +99,29 @@ interface PendingApproval {
   data: any;
 }
 
+interface CommissionTransaction {
+  date: string;
+  amount: number;
+  source: 'lecture' | 'bidding';
+  description: string;
+  reference: string;
+  transactionId?: string;
+  ticketId?: string;
+}
+
+interface CommissionData {
+  total: number;
+  fromLectures: number;
+  fromBidding: number;
+  thisMonth: number;
+  thisMonthFromLectures: number;
+  thisMonthFromBidding: number;
+  totalRevenue: number;
+  totalTrainerEarnings: number;
+  transactionCount: number;
+  transactions: CommissionTransaction[];
+}
+
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -101,6 +130,8 @@ export const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
+  const [commission, setCommission] = useState<CommissionData | null>(null);
+  const [commissionTableOpen, setCommissionTableOpen] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -109,15 +140,18 @@ export const AdminDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsData, activityData, approvalsData] = await Promise.all([
+      const [statsResult, activityResult, approvalsResult, commissionResult] = await Promise.allSettled([
         adminService.getDashboardStats(),
         adminService.getRecentActivity(),
-        adminService.getPendingApprovals()
+        adminService.getPendingApprovals(),
+        adminService.getCommission()
       ]);
 
-      setStats(statsData);
-      setRecentActivity(activityData);
-      setPendingApprovals(approvalsData);
+      if (statsResult.status === 'fulfilled') setStats(statsResult.value);
+      else if (statsResult.status === 'rejected') throw statsResult.reason;
+      if (activityResult.status === 'fulfilled') setRecentActivity(activityResult.value);
+      if (approvalsResult.status === 'fulfilled') setPendingApprovals(approvalsResult.value);
+      if (commissionResult.status === 'fulfilled') setCommission(commissionResult.value);
     } catch (error: any) {
       console.error('Error loading dashboard data:', error);
       toast.error('Failed to load dashboard data');
@@ -280,6 +314,7 @@ export const AdminDashboard: React.FC = () => {
                 <div>
                   <p className="text-2xl font-bold">{stats.lectures.total}</p>
                   <p className="text-white/70 text-sm">Total Lectures</p>
+                  <p className="text-white/50 text-xs mt-0.5">All (pending, scheduled, live, completed, cancelled)</p>
                 </div>
               </div>
             </div>
@@ -376,6 +411,9 @@ export const AdminDashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-600">{stats.lectures.active}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Scheduled + live (upcoming or ongoing)
+            </p>
             <div className="flex items-center mt-2 text-sm">
               {stats.lectures.growth >= 0 ? (
                 <span className="text-green-600 flex items-center">
@@ -388,10 +426,10 @@ export const AdminDashboard: React.FC = () => {
                   {stats.lectures.growth}%
                 </span>
               )}
-              <span className="text-muted-foreground ml-2">from last month</span>
+              <span className="text-muted-foreground ml-2">new vs last month</span>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.lectures.total} total lectures
+              {stats.lectures.pending ?? 0} pending approval · {stats.lectures.completed} completed
             </p>
           </CardContent>
         </Card>
@@ -441,6 +479,145 @@ export const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Commission Income – separate section */}
+      {commission && (
+        <Card className="border-0 shadow-lg mt-6 overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-b">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-xl text-amber-800 dark:text-amber-200">
+                  <Receipt className="w-5 h-5" />
+                  Commission Income
+                </CardTitle>
+                <CardDescription>
+                  Amounts below are admin share (commission received), not full payment
+                </CardDescription>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+                  {(commission.total ?? 0).toLocaleString()} UC
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Admin earnings · {(commission.thisMonth ?? 0).toLocaleString()} UC this month
+                </p>
+              </div>
+            </div>
+            {/* Direct counts: Total revenue, Admin earnings, Trainer earnings */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-800/50">
+              <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total revenue</p>
+                <p className="text-lg font-bold text-amber-900 dark:text-amber-100">
+                  {(commission.totalRevenue ?? 0).toLocaleString()} UC
+                </p>
+                <p className="text-xs text-muted-foreground">Student payments (lectures + doubt)</p>
+              </div>
+              <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Admin earnings</p>
+                <p className="text-lg font-bold text-amber-700 dark:text-amber-300">
+                  {(commission.total ?? 0).toLocaleString()} UC
+                </p>
+                <p className="text-xs text-muted-foreground">Commission (20%) received</p>
+              </div>
+              <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Trainer earnings</p>
+                <p className="text-lg font-bold text-green-700 dark:text-green-300">
+                  {(commission.totalTrainerEarnings ?? 0).toLocaleString()} UC
+                </p>
+                <p className="text-xs text-muted-foreground">80% paid to trainers</p>
+              </div>
+              <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">Transaction count</p>
+                <p className="text-lg font-bold text-amber-900 dark:text-amber-100">
+                  {commission.transactionCount ?? (commission.transactions?.length ?? 0)}
+                </p>
+                <p className="text-xs text-muted-foreground">Commission entries</p>
+              </div>
+            </div>
+            <div className="flex gap-6 mt-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-blue-600" />
+                <span>From lectures: {(commission.fromLectures ?? 0).toLocaleString()} UC</span>
+                <span>({(commission.thisMonthFromLectures ?? 0)} this month)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-green-600" />
+                <span>From doubt sessions: {(commission.fromBidding ?? 0).toLocaleString()} UC</span>
+                <span>({(commission.thisMonthFromBidding ?? 0)} this month)</span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Collapsible open={commissionTableOpen} onOpenChange={setCommissionTableOpen}>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="w-full px-6 py-3 border-b bg-muted/30 flex items-center justify-between gap-2 hover:bg-muted/50 transition-colors text-left"
+                >
+                  <span className="font-medium flex items-center gap-2">
+                    <List className="w-4 h-4" />
+                    Commission transactions (amount received by admin)
+                    {(commission.transactionCount ?? (commission.transactions?.length ?? 0)) > 0 && (
+                      <Badge variant="secondary">{commission.transactionCount ?? (commission.transactions?.length ?? 0)}</Badge>
+                    )}
+                  </span>
+                  {commissionTableOpen ? (
+                    <ChevronUp className="w-4 h-4 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 shrink-0" />
+                  )}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                {(commission.transactions ?? []).length === 0 ? (
+                  <div className="p-8 text-center text-muted-foreground">
+                    No commission transactions yet.
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/20">
+                            <th className="text-left p-3 font-medium">Date</th>
+                            <th className="text-left p-3 font-medium">Source</th>
+                            <th className="text-left p-3 font-medium">Description</th>
+                            <th className="text-right p-3 font-medium">Commission received (UC)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(commission.transactions ?? []).slice(0, 50).map((tx, i) => (
+                            <tr key={tx.reference + tx.date + i} className="border-b hover:bg-muted/20">
+                              <td className="p-3 text-muted-foreground">
+                                {new Date(tx.date).toLocaleString(undefined, {
+                                  dateStyle: 'short',
+                                  timeStyle: 'short'
+                                })}
+                              </td>
+                              <td className="p-3">
+                                <Badge variant={tx.source === 'lecture' ? 'default' : 'secondary'}>
+                                  {tx.source === 'lecture' ? 'Lecture' : 'Doubt session'}
+                                </Badge>
+                              </td>
+                              <td className="p-3">{tx.description}</td>
+                              <td className="p-3 text-right font-medium">+{(tx.amount ?? 0).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {(commission.transactions ?? []).length > 50 && (
+                      <p className="px-6 py-2 text-xs text-muted-foreground border-t">
+                        Showing latest 50 of {commission.transactionCount ?? commission.transactions?.length ?? 0} transactions.
+                      </p>
+                    )}
+                  </>
+                )}
+              </CollapsibleContent>
+            </Collapsible>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

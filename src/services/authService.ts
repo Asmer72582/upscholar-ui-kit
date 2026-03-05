@@ -48,7 +48,10 @@ class AuthService {
     }
   }
 
-  async verifyOTP(email: string, otp: string): Promise<{ success: boolean; message: string }> {
+  async verifyOTP(
+    email: string,
+    otp: string
+  ): Promise<{ success: boolean; message: string; requiresPhoneVerification?: boolean }> {
     try {
       const response = await fetch(`${AUTH_API_URL}/verify-otp`, {
         ...fetchConfig,
@@ -64,6 +67,48 @@ class AuthService {
       return await response.json();
     } catch (error: any) {
       throw new Error(error.message || "Failed to verify OTP");
+    }
+  }
+
+  async verifyEmailOTP(email: string, otp: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(`${AUTH_API_URL}/verify-email-otp`, {
+        ...fetchConfig,
+        method: "POST",
+        body: JSON.stringify({ email, otp }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to verify email OTP");
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to verify email OTP");
+    }
+  }
+
+  async verifyPhoneOTP(
+    email: string,
+    mobile: string,
+    otp: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const response = await fetch(`${AUTH_API_URL}/verify-phone-otp`, {
+        ...fetchConfig,
+        method: "POST",
+        body: JSON.stringify({ email, mobile, otp }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to verify phone OTP");
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      throw new Error(error.message || "Failed to verify phone OTP");
     }
   }
 

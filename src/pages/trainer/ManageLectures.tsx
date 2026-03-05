@@ -414,6 +414,7 @@ export const ManageLectures: React.FC = () => {
         )}
 
         {/* Stats Overview */}
+        <p className="text-xs text-muted-foreground mb-2">Total = all your lectures · Pending = awaiting admin approval · Approved = scheduled · Completed = finished</p>
         <div className="grid md:grid-cols-7 gap-4">
           <Card>
             <CardContent className="p-4 text-center">

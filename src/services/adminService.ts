@@ -288,6 +288,7 @@ class AdminService {
       active: number;
       completed: number;
       scheduled: number;
+      pending: number;
       growth: number;
       newThisMonth: number;
     };
@@ -320,6 +321,47 @@ class AdminService {
       return await response.json();
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
+      throw error;
+    }
+  }
+
+  async getCommission(): Promise<{
+    total: number;
+    fromLectures: number;
+    fromBidding: number;
+    thisMonth: number;
+    thisMonthFromLectures: number;
+    thisMonthFromBidding: number;
+    totalRevenue: number;
+    totalTrainerEarnings: number;
+    transactionCount: number;
+    transactions: Array<{
+      date: string;
+      amount: number;
+      source: 'lecture' | 'bidding';
+      description: string;
+      reference: string;
+      transactionId?: string;
+      ticketId?: string;
+    }>;
+  }> {
+    try {
+      const response = await fetch(
+        `${API_URL}/admin/commission`,
+        {
+          method: "GET",
+          headers: getAuthHeaders(),
+          ...fetchConfig,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch commission data");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error fetching commission:", error);
       throw error;
     }
   }

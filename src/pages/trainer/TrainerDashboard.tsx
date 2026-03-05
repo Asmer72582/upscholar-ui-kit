@@ -249,6 +249,7 @@ export const TrainerDashboard: React.FC = () => {
                 <div>
                   <p className="text-2xl font-bold">{stats.lectures.total}</p>
                   <p className="text-white/70 text-sm">Total Lectures</p>
+                  <p className="text-white/50 text-xs mt-0.5">All you created (any status)</p>
                 </div>
               </div>
             </div>
@@ -316,13 +317,14 @@ export const TrainerDashboard: React.FC = () => {
 
         <Card className="border-0 shadow-lg">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Lectures</CardTitle>
+            <CardTitle className="text-sm font-medium">Scheduled Lectures</CardTitle>
             <div className="p-2 bg-blue-500 rounded-lg">
               <BookOpen className="h-4 w-4 text-white" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats.lectures.scheduled}</div>
+            <p className="text-xs text-muted-foreground mt-1">Approved, not yet started</p>
             <div className="mt-2">
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>Completion</span>

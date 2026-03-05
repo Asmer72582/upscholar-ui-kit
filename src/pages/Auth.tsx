@@ -58,11 +58,12 @@ export const Auth: React.FC = () => {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [sendingResetEmail, setSendingResetEmail] = useState(false);
   
-  // OTP verification states
-  const [otpStep, setOtpStep] = useState<'form' | 'otp'>('form');
+  // OTP verification states (dual-factor: email then phone)
+  const [otpStep, setOtpStep] = useState<'form' | 'email_otp' | 'phone_otp'>('form');
   const [otp, setOtp] = useState('');
   const [sendingOTP, setSendingOTP] = useState(false);
   const [verifyingOTP, setVerifyingOTP] = useState(false);
+  const [emailOtpVerified, setEmailOtpVerified] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpExpiresIn, setOtpExpiresIn] = useState(0);
 
@@ -131,11 +132,12 @@ export const Auth: React.FC = () => {
       const result = await authService.sendOTP(email, mobile);
       
       if (result.success) {
-        setOtpStep('otp');
+        setOtpStep('email_otp');
         setOtpExpiresIn(result.expiresIn || 600);
+        setEmailOtpVerified(false);
         toast({
-          title: 'OTP Sent',
-          description: result.message || 'OTP has been sent to your email.',
+          title: 'OTPs Sent',
+          description: result.message || 'Verification codes sent to your email and phone.',
         });
         
         // Start countdown timer
@@ -153,7 +155,8 @@ export const Auth: React.FC = () => {
       toast({
         title: 'Failed to Send OTP',
         description: error.message || 'Please try again.',
-        variant: 'destructive',o     });
+        variant: 'destructive',
+      });
     } finally {
       setSendingOTP(false);
     }
@@ -163,29 +166,48 @@ export const Auth: React.FC = () => {
     if (!otp || otp.length !== 6) {
       toast({
         title: 'Invalid OTP',
-        description: 'Please enter a 6-digit OTP.',
+        description: 'Please enter the 6-digit code.',
         variant: 'destructive',
       });
       return;
     }
 
+    const email = formData.email.trim().toLowerCase();
+    const mobile = formData.mobile.trim().replace(/\D/g, '');
+
     try {
       setVerifyingOTP(true);
-      const result = await authService.verifyOTP(formData.email, otp);
-      
-      if (result.success) {
-        setOtpVerified(true);
-        toast({
-          title: 'Email Verified',
-          description: 'Your email has been verified successfully.',
-        });
-        // Proceed to registration
-        handleRegister();
+      if (otpStep === 'email_otp') {
+        const result = await authService.verifyEmailOTP(email, otp);
+        if (result.success) {
+          setEmailOtpVerified(true);
+          setOtpStep('phone_otp');
+          setOtp('');
+          toast({
+            title: 'Email verified',
+            description: 'Now enter the code sent to your phone.',
+          });
+        } else {
+          toast({ title: 'Verification failed', description: result.message, variant: 'destructive' });
+        }
+        return;
+      }
+      if (otpStep === 'phone_otp') {
+        const result = await authService.verifyPhoneOTP(email, mobile, otp);
+        if (result.success) {
+          setOtpVerified(true);
+          toast({
+            title: 'Phone verified',
+            description: 'Both email and phone verified. Complete your registration below.',
+          });
+        } else {
+          toast({ title: 'Verification failed', description: result.message, variant: 'destructive' });
+        }
       }
     } catch (error: any) {
       toast({
         title: 'Verification Failed',
-        description: error.message || 'Invalid OTP. Please try again.',
+        description: error.message || 'Invalid code. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -297,13 +319,11 @@ export const Auth: React.FC = () => {
         setLoading(false);
       }
     } else {
-      // For registration, check if OTP is verified
+      // For registration, dual-factor: email OTP then phone OTP
       if (!otpVerified) {
-        // First step: send OTP
         if (otpStep === 'form') {
           handleSendOTP();
         } else {
-          // Second step: verify OTP
           handleVerifyOTP();
         }
       } else {
@@ -512,7 +532,7 @@ export const Auth: React.FC = () => {
                     onChange={handleInputChange}
                     onBlur={handleInputBlur}
                     placeholder="john@example.com"
-                    disabled={otpStep === 'otp' || otpVerified}
+                    disabled={otpStep !== 'form' || otpVerified}
                     className={
                       !isLogin && emailCheckStatus === 'taken' ? 'border-destructive focus-visible:ring-destructive' :
                       !isLogin && emailCheckStatus === 'available' ? 'border-green-500 focus-visible:ring-green-500' : ''
@@ -561,7 +581,7 @@ export const Auth: React.FC = () => {
                       onBlur={handleInputBlur}
                       placeholder="9876543210"
                       maxLength={10}
-                      disabled={otpStep === 'otp' || otpVerified}
+                      disabled={otpStep !== 'form' || otpVerified}
                     />
                     <p className="text-xs text-muted-foreground">
                       10-digit Indian mobile number (e.g., 9876543210)
@@ -569,11 +589,15 @@ export const Auth: React.FC = () => {
                   </div>
                 )}
 
-                {/* OTP Verification Step */}
-                {!isLogin && otpStep === 'otp' && !otpVerified && (
+                {/* Dual-factor OTP: step 1 email, step 2 phone */}
+                {!isLogin && (otpStep === 'email_otp' || otpStep === 'phone_otp') && !otpVerified && (
                   <div className="space-y-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                     <div className="space-y-2">
-                      <Label htmlFor="otp">Enter OTP</Label>
+                      <Label htmlFor="otp">
+                        {otpStep === 'email_otp'
+                          ? 'Enter code sent to your email'
+                          : 'Enter code sent to your phone'}
+                      </Label>
                       <Input
                         id="otp"
                         name="otp"
@@ -587,7 +611,7 @@ export const Auth: React.FC = () => {
                       />
                       <div className="flex items-center justify-between text-sm">
                         <p className="text-muted-foreground">
-                          OTP sent to {formData.email}
+                          {otpStep === 'email_otp' ? formData.email : `+91 ${formData.mobile}`}
                         </p>
                         {otpExpiresIn > 0 && (
                           <p className="text-muted-foreground">
@@ -611,7 +635,7 @@ export const Auth: React.FC = () => {
                         ) : (
                           <>
                             <Mail className="w-4 h-4 mr-2" />
-                            Resend OTP
+                            Resend codes (email & phone)
                           </>
                         )}
                       </Button>
@@ -775,7 +799,7 @@ export const Auth: React.FC = () => {
                         ? 'Sign In' 
                         : otpStep === 'form' 
                           ? 'Send OTP' 
-                          : otpStep === 'otp' && !otpVerified
+                          : (otpStep === 'email_otp' || otpStep === 'phone_otp') && !otpVerified
                             ? 'Verify OTP'
                             : 'Create Account'
                       }
@@ -791,6 +815,7 @@ export const Auth: React.FC = () => {
                     setIsLogin(!isLogin);
                     setOtpStep('form');
                     setOtp('');
+                    setEmailOtpVerified(false);
                     setOtpVerified(false);
                     setOtpExpiresIn(0);
                   }}

@@ -116,11 +116,14 @@ export const AdminLectureDetails: React.FC = () => {
       setLoading(true);
       const data = await adminService.getLectureById(id!);
       setLecture(data);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error loading lecture details:', error);
+      const message = error instanceof Error ? error.message : 'Failed to load lecture details';
       toast({
-        title: 'Error',
-        description: 'Failed to load lecture details',
+        title: 'Could not load details',
+        description: message.includes('404') || message.includes('not found')
+          ? 'This lecture does not exist or has been removed.'
+          : 'The lecture may be completed or the server is temporarily unavailable. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -221,7 +224,7 @@ export const AdminLectureDetails: React.FC = () => {
             <Video className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">Lecture not found</h3>
             <p className="text-muted-foreground mb-4">
-              The lecture you're looking for doesn't exist or has been removed.
+              The lecture you're looking for does not exist or has been removed. If you were viewing a completed lecture, try again in a moment.
             </p>
             <Button onClick={() => navigate('/admin/manage-lectures')}>
               Back to Manage Lectures
@@ -234,6 +237,19 @@ export const AdminLectureDetails: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl">
+      {/* Completed lecture notice */}
+      {lecture.status === 'completed' && (
+        <Card className="mb-6 border-gray-200 bg-gray-50 dark:bg-gray-900/50">
+          <CardContent className="py-4 flex items-center gap-3">
+            <CheckCircle className="w-6 h-6 text-gray-600 shrink-0" />
+            <div>
+              <p className="font-medium text-gray-800 dark:text-gray-200">This lecture is completed.</p>
+              <p className="text-sm text-muted-foreground">View details, enrolled students, and feedback below. No further actions are required.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <Button 
@@ -557,15 +573,15 @@ export const AdminLectureDetails: React.FC = () => {
                   </div>
                   <Separator />
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Platform fee (15%)</span>
+                    <span className="text-muted-foreground">Platform fee (20%)</span>
                     <span className="font-medium">
-                      {formatCurrency(lecture.enrolledStudents.length * lecture.price * 0.15)}
+                      {formatCurrency(Math.floor(lecture.enrolledStudents.length * lecture.price * 0.2))}
                     </span>
                   </div>
                   <div className="flex justify-between font-semibold">
-                    <span>Trainer earnings</span>
+                    <span>Trainer earnings (80%)</span>
                     <span className="text-green-600">
-                      {formatCurrency(lecture.enrolledStudents.length * lecture.price * 0.85)}
+                      {formatCurrency(Math.floor(lecture.enrolledStudents.length * lecture.price * 0.8))}
                     </span>
                   </div>
                 </div>

@@ -232,6 +232,7 @@ export const StudentDashboard: React.FC = () => {
                 <div>
                   <p className="text-2xl font-bold">{stats.enrolledLectures}</p>
                   <p className="text-white/70 text-sm">Enrolled</p>
+                  <p className="text-white/50 text-xs mt-0.5">Lectures you joined</p>
                 </div>
               </div>
             </div>
@@ -243,6 +244,7 @@ export const StudentDashboard: React.FC = () => {
                 <div>
                   <p className="text-2xl font-bold">{stats.completedLectures}</p>
                   <p className="text-white/70 text-sm">Completed</p>
+                  <p className="text-white/50 text-xs mt-0.5">Sessions finished</p>
                 </div>
               </div>
             </div>

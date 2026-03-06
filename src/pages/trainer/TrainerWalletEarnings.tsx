@@ -421,7 +421,7 @@ export const TrainerWalletEarnings: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{earnings?.totalEarnings || 0} UC</div>
             <p className="text-xs text-muted-foreground mt-1">
-              = ₹{earnings?.totalEarnings || 0}
+              = ₹{earnings?.totalEarnings || 0} · 80% of each enrollment
             </p>
           </CardContent>
         </Card>
@@ -489,7 +489,7 @@ export const TrainerWalletEarnings: React.FC = () => {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <span>Earn 100% when students enroll</span>
+                  <span>You earn 80% of each lecture enrollment (platform fee 20%)</span>
                 </li>
                
                 <li className="flex items-start gap-2">

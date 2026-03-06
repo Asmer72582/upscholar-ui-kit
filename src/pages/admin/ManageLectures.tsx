@@ -61,6 +61,7 @@ interface LectureStats {
   scheduled: number;
   live: number;
   cancelled: number;
+  missed?: number;
 }
 
 export const ManageLectures: React.FC = () => {
@@ -74,7 +75,8 @@ export const ManageLectures: React.FC = () => {
     rejected: 0,
     scheduled: 0,
     live: 0,
-    cancelled: 0
+    cancelled: 0,
+    missed: 0
   });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -166,6 +168,8 @@ export const ManageLectures: React.FC = () => {
         return <Badge className="bg-blue-100 text-blue-800">Completed</Badge>;
       case 'cancelled':
         return <Badge className="bg-gray-100 text-gray-800">Cancelled</Badge>;
+      case 'missed':
+        return <Badge className="bg-amber-100 text-amber-800">Missed</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -431,12 +435,12 @@ export const ManageLectures: React.FC = () => {
 
       <div className="space-y-6">
         {/* Overview Cards */}
-        <div className="grid md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <Video className="w-6 h-6 mx-auto mb-2 text-primary" />
               <p className="text-2xl font-bold">{lectureStats.total}</p>
-              <p className="text-xs text-muted-foreground">Total Lectures</p>
+              <p className="text-xs text-muted-foreground">Total</p>
             </CardContent>
           </Card>
           <Card>
@@ -462,16 +466,24 @@ export const ManageLectures: React.FC = () => {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
+              <Clock className="w-6 h-6 mx-auto mb-2 text-amber-600" />
+              <p className="text-2xl font-bold">{lectureStats.missed ?? 0}</p>
+              <p className="text-xs text-muted-foreground">Missed</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 text-center">
               <XCircle className="w-6 h-6 mx-auto mb-2 text-red-600" />
               <p className="text-2xl font-bold">{lectureStats.rejected}</p>
               <p className="text-xs text-muted-foreground">Rejected</p>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-slate-200 bg-slate-50/50 dark:bg-slate-900/20 dark:border-slate-700">
             <CardContent className="p-4 text-center">
-              <XCircle className="w-6 h-6 mx-auto mb-2 text-gray-600" />
-              <p className="text-2xl font-bold">{lectureStats.cancelled}</p>
-              <p className="text-xs text-muted-foreground">Cancelled</p>
+              <XCircle className="w-6 h-6 mx-auto mb-2 text-slate-500 dark:text-slate-400" />
+              <p className="text-2xl font-bold text-slate-600 dark:text-slate-400">{lectureStats.cancelled}</p>
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Cancelled</p>
+              <p className="text-xs text-slate-500 dark:text-slate-500 mt-0.5">Doesn&apos;t count</p>
             </CardContent>
           </Card>
         </div>
@@ -482,7 +494,10 @@ export const ManageLectures: React.FC = () => {
             <TabsTrigger value="pending">Pending Review ({lectureStats.pending})</TabsTrigger>
             <TabsTrigger value="approved">Approved</TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
-            <TabsTrigger value="cancelled">Cancelled ({lectureStats.cancelled})</TabsTrigger>
+            <TabsTrigger value="missed">Missed ({lectureStats.missed ?? 0})</TabsTrigger>
+            <TabsTrigger value="cancelled" className="data-[state=active]:bg-slate-100 data-[state=active]:text-slate-700 dark:data-[state=active]:bg-slate-800 dark:data-[state=active]:text-slate-300 text-slate-500">
+              Cancelled ({lectureStats.cancelled}) <span className="hidden sm:inline text-[10px] opacity-80 ml-0.5">· doesn&apos;t count</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
@@ -552,6 +567,7 @@ export const ManageLectures: React.FC = () => {
                       <SelectItem value="scheduled">Scheduled</SelectItem>
                       <SelectItem value="live">Live</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="missed">Missed</SelectItem>
                       <SelectItem value="rejected">Rejected</SelectItem>
                     </SelectContent>
                   </Select>
@@ -813,11 +829,59 @@ export const ManageLectures: React.FC = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="cancelled" className="mt-6">
+          <TabsContent value="missed" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Cancelled Lectures ({lectureStats.cancelled})</CardTitle>
-                <CardDescription>Lectures cancelled by trainers with reasons</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                  Missed Lectures ({lectureStats.missed ?? 0})
+                </CardTitle>
+                <CardDescription>
+                  Scheduled lectures that did not go live (time passed without trainer starting)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {lectures.filter(l => l.status === 'missed').length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No missed lectures</p>
+                ) : (
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {lectures.filter(l => l.status === 'missed').map((lecture) => (
+                      <Card
+                        key={lecture.id}
+                        className="border border-amber-200 dark:border-amber-800 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => viewLectureDetails(lecture.id)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded flex items-center justify-center">
+                              <Clock className="w-6 h-6 text-amber-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm">{lecture.title}</h4>
+                              <p className="text-xs text-muted-foreground">by {lecture.trainer.name}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Was scheduled: {new Date(lecture.scheduledAt).toLocaleString()} · {lecture.duration} min
+                              </p>
+                              <div className="flex items-center justify-between mt-2">
+                                <span className="text-xs font-medium">{lecture.price} UC</span>
+                                {getStatusBadge(lecture.status)}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="cancelled" className="mt-6">
+            <Card className="border-slate-200 dark:border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-slate-700 dark:text-slate-300">Cancelled Lectures ({lectureStats.cancelled})</CardTitle>
+                <CardDescription>Lectures cancelled by trainers. These don&apos;t count toward lecture totals.</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">

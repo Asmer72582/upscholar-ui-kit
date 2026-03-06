@@ -31,7 +31,7 @@ export interface Lecture {
     enrolledAt: string;
     attended: boolean;
   }>;
-  status: 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending';
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending' | 'missed';
   rejectionReason?: string;
   rejectedAt?: string;
   rejectedBy?: {
@@ -128,7 +128,7 @@ interface ApiLecture {
   scheduledAt: string;
   maxStudents: number;
   enrolledStudents: ApiEnrollment[];
-  status: 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending';
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending' | 'missed';
   rejectionReason?: string;
   rejectedAt?: string;
   rejectedBy?: ApiUser;
@@ -589,7 +589,7 @@ class LectureService {
         enrolledAt: enrollment.enrolledAt,
         attended: enrollment.attended,
       })) || [],
-      status: lecture.status as 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending',
+      status: lecture.status as 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending' | 'missed',
       rejectionReason: lecture.rejectionReason,
       rejectedAt: lecture.rejectedAt,
       rejectedBy: lecture.rejectedBy ? {

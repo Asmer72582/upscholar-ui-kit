@@ -513,6 +513,7 @@ class AdminService {
     scheduled: number;
     live: number;
     cancelled: number;
+    missed: number;
   }> {
     try {
       const lectures = await this.getAllLectures();
@@ -526,6 +527,7 @@ class AdminService {
         scheduled: lectures.filter((l: any) => l.status === 'scheduled').length,
         live: lectures.filter((l: any) => l.status === 'live').length,
         cancelled: lectures.filter((l: any) => l.status === 'cancelled').length,
+        missed: lectures.filter((l: any) => l.status === 'missed').length,
       };
       
       return stats;

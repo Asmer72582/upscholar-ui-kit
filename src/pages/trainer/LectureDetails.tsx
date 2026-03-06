@@ -254,10 +254,22 @@ export const TrainerLectureDetails: React.FC = () => {
                         <Radio className="w-4 h-4 mr-2" />
                         🔴 Join Live
                       </Button>
-                      <Button variant="outline" onClick={handleCompleteLecture}>
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Complete
-                      </Button>
+                      {(() => {
+                        const durationMs = (lecture.duration || 60) * 60 * 1000;
+                        const endTime = new Date(lecture.scheduledAt).getTime() + durationMs;
+                        const canComplete = Date.now() >= endTime;
+                        return (
+                          <Button
+                            variant="outline"
+                            onClick={handleCompleteLecture}
+                            disabled={!canComplete}
+                            title={!canComplete ? 'Complete is available after the scheduled end time' : undefined}
+                          >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Complete
+                          </Button>
+                        );
+                      })()}
                     </>
                   )}
                 </div>
@@ -299,6 +311,7 @@ export const TrainerLectureDetails: React.FC = () => {
                     <span className="text-sm">Price</span>
                   </div>
                   <p className="font-medium">{lecture.price} UC</p>
+                  <p className="text-xs text-muted-foreground">You earn 80% per enrollment</p>
                 </div>
               </div>
 

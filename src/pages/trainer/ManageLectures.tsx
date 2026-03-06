@@ -218,6 +218,13 @@ export const ManageLectures: React.FC = () => {
             {rejectionReason ? 'Rejected' : 'Cancelled'}
           </Badge>
         );
+      case 'missed':
+        return (
+          <Badge className="bg-amber-100 text-amber-800 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Missed
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -229,6 +236,7 @@ export const ManageLectures: React.FC = () => {
     const scheduledLectures = lectures.filter(l => l.status === 'scheduled').length;
     const liveLectures = lectures.filter(l => l.status === 'live').length;
     const completedLectures = lectures.filter(l => l.status === 'completed').length;
+    const missedLectures = lectures.filter(l => l.status === 'missed').length;
     const totalStudents = lectures.reduce((sum, l) => sum + l.enrolledCount, 0);
     const totalEarnings = lectures.reduce((sum, l) => sum + l.totalEarnings, 0);
     const averageRating = lectures.length > 0 
@@ -241,6 +249,7 @@ export const ManageLectures: React.FC = () => {
       scheduledLectures,
       liveLectures,
       completedLectures,
+      missedLectures,
       totalStudents,
       totalEarnings,
       averageRating: Math.round(averageRating * 10) / 10
@@ -455,7 +464,7 @@ export const ManageLectures: React.FC = () => {
             <CardContent className="p-4 text-center">
               <DollarSign className="w-6 h-6 mx-auto mb-2 text-emerald-600" />
               <p className="text-2xl font-bold">{stats.totalEarnings}</p>
-              <p className="text-xs text-muted-foreground">Earnings</p>
+              <p className="text-xs text-muted-foreground">Earnings (80% share)</p>
             </CardContent>
           </Card>
           <Card>
@@ -475,6 +484,9 @@ export const ManageLectures: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="scheduled">Approved ({stats.scheduledLectures})</TabsTrigger>
             <TabsTrigger value="completed">Completed ({stats.completedLectures})</TabsTrigger>
+            <TabsTrigger value="missed" className={stats.missedLectures > 0 ? 'text-amber-700' : ''}>
+              Missed ({stats.missedLectures})
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="all" className="mt-6">
@@ -533,6 +545,7 @@ export const ManageLectures: React.FC = () => {
                       <SelectItem value="scheduled">Approved</SelectItem>
                       <SelectItem value="live">Live</SelectItem>
                       <SelectItem value="completed">Completed</SelectItem>
+                      <SelectItem value="missed">Missed</SelectItem>
                       <SelectItem value="cancelled">Cancelled/Rejected</SelectItem>
                     </SelectContent>
                   </Select>
@@ -599,7 +612,7 @@ export const ManageLectures: React.FC = () => {
                           <TableCell>
                             <div className="text-sm">
                               <p className="font-medium">{lecture.totalEarnings} UC</p>
-                              <p className="text-muted-foreground">{lecture.price} UC each</p>
+                              <p className="text-muted-foreground">80% of enrollment · {lecture.price} UC each</p>
                             </div>
                           </TableCell>
                           <TableCell>{getStatusBadge(lecture.status)}</TableCell>
@@ -659,15 +672,20 @@ export const ManageLectures: React.FC = () => {
                                   </DropdownMenuItem>
                                 )}
                                 
-                                {(lecture.status === 'scheduled' || lecture.status === 'live') && (
-                                  <DropdownMenuItem 
-                                    onClick={() => handleCompleteLecture(lecture.id, lecture.title)}
-                                    className="text-green-600"
-                                  >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    Complete Lecture
-                                  </DropdownMenuItem>
-                                )}
+                                {lecture.status === 'live' && (() => {
+                                  const durationMs = (lecture.duration || 60) * 60 * 1000;
+                                  const endTime = new Date(lecture.scheduledAt).getTime() + durationMs;
+                                  const canComplete = Date.now() >= endTime;
+                                  return canComplete ? (
+                                    <DropdownMenuItem 
+                                      onClick={() => handleCompleteLecture(lecture.id, lecture.title)}
+                                      className="text-green-600"
+                                    >
+                                      <CheckCircle className="w-4 h-4 mr-2" />
+                                      Complete Lecture
+                                    </DropdownMenuItem>
+                                  ) : null;
+                                })()}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>
@@ -832,7 +850,53 @@ export const ManageLectures: React.FC = () => {
                                 </span>
                               )}
                             </p>
-                            <p className="text-sm font-medium text-green-600">{lecture.totalEarnings} UC earned</p>
+                            <p className="text-sm font-medium text-green-600">{lecture.totalEarnings} UC earned (80%)</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="missed" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                  Missed Lectures
+                </CardTitle>
+                <CardDescription>
+                  Scheduled lectures that did not go live (time passed without starting)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {lectures.filter(l => l.status === 'missed').length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="w-12 h-12 mx-auto text-green-400 mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No missed lectures</h3>
+                    <p className="text-muted-foreground">All your scheduled lectures were started on time.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {lectures.filter(l => l.status === 'missed').map((lecture) => (
+                      <div key={lecture.id} className="border border-amber-200 rounded-lg p-4 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">{lecture.title}</h3>
+                            <p className="text-sm text-muted-foreground">{lecture.category}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Was scheduled: {new Date(lecture.scheduledAt).toLocaleString()} · {lecture.duration} min
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(lecture.status)}
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/trainer/lectures/${lecture.id}/details`)}>
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
                           </div>
                         </div>
                       </div>

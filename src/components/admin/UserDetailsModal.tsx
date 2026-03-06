@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { User, Mail, Calendar, Shield, FileText, Video, Award, Clock, Download, ExternalLink } from 'lucide-react';
+import { User, Calendar, Shield, FileText, Video, Award, Clock, Download, ExternalLink } from 'lucide-react';
 import { User as UserType } from '@/types';
 
 interface UserDetailsModalProps {
@@ -209,11 +209,6 @@ export const UserDetailsModal: React.FC<UserDetailsModalProps> = ({
           {/* Action Buttons */}
           <Separator />
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm">
-              <Mail className="w-4 h-4 mr-2" />
-              Send Email
-            </Button>
-
             {user.role === 'trainer' && user.status === 'pending' && (
               <>
                 {onApprove && (

@@ -298,6 +298,7 @@ export const TrainerDashboard: React.FC = () => {
             <div className="text-3xl font-bold text-green-600">
               {formatCurrency(stats.earnings.total)} <span className="text-lg">UC</span>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">80% of each enrollment (platform fee 20%)</p>
             <div className="flex items-center mt-2 text-sm">
               {stats.earnings.growth >= 0 ? (
                 <span className="text-green-600 flex items-center">

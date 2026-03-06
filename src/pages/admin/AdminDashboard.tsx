@@ -59,6 +59,9 @@ interface DashboardStats {
   };
   lectures: {
     total: number;
+    missed?: number;
+    live?: number;
+    cancelled?: number;
     active: number;
     completed: number;
     scheduled: number;
@@ -312,9 +315,9 @@ export const AdminDashboard: React.FC = () => {
                   <BookOpen className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.lectures.total}</p>
+                  <p className="text-2xl font-bold">{stats.lectures.total + (stats.lectures.missed ?? 0)}</p>
                   <p className="text-white/70 text-sm">Total Lectures</p>
-                  <p className="text-white/50 text-xs mt-0.5">All (pending, scheduled, live, completed, cancelled)</p>
+                  <p className="text-white/50 text-xs mt-0.5">All statuses · +{stats.lectures.newThisMonth} this month</p>
                 </div>
               </div>
             </div>
@@ -674,52 +677,60 @@ export const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Lecture Overview */}
+        {/* Lecture count breakdown */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <BookOpen className="w-5 h-5 text-green-600" />
-              Lecture Overview
+              Lecture counts
             </CardTitle>
-            <CardDescription>Platform lecture status</CardDescription>
+            <CardDescription>All lectures by status</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className="w-5 h-5 text-yellow-600" />
-                  <span className="text-sm text-muted-foreground">Pending</span>
-                </div>
-                <p className="text-2xl font-bold text-yellow-600">{stats.lectures.pending || 0}</p>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
+                <p className="text-xl font-bold">{stats.lectures.total + (stats.lectures.missed ?? 0)}</p>
+                <p className="text-xs text-muted-foreground">All lectures</p>
               </div>
-              <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  <span className="text-sm text-muted-foreground">Scheduled</span>
-                </div>
-                <p className="text-2xl font-bold text-blue-600">{stats.lectures.scheduled}</p>
+              <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pending</p>
+                <p className="text-xl font-bold text-yellow-700 dark:text-yellow-400">{stats.lectures.pending ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Awaiting approval</p>
               </div>
-              <div className="p-4 rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-muted-foreground">Completed</span>
-                </div>
-                <p className="text-2xl font-bold text-green-600">{stats.lectures.completed}</p>
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Scheduled</p>
+                <p className="text-xl font-bold text-blue-700 dark:text-blue-400">{stats.lectures.scheduled}</p>
+                <p className="text-xs text-muted-foreground">Approved, not started</p>
               </div>
-              <div className="p-4 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-100">
-                <div className="flex items-center gap-2 mb-2">
-                  <Coins className="w-5 h-5 text-purple-600" />
-                  <span className="text-sm text-muted-foreground">Revenue</span>
-                </div>
-                <p className="text-2xl font-bold text-purple-600">{stats.revenue.total.toLocaleString()} UC</p>
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Live</p>
+                <p className="text-xl font-bold text-red-700 dark:text-red-400">{stats.lectures.live ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Ongoing now</p>
+              </div>
+              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Completed</p>
+                <p className="text-xl font-bold text-green-700 dark:text-green-400">{stats.lectures.completed}</p>
+                <p className="text-xs text-muted-foreground">Finished</p>
+              </div>
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Missed</p>
+                <p className="text-xl font-bold text-amber-700 dark:text-amber-400">{stats.lectures.missed ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Scheduled, never went live</p>
+              </div>
+              <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cancelled</p>
+                <p className="text-xl font-bold text-gray-700 dark:text-gray-300">{stats.lectures.cancelled ?? 0}</p>
+                <p className="text-xs text-muted-foreground">Cancelled by admin</p>
               </div>
             </div>
-            
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/admin/manage-lectures">
-                Manage Lectures <ChevronRight className="w-4 h-4 ml-2" />
-              </Link>
-            </Button>
+            <div className="pt-2 border-t">
+              <Button asChild variant="outline" className="w-full">
+                <Link to="/admin/manage-lectures">
+                  Manage Lectures <ChevronRight className="w-4 h-4 ml-2" />
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
 

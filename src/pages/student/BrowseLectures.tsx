@@ -8,18 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Search, 
-  Filter, 
-  Grid, 
-  List, 
-  Clock, 
-  Users, 
-  Star,
-  Calendar,
-  BookOpen,
-  PlayCircle
-} from 'lucide-react';
+import { Search, Grid, List, Clock, Users, Star, Calendar, BookOpen, PlayCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const BrowseLectures: React.FC = () => {
@@ -27,7 +16,6 @@ export const BrowseLectures: React.FC = () => {
   const location = useLocation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedLevel, setSelectedLevel] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState('createdAt');
   const [lectures, setLectures] = useState<Lecture[]>([]);
@@ -78,7 +66,6 @@ export const BrowseLectures: React.FC = () => {
     'Competitive Exams',
     'Other'
   ];
-  const levels = ['all', 'Beginner', 'Intermediate', 'Advanced'];
 
   const fetchLectures = async () => {
     try {
@@ -107,7 +94,7 @@ export const BrowseLectures: React.FC = () => {
   useEffect(() => {
     fetchLectures();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, selectedCategory, selectedLevel, sortBy, pagination.current]);
+  }, [searchTerm, selectedCategory, sortBy, pagination.current]);
 
   // Split lectures: live/upcoming vs missed
   const now = new Date();
@@ -128,121 +115,96 @@ export const BrowseLectures: React.FC = () => {
 
   const LectureCard = ({ lecture, isListView = false }: { lecture: Lecture; isListView?: boolean }) => {
     const trainerName = `${lecture.trainer.firstname} ${lecture.trainer.lastname}`;
-    const trainerAvatar = lecture.trainer.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${lecture.trainer.firstname}`;
-    
-    // Get status-based styling
+
     const getStatusColor = (status: string) => {
       switch (status) {
         case 'live':
-          return 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950';
+          return 'border-green-200 bg-green-50/50 dark:border-green-800 dark:bg-green-950/30';
         case 'scheduled':
-          return 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950';
+          return 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-950/30';
         default:
           return '';
       }
     };
-    
-    // Format scheduled time and "Ending in X days" indicator
+
     const formatScheduledTime = (dateString: string) => {
       const date = new Date(dateString);
       const now = new Date();
       const diffTime = date.getTime() - now.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
       if (diffDays < 0) return { text: 'Ended', isPast: true };
-      if (diffDays === 0) return { text: 'Ending today', isPast: false };
-      if (diffDays === 1) return { text: 'Ending in 1 day', isPast: false };
-      if (diffDays <= 14) return { text: `Ending in ${diffDays} days`, isPast: false };
+      if (diffDays === 0) return { text: 'Today', isPast: false };
+      if (diffDays === 1) return { text: '1 day', isPast: false };
+      if (diffDays <= 14) return { text: `${diffDays} days`, isPast: false };
       return { text: date.toLocaleDateString(), isPast: false };
     };
-    
+
+    const scheduled = formatScheduledTime(lecture.scheduledAt);
+    const diffDays = Math.ceil((new Date(lecture.scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    const showDaysLeft = !scheduled.isPast && diffDays >= 1 && diffDays <= 14;
+
     return (
-      <Card 
+      <Card
         className={cn(
-          "card-elevated hover-lift transition-all cursor-pointer",
+          "transition-all cursor-pointer hover:shadow-md border",
           getStatusColor(lecture.status),
-          isListView ? "flex flex-row" : ""
+          isListView && "flex flex-row"
         )}
-        onClick={() => navigate(`/student/lecture/${lecture.id}`)}    
+        onClick={() => navigate(`/student/lecture/${lecture.id}`)}
       >
         <div className="flex-1">
-          <CardHeader className={cn(isListView ? "pb-2" : "")}>
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="text-xs">
+          <CardHeader className={cn("pb-2", isListView && "py-4")}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                  <Badge variant="secondary" className="text-xs font-normal">
                     {lecture.category}
                   </Badge>
-                  <Badge 
+                  <Badge
                     className={cn(
                       "text-xs",
-                      lecture.status === 'live' && "bg-green-500 text-white",
-                      lecture.status === 'scheduled' && "bg-blue-500 text-white"
+                      lecture.status === 'live' && "bg-green-600 text-white",
+                      lecture.status === 'scheduled' && "bg-blue-600 text-white"
                     )}
                   >
-                    {lecture.status.toUpperCase()}
+                    {lecture.status}
                   </Badge>
                 </div>
-                <CardTitle className={cn("line-clamp-2", isListView ? "text-lg" : "")}>{lecture.title}</CardTitle>
-                <CardDescription className="line-clamp-2 mt-1">
-                  by {trainerName}
-                </CardDescription>
+                <CardTitle className={cn("text-base line-clamp-2", isListView && "text-lg")}>
+                  {lecture.title}
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">by {trainerName}</CardDescription>
               </div>
-              <Badge className="bg-accent text-accent-foreground ml-2">
-                {lecture.price} UC
-              </Badge>
+              <span className="text-sm font-medium shrink-0">{lecture.price} UC</span>
             </div>
           </CardHeader>
-          
-          <CardContent className={cn(isListView ? "pt-0" : "")}>
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+          <CardContent className={cn("pt-0", isListView && "pt-0")}>
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
               {lecture.description}
             </p>
-            
-            <div className="flex items-center justify-between text-sm text-muted-foreground mb-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  {lecture.duration} min
-                </div>
-                <div className="flex items-center">
-                  <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
-                  {lecture.averageRating.toFixed(1)}
-                </div>
-                <div className="flex items-center">
-                  <Users className="w-4 h-4 mr-1" />
-                  {lecture.enrolledCount}
-                </div>
-              </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
+              <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{lecture.duration} min</span>
+              <span className="flex items-center gap-1"><Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />{lecture.averageRating.toFixed(1)}</span>
+              <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{lecture.enrolledCount}</span>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="text-xs flex items-center">
-                  <Calendar className="w-3 h-3 inline mr-1" />
-                  <span className={formatScheduledTime(lecture.scheduledAt).isPast ? 'text-muted-foreground' : ''}>
-                    {formatScheduledTime(lecture.scheduledAt).text}
-                  </span>
-                </div>
-                {!formatScheduledTime(lecture.scheduledAt).isPast && (() => {
-                  const diffDays = Math.ceil((new Date(lecture.scheduledAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                  return diffDays >= 1 && diffDays <= 14 ? (
-                    <Badge variant="outline" className="text-xs border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-700 dark:bg-amber-950/50 dark:text-amber-400">
-                      {diffDays === 1 ? '1 day left' : `${diffDays} days left`}
-                    </Badge>
-                  ) : null;
-                })()}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs">
+                <Calendar className="w-3 h-3 text-muted-foreground" />
+                <span>{scheduled.text}</span>
+                {showDaysLeft && (
+                  <Badge variant="outline" className="text-xs font-normal border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-400">
+                    {diffDays === 1 ? '1 day left' : `${diffDays} left`}
+                  </Badge>
+                )}
               </div>
-              <Button 
-                size="sm" 
-                className="btn-primary"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/student/lecture/${lecture.id}`);
-                }}
+              <Button
+                size="sm"
+                variant="default"
+                className="shrink-0"
+                onClick={(e) => { e.stopPropagation(); navigate(`/student/lecture/${lecture.id}`); }}
               >
-                <PlayCircle className="w-4 h-4 mr-1" />
-                View Details
+                <PlayCircle className="w-3.5 h-3.5 mr-1" />
+                View
               </Button>
             </div>
           </CardContent>
@@ -252,207 +214,181 @@ export const BrowseLectures: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in max-w-6xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Browse Lectures</h1>
-        <p className="text-muted-foreground">
-          Discover and enroll in expert-led lectures across various topics
-        </p>
-      </div>
-
-      {/* Filters and Search */}
-      <Card className="card-elevated">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search lectures, trainers, topics..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {category === 'all' ? 'All Categories' : category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={selectedLevel} onValueChange={setSelectedLevel}>
-              <SelectTrigger>
-                <SelectValue placeholder="Level" />
-              </SelectTrigger>
-              <SelectContent>
-                {levels.map(level => (
-                  <SelectItem key={level} value={level}>
-                    {level === 'all' ? 'All Levels' : level}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="createdAt">Newest First</SelectItem>
-                <SelectItem value="rating">Rating</SelectItem>
-                <SelectItem value="price">Price</SelectItem>
-                <SelectItem value="date">Lecture Date</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <div className="flex space-x-2">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
-                size="icon"
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid className="w-4 h-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
-                size="icon"
-                onClick={() => setViewMode('list')}
-              >
-                <List className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Results Summary */}
-      <div className="flex items-center justify-between">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Browse Lectures</h1>
         <p className="text-sm text-muted-foreground">
-          Showing {upcomingAndLiveLectures.length} live & upcoming lectures
+          Discover and enroll in expert-led lectures
         </p>
-        <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            {searchTerm && `"${searchTerm}"`}
-            {selectedCategory !== 'all' && ` in ${selectedCategory}`}
-            {selectedLevel !== 'all' && ` • ${selectedLevel} level`}
-          </span>
+      </header>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="relative flex-1 min-w-[200px] sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+            <SelectTrigger className="h-9 w-[160px]">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map(category => (
+                <SelectItem key={category} value={category}>
+                  {category === 'all' ? 'All' : category}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="h-9 w-[140px]">
+              <SelectValue placeholder="Sort" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdAt">Newest</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+              <SelectItem value="price">Price</SelectItem>
+              <SelectItem value="date">Date</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-1 border rounded-md p-1 w-fit">
+          <Button
+            variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
-      {/* Loading State */}
+      {/* Results summary */}
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+        <span>
+          {upcomingAndLiveLectures.length} lecture{upcomingAndLiveLectures.length !== 1 ? 's' : ''}
+          {(searchTerm || selectedCategory !== 'all') && (
+            <span className="ml-1">
+              {searchTerm && ` · "${searchTerm}"`}
+              {selectedCategory !== 'all' && ` · ${selectedCategory}`}
+            </span>
+          )}
+        </span>
+      </div>
+
+      {/* Loading */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={cn(
+          viewMode === 'grid'
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            : "space-y-4"
+        )}>
           {[...Array(6)].map((_, i) => (
-            <Card key={i} className="card-elevated overflow-hidden">
-              <div className="w-full h-48 bg-muted animate-pulse" />
-              <CardHeader>
-                <div className="h-4 bg-muted rounded animate-pulse mb-2" />
-                <div className="h-6 bg-muted rounded animate-pulse" />
-                <div className="h-4 bg-muted rounded animate-pulse w-2/3" />
+            <Card key={i} className="overflow-hidden">
+              <div className="h-36 bg-muted/50 animate-pulse" />
+              <CardHeader className="pb-2">
+                <div className="h-4 bg-muted/50 rounded animate-pulse w-1/3 mb-2" />
+                <div className="h-5 bg-muted/50 rounded animate-pulse w-2/3" />
               </CardHeader>
-              <CardContent>
-                <div className="h-4 bg-muted rounded animate-pulse mb-2" />
-                <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+              <CardContent className="pt-0">
+                <div className="h-3 bg-muted/50 rounded animate-pulse w-full mb-2" />
+                <div className="h-3 bg-muted/50 rounded animate-pulse w-4/5" />
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      {/* Lectures Grid/List */}
+      {/* Lecture list */}
       {!loading && upcomingAndLiveLectures.length > 0 && (
-        <div className={cn(
-          "gap-6",
-          viewMode === 'grid' 
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" 
-            : "space-y-4"
-        )}>
-          {upcomingAndLiveLectures.map((lecture) => (
-            <LectureCard 
-              key={lecture.id} 
-              lecture={lecture} 
-              isListView={viewMode === 'list'} 
-            />
-          ))}
-        </div>
+        <>
+          <section className={cn(
+            viewMode === 'grid'
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              : "space-y-3"
+          )}>
+            {upcomingAndLiveLectures.map((lecture) => (
+              <LectureCard
+                key={lecture.id}
+                lecture={lecture}
+                isListView={viewMode === 'list'}
+              />
+            ))}
+          </section>
+
+          {pagination.pages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPagination(prev => ({ ...prev, current: Math.max(1, prev.current - 1) }))}
+                disabled={pagination.current === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground min-w-[100px] text-center">
+                {pagination.current} / {pagination.pages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPagination(prev => ({ ...prev, current: Math.min(prev.pages, prev.current + 1) }))}
+                disabled={pagination.current === pagination.pages}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       )}
 
-      {/* Pagination */}
-      {!loading && upcomingAndLiveLectures.length > 0 && pagination.pages > 1 && (
-        <div className="flex justify-center items-center space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPagination(prev => ({ ...prev, current: Math.max(1, prev.current - 1) }))}
-            disabled={pagination.current === 1}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {pagination.current} of {pagination.pages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPagination(prev => ({ ...prev, current: Math.min(prev.pages, prev.current + 1) }))}
-            disabled={pagination.current === pagination.pages}
-          >
-            Next
-          </Button>
-        </div>
-      )}
-
+      {/* Empty state */}
       {!loading && upcomingAndLiveLectures.length === 0 && (
-        <Card className="card-elevated">
-          <CardContent className="text-center py-12">
-            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">No live or upcoming lectures</h3>
-            <p className="text-muted-foreground mb-4">
-              Try adjusting your search criteria or browse different categories, or check again later.
-            </p>
-            <Button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategory('all');
-                setSelectedLevel('all');
-              }}
-              variant="outline"
-            >
-              Clear Filters
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="rounded-lg border border-dashed bg-muted/30 py-16 text-center">
+          <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+          <p className="font-medium text-muted-foreground mb-1">No lectures right now</p>
+          <p className="text-sm text-muted-foreground mb-4">Try another search or category</p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setSearchTerm(''); setSelectedCategory('all'); }}
+          >
+            Clear filters
+          </Button>
+        </div>
       )}
 
       {/* Missed lectures */}
       {!loading && missedLectures.length > 0 && (
-        <div className="space-y-3 mt-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Clock className="w-4 h-4 text-muted-foreground" />
-            Missed lectures
-          </h2>
-          <p className="text-xs text-muted-foreground">
-            These lectures were scheduled but the time has already passed.
-          </p>
-          <div
-            className={cn(
-              "gap-4",
-              viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
-                : "space-y-3"
-            )}
-          >
+        <section className="space-y-4 pt-6 border-t">
+          <div>
+            <h2 className="text-sm font-medium flex items-center gap-2">
+              <Clock className="w-4 h-4 text-muted-foreground" />
+              Missed
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Scheduled time has passed</p>
+          </div>
+          <div className={cn(
+            viewMode === "grid"
+              ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+              : "space-y-3"
+          )}>
             {missedLectures.map((lecture) => (
               <LectureCard
                 key={lecture.id}
@@ -461,7 +397,7 @@ export const BrowseLectures: React.FC = () => {
               />
             ))}
           </div>
-        </div>
+        </section>
       )}
     </div>
   );

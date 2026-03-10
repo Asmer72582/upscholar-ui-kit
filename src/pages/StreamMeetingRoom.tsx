@@ -375,14 +375,19 @@ export const StreamMeetingRoom: React.FC = () => {
       const cl = clientRef.current;
       callRef.current = null;
       clientRef.current = null;
-      if (c) c.leave().catch(console.error);
-      if (cl) cl.disconnectUser().catch(console.error);
+      if (c) c.leave().catch(() => { /* ignore "already left" */ });
+      if (cl) cl.disconnectUser().catch(() => { /* ignore disconnect errors */ });
     };
   }, [user, lectureId, navigate, getDashboardPath]);
 
   const handleLeave = useCallback(() => {
-    navigate(getDashboardPath());
-  }, [navigate, getDashboardPath]);
+    // Spectators go to lecture page so they can rejoin easily (they've already paid)
+    if (isSpectator && user?.role === 'student' && lectureId) {
+      navigate(`/student/lecture/${lectureId}`, { replace: true });
+    } else {
+      navigate(getDashboardPath());
+    }
+  }, [navigate, getDashboardPath, isSpectator, user?.role, lectureId]);
 
   if (isLoading) {
     return (

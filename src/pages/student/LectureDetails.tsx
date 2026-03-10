@@ -43,24 +43,43 @@ export const LectureDetails: React.FC = () => {
     fetchBalance();
   }, []);
 
-  useEffect(() => {
-    const fetchLecture = async () => {
-      if (!id) return;
-      
-      try {
-        setLoading(true);
-        const lectureData = await lectureService.getLectureById(id);
-        setLecture(lectureData);
-        
-      } catch (error) {
-        console.error('Error fetching lecture:', error);
-        toast.error('Failed to load lecture details');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchLecture = React.useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const lectureData = await lectureService.getLectureById(id);
+      setLecture(lectureData);
+    } catch (error) {
+      console.error('Error fetching lecture:', error);
+      toast.error('Failed to load lecture details');
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
 
+  useEffect(() => {
     fetchLecture();
+  }, [fetchLecture]);
+
+  // Refetch lecture when user returns (visibility change or back from meeting) so hasPaidSpectator stays correct
+  useEffect(() => {
+    if (!id) return;
+    const refetch = () => {
+      lectureService.getLectureById(id).then((data) => setLecture(data)).catch(() => {});
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') refetch();
+    };
+    const onPageShow = (e: PageTransitionEvent) => {
+      // When restored from back-forward cache, refetch to get fresh hasPaidSpectator
+      if (e.persisted) refetch();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pageshow', onPageShow);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pageshow', onPageShow);
+    };
   }, [id]);
 
   // Separate effect to check enrollment when both user and lecture are available
@@ -191,6 +210,8 @@ export const LectureDetails: React.FC = () => {
     try {
       setPayingSpectator(true);
       await lectureService.payForSpectator(id);
+      // Store locally so "Watch as spectator" shows after refresh (fallback if API lags)
+      localStorage.setItem(`upscholar_spectator_paid_${id}`, '1');
       toast.success('Payment successful. Joining as spectator...');
       setShowSpectatorPayDialog(false);
       const balance = await walletService.getBalance();
@@ -554,7 +575,9 @@ export const LectureDetails: React.FC = () => {
                         <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Join as spectator: view and listen only. No mic, no chat, no camera.</p>
                         {(() => {
                           const spectatorPrice = lecture.spectatorPrice ?? Math.round(lecture.price * 0.4);
-                          const hasPaid = lecture.hasPaidSpectator === true;
+                          const paidFromApi = lecture.hasPaidSpectator === true;
+                          const paidFromStorage = typeof id === 'string' && localStorage.getItem(`upscholar_spectator_paid_${id}`) === '1';
+                          const hasPaid = paidFromApi || paidFromStorage;
                           const canAffordSpectator = userBalance >= spectatorPrice;
                           if (spectatorPrice > 0 && !hasPaid) {
                             return (

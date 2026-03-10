@@ -350,4 +350,13 @@ export const practiceSeriesService = {
     if (!res.ok) throw new Error(data.message || 'Failed to delete');
     return data;
   },
+  async adminGetEnrollments() {
+    const res = await fetch(`${BASE}/admin/enrollments`, {
+      headers: getAuthHeaders(),
+      credentials: 'include',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'Failed to fetch enrollments');
+    return data;
+  },
 };

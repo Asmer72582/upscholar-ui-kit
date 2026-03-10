@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Upload, Loader2, CheckCircle, XCircle, Eye, Mail, ExternalLink, Trash2 } from 'lucide-react';
+import { FileText, Upload, Loader2, CheckCircle, XCircle, Eye, Mail, ExternalLink, Trash2, User } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { practiceSeriesService } from '@/services/practiceSeriesService';
@@ -32,6 +32,7 @@ export const AdminPracticeSeries: React.FC = () => {
     'Data Science',
     'Other',
   ];
+  const CLASS_OPTIONS = ['8th', '9th', '10th', '11th', '12th', 'Other'];
   const [sheets, setSheets] = useState<any[]>([]);
   const [marksheets, setMarksheets] = useState<any[]>([]);
   const [freeAccessMarks, setFreeAccessMarks] = useState(80);
@@ -49,7 +50,10 @@ export const AdminPracticeSeries: React.FC = () => {
   const [uploadTitle, setUploadTitle] = useState('');
   const [uploadSubject, setUploadSubject] = useState('');
   const [uploadCategory, setUploadCategory] = useState('');
+  const [uploadClassGrade, setUploadClassGrade] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadSheets = async () => {
@@ -71,6 +75,18 @@ export const AdminPracticeSeries: React.FC = () => {
     }
   };
 
+  const loadEnrollments = async () => {
+    try {
+      setEnrollmentsLoading(true);
+      const res = await practiceSeriesService.adminGetEnrollments();
+      setEnrollments(res.enrollments || []);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to load');
+    } finally {
+      setEnrollmentsLoading(false);
+    }
+  };
+
   const loadPracticeSeriesSettings = async () => {
     try {
       const ps = await adminService.getPracticeSeriesSettings();
@@ -86,13 +102,14 @@ export const AdminPracticeSeries: React.FC = () => {
   useEffect(() => {
     loadSheets();
     loadMarksheets();
+    loadEnrollments();
     loadPracticeSeriesSettings();
     setLoading(false);
   }, []);
 
   const handleUploadSheet = async () => {
-    if (!uploadTitle || !uploadSubject || !uploadFile) {
-      toast.error('Title, subject and PDF file required');
+    if (!uploadTitle || !uploadSubject || !uploadClassGrade || !uploadFile) {
+      toast.error('Title, subject, class and PDF file required');
       return;
     }
     setUploading(true);
@@ -101,12 +118,14 @@ export const AdminPracticeSeries: React.FC = () => {
       formData.append('title', uploadTitle);
       formData.append('subject', uploadSubject);
       formData.append('category', uploadCategory);
+       formData.append('classGrade', uploadClassGrade);
       formData.append('sheet', uploadFile);
       await practiceSeriesService.adminUploadSheet(formData);
       toast.success(`Practice sheet uploaded. Answer release in ${answerKeyDurationDays} days.`);
       setUploadTitle('');
       setUploadSubject('');
       setUploadCategory('');
+      setUploadClassGrade('');
       setUploadFile(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
       loadSheets();
@@ -127,6 +146,7 @@ export const AdminPracticeSeries: React.FC = () => {
       const approved = lastExamPercentage >= freeAccessMarks;
       toast.success(approved ? 'Marksheet approved. Free access granted.' : 'Marksheet rejected (below threshold).');
       loadMarksheets();
+      loadEnrollments();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Failed');
     }
@@ -137,6 +157,7 @@ export const AdminPracticeSeries: React.FC = () => {
       await practiceSeriesService.adminRejectMarksheet(id);
       toast.success('Marksheet rejected.');
       loadMarksheets();
+      loadEnrollments();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Failed');
     }
@@ -195,12 +216,13 @@ export const AdminPracticeSeries: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this approved marksheet request? The student will lose free access and the request will be removed from the list.')) return;
+    if (!window.confirm('Delete this marksheet request? The student will lose free access and the request will be removed from the list.')) return;
     setDeleteLoading((prev) => ({ ...prev, [id]: true }));
     try {
       await practiceSeriesService.adminDeleteMarksheet(id);
       toast.success('Marksheet request deleted.');
       loadMarksheets();
+      loadEnrollments();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Failed to delete');
     } finally {
@@ -227,13 +249,13 @@ export const AdminPracticeSeries: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Practice Series Admin</h1>
-        <p className="text-muted-foreground">Upload practice sheets, approve marksheets.</p>
+        <p className="text-muted-foreground">Upload practice sheets and manage enrolled students & marksheets.</p>
       </div>
 
       <Tabs defaultValue="sheets" className="space-y-4">
         <TabsList>
           <TabsTrigger value="sheets">Practice Sheets</TabsTrigger>
-          <TabsTrigger value="marksheets">Marksheets</TabsTrigger>
+          <TabsTrigger value="enrollments">Enrolled Students</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sheets" className="space-y-4">
@@ -271,6 +293,24 @@ export const AdminPracticeSeries: React.FC = () => {
                   <Input value={uploadCategory} onChange={(e) => setUploadCategory(e.target.value)} placeholder="e.g. JEE, NEET" />
                 </div>
                 <div>
+                  <Label>Class/Grade *</Label>
+                  <Select
+                    value={uploadClassGrade || undefined}
+                    onValueChange={(v) => setUploadClassGrade(v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CLASS_OPTIONS.map((cls) => (
+                        <SelectItem key={cls} value={cls}>
+                          {cls}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
                   <Label>PDF File * (max {sheetMaxSizeMB}MB)</Label>
                   <Input
                     ref={fileInputRef}
@@ -303,7 +343,9 @@ export const AdminPracticeSeries: React.FC = () => {
                     <div key={s._id} className="flex flex-col md:flex-row md:items-center justify-between border rounded p-3 gap-3">
                       <div>
                         <p className="font-medium">{s.title}</p>
-                        <p className="text-sm text-muted-foreground">{s.subject} · {s.category || '-'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {s.subject} · {s.category || '-'} · Class {s.classGrade || '—'}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           Uploaded {new Date(s.uploadedAt).toLocaleDateString()} · Answers release {new Date(s.answerReleaseDate).toLocaleDateString()}
                         </p>
@@ -394,19 +436,21 @@ export const AdminPracticeSeries: React.FC = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="marksheets" className="space-y-4">
+        <TabsContent value="enrollments" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Uploaded Marksheets</CardTitle>
-              <CardDescription>
-                All marksheets that have been uploaded. Enter last year % and use Approve/Reject for pending items (approve if % ≥ {freeAccessMarks} for free access). Use &quot;Notify&quot; to send an email to the student.
-              </CardDescription>
+              <CardTitle>Enrolled Students & Marksheets</CardTitle>
+              <CardDescription>All students who have enrolled for Practice Series, along with their marksheet and access status.</CardDescription>
             </CardHeader>
             <CardContent>
-              {marksheets.length === 0 ? (
+              {enrollmentsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : enrollments.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No uploaded marksheets yet.</p>
+                  <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p>No students have enrolled yet.</p>
                 </div>
               ) : (
                 <Table>
@@ -415,85 +459,111 @@ export const AdminPracticeSeries: React.FC = () => {
                       <TableHead>Student</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Class · Board</TableHead>
+                      <TableHead>City</TableHead>
+                      <TableHead>Marksheet</TableHead>
                       <TableHead>Last year %</TableHead>
-                      <TableHead>Status</TableHead>
+                      <TableHead>Access</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {marksheets.map((m) => (
-                      <TableRow key={m._id}>
+                    {enrollments.map((p) => (
+                      <TableRow key={p._id}>
                         <TableCell>
-                          <span className="font-medium">{m.user?.name || m.fullName || '—'}</span>
-                          {m.contactNumber && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{m.contactNumber}</p>
+                          <span className="font-medium">{p.user?.name || p.fullName || '—'}</span>
+                          {p.contactNumber && (
+                            <p className="text-xs text-muted-foreground mt-0.5">{p.contactNumber}</p>
                           )}
                         </TableCell>
                         <TableCell>
-                          <a href={`mailto:${m.user?.email || m.emailId || ''}`} className="text-primary hover:underline text-sm">
-                            {m.user?.email || m.emailId || '—'}
+                          <a
+                            href={`mailto:${p.user?.email || p.emailId || ''}`}
+                            className="text-primary hover:underline text-sm"
+                          >
+                            {p.user?.email || p.emailId || '—'}
                           </a>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {m.classGrade || '—'} · {m.educationBoard || '—'}
+                          {p.classGrade || '—'} · {p.educationBoard || '—'}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {p.city || '—'}
                         </TableCell>
                         <TableCell>
-                          {m.lastExamPercentage != null ? (
-                            <span className="font-medium">{m.lastExamPercentage}%</span>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>{getStatusBadge(m.marksheetStatus || 'pending')}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            {m.marksheetUrl && (
+                          <div className="flex flex-col gap-1">
+                            {p.marksheetStatus
+                              ? getStatusBadge(p.marksheetStatus)
+                              : <Badge variant="outline">Not uploaded</Badge>}
+                            {p.marksheetUrl && (
                               <Button size="sm" variant="ghost" asChild>
-                                <a href={m.marksheetUrl} target="_blank" rel="noopener noreferrer">
+                                <a href={p.marksheetUrl} target="_blank" rel="noopener noreferrer">
                                   <ExternalLink className="h-4 w-4 mr-1" /> View
                                 </a>
                               </Button>
                             )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleNotify(m._id)}
-                              disabled={!!notifyLoading[m._id]}
-                            >
-                              {notifyLoading[m._id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                              <span className="ml-1">Notify</span>
-                            </Button>
-                            {m.marksheetStatus === 'approved' && (
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {p.lastExamPercentage != null ? (
+                            <span className="font-medium">{p.lastExamPercentage}%</span>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {Array.isArray(p.accessibleSubjects) && p.accessibleSubjects.length > 0
+                            ? p.accessibleSubjects.join(', ')
+                            : '—'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-wrap items-center justify-end gap-2">
+                            {p.marksheetUrl && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleNotify(p._id)}
+                                disabled={!!notifyLoading[p._id]}
+                              >
+                                {notifyLoading[p._id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                                <span className="ml-1">Notify</span>
+                              </Button>
+                            )}
+                            {p.marksheetStatus === 'approved' && (
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDelete(m._id)}
-                                disabled={!!deleteLoading[m._id]}
+                                onClick={() => handleDelete(p._id)}
+                                disabled={!!deleteLoading[p._id]}
                               >
-                                {deleteLoading[m._id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                {deleteLoading[p._id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                 <span className="ml-1">Delete</span>
                               </Button>
                             )}
-                            {m.marksheetStatus === 'pending' && (
+                            {p.marksheetStatus === 'pending' && (
                               <>
                                 <Input
                                   type="number"
                                   min={0}
                                   max={100}
                                   placeholder="%"
-                                  className="w-14 h-8 text-center"
-                                  value={percentInputs[m._id] ?? ''}
-                                  onChange={(e) => setPercentInputs((p) => ({ ...p, [m._id]: e.target.value }))}
+                                  className="w-16 h-8 text-center"
+                                  value={percentInputs[p._id] ?? ''}
+                                  onChange={(e) => setPercentInputs((prev) => ({ ...prev, [p._id]: e.target.value }))}
                                 />
                                 <Button
                                   size="sm"
                                   variant="default"
-                                  onClick={() => handleApprove(m._id, parseFloat(percentInputs[m._id] || '0'))}
+                                  onClick={() => handleApprove(p._id, parseFloat(percentInputs[p._id] || '0'))}
                                   className="gap-1"
                                 >
                                   <CheckCircle className="h-4 w-4" /> Approve/Reject
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => handleReject(m._id)} className="gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleReject(p._id)}
+                                  className="gap-1"
+                                >
                                   <XCircle className="h-4 w-4" /> Reject
                                 </Button>
                               </>

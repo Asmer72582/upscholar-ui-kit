@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowLeft, Clock, Users, Star, Calendar, BookOpen, Coins, Wallet, CheckCircle, AlertCircle, MessageSquare, ThumbsUp, Video, FileText, Radio } from 'lucide-react';
+import { ArrowLeft, Clock, Users, Star, Calendar, BookOpen, Coins, Wallet, CheckCircle, AlertCircle, MessageSquare, ThumbsUp, Video, FileText, Radio, Info } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { lectureService, Lecture } from '@/services/lectureService';
 import { walletService } from '@/services/walletService';
@@ -470,6 +470,29 @@ export const LectureDetails: React.FC = () => {
               </CardContent>
             </Card>
 
+            {/* View vs Enroll – clear explanation for students */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Info className="w-4 h-4 text-primary" />
+                  View vs Enroll
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 space-y-3 text-xs text-muted-foreground">
+                {isEnrolled ? (
+                  <>
+                    <p><strong className="text-foreground">You are enrolled.</strong> When this lecture is live, use &quot;Join Now&quot; to participate with full access (camera, mic, chat).</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong className="text-foreground">View</strong> = You are on the lecture details page. Here you can read the description, see the trainer, and choose how to participate.</p>
+                    <p><strong className="text-foreground">Enroll</strong> = Pay with Upcoins to secure your spot. After enrolling, you can join the live lecture when it starts (full participant). Complete enrollment before the lecture begins.</p>
+                    <p><strong className="text-foreground">Watch as spectator</strong> = When the lecture is live, you can watch without enrolling (view-only; may require a small fee). No mic or camera access.</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Enrollment/Access */}
             <Card>
               <CardContent className="pt-6">
@@ -501,7 +524,7 @@ export const LectureDetails: React.FC = () => {
                         onClick={handleJoinMeeting}
                       >
                         <Video className="w-5 h-5 mr-2" />
-                        Join Live Meeting
+                        Join Now
                       </Button>
                     )}
 
@@ -572,7 +595,9 @@ export const LectureDetails: React.FC = () => {
                     {getLectureStatus() === 'live' && (
                       <div className="mb-4 p-4 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg">
                         <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Not enrolled? You can still watch</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Join as spectator: view and listen only. No mic, no chat, no camera.</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                          <strong>Watch as spectator</strong> = view and listen only. No mic, no chat, no camera. You may need to pay a small spectator fee below to join.
+                        </p>
                         {(() => {
                           const spectatorPrice = lecture.spectatorPrice ?? Math.round(lecture.price * 0.4);
                           const paidFromApi = lecture.hasPaidSpectator === true;
@@ -645,6 +670,9 @@ export const LectureDetails: React.FC = () => {
                       </div>
                     </div>
 
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Pay with Upcoins to secure your spot. Once enrolled, you can join the live lecture with full access when it starts.
+                    </p>
                     <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
                       <DialogTrigger asChild>
                         <Button 

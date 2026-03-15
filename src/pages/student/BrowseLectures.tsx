@@ -202,9 +202,10 @@ export const BrowseLectures: React.FC = () => {
                 variant="default"
                 className="shrink-0"
                 onClick={(e) => { e.stopPropagation(); navigate(`/student/lecture/${lecture.id}`); }}
+                title="Open lecture details to enroll or watch"
               >
                 <PlayCircle className="w-3.5 h-3.5 mr-1" />
-                View
+                View details
               </Button>
             </div>
           </CardContent>
@@ -219,7 +220,7 @@ export const BrowseLectures: React.FC = () => {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Browse Lectures</h1>
         <p className="text-sm text-muted-foreground">
-          Discover and enroll in expert-led lectures
+          Discover expert-led lectures. Click <strong>View details</strong> to open a lecture; from that page you can <strong>Enroll</strong> (pay to secure your spot) or, when live, <strong>watch as spectator</strong> (view-only).
         </p>
       </header>
 

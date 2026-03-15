@@ -289,6 +289,17 @@ export const practiceSeriesService = {
     if (!res.ok) throw new Error(data.message || 'Failed to fetch');
     return data;
   },
+  async adminUpdateSheetToggles(sheetId: string, payload: { sheetActive?: boolean; answersActive?: boolean }) {
+    const res = await fetch(`${BASE}/admin/sheets/${sheetId}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+      credentials: 'include',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || 'Failed to update');
+    return data;
+  },
   async adminDeleteSheet(sheetId: string) {
     const res = await fetch(`${BASE}/admin/sheets/${sheetId}`, {
       method: 'DELETE',

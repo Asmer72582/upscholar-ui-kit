@@ -6,8 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Upload, Loader2, CheckCircle, XCircle, Eye, Mail, ExternalLink, Trash2, User } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { FileText, Upload, Loader2, CheckCircle, XCircle, Eye, Mail, ExternalLink, Trash2, User, Search } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { practiceSeriesService } from '@/services/practiceSeriesService';
 import { adminService } from '@/services/adminService';
@@ -43,6 +45,7 @@ export const AdminPracticeSeries: React.FC = () => {
   const [notifyLoading, setNotifyLoading] = useState<Record<string, boolean>>({});
   const [answerUploadLoading, setAnswerUploadLoading] = useState<Record<string, boolean>>({});
   const [displayAnswersLoading, setDisplayAnswersLoading] = useState<Record<string, boolean>>({});
+  const [toggleLoading, setToggleLoading] = useState<Record<string, 'sheet' | 'answers' | undefined>>({});
   const [deleteSheetLoading, setDeleteSheetLoading] = useState<Record<string, boolean>>({});
   const [deleteLoading, setDeleteLoading] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -54,7 +57,23 @@ export const AdminPracticeSeries: React.FC = () => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [enrollments, setEnrollments] = useState<any[]>([]);
   const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+  const [enrollmentSearch, setEnrollmentSearch] = useState('');
+  const [selectedEnrollment, setSelectedEnrollment] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredEnrollments = React.useMemo(() => {
+    if (!enrollmentSearch.trim()) return enrollments;
+    const q = enrollmentSearch.trim().toLowerCase();
+    return enrollments.filter((p) => {
+      const name = (p.user?.name || p.fullName || '').toLowerCase();
+      const email = (p.user?.email || p.emailId || '').toLowerCase();
+      const contact = (p.contactNumber || p.user?.mobile || '').toLowerCase();
+      const city = (p.city || '').toLowerCase();
+      const classGrade = (p.classGrade || '').toLowerCase();
+      const board = (p.educationBoard || '').toLowerCase();
+      return name.includes(q) || email.includes(q) || contact.includes(q) || city.includes(q) || classGrade.includes(q) || board.includes(q);
+    });
+  }, [enrollments, enrollmentSearch]);
 
   const loadSheets = async () => {
     try {
@@ -189,6 +208,22 @@ export const AdminPracticeSeries: React.FC = () => {
     }
   };
 
+  const handleToggle = async (sheetId: string, field: 'sheetActive' | 'answersActive', value: boolean) => {
+    const key = field === 'sheetActive' ? 'sheet' : 'answers';
+    setToggleLoading((prev) => ({ ...prev, [sheetId]: key }));
+    try {
+      await practiceSeriesService.adminUpdateSheetToggles(sheetId, { [field]: value });
+      setSheets((prev) =>
+        prev.map((s) => (s._id === sheetId ? { ...s, [field]: value } : s))
+      );
+      toast.success(field === 'sheetActive' ? (value ? 'Question paper is now active.' : 'Question paper is now inactive.') : (value ? 'Answer sheet is now active.' : 'Answer sheet is now inactive.'));
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to update');
+    } finally {
+      setToggleLoading((prev) => ({ ...prev, [sheetId]: undefined }));
+    }
+  };
+
   const handleDeleteSheet = async (sheetId: string, title: string) => {
     if (!window.confirm(`Delete practice sheet "${title}"? This cannot be undone.`)) return;
     setDeleteSheetLoading((prev) => ({ ...prev, [sheetId]: true }));
@@ -215,12 +250,12 @@ export const AdminPracticeSeries: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this marksheet request? The student will lose free access and the request will be removed from the list.')) return;
+  const handleRemoveFreeAccess = async (id: string) => {
+    if (!window.confirm('Revoke this student\'s free access? They will no longer be able to view test sheets until they upload a new marksheet (for review) or pay per subject. This action can be done anytime.')) return;
     setDeleteLoading((prev) => ({ ...prev, [id]: true }));
     try {
       await practiceSeriesService.adminDeleteMarksheet(id);
-      toast.success('Marksheet request deleted.');
+      toast.success('Free access revoked. Student can no longer view test sheets until they re-apply or pay.');
       loadMarksheets();
       loadEnrollments();
     } catch (e: unknown) {
@@ -349,9 +384,37 @@ export const AdminPracticeSeries: React.FC = () => {
                         <p className="text-xs text-muted-foreground">
                           Uploaded {new Date(s.uploadedAt).toLocaleDateString()} · Answers release {new Date(s.answerReleaseDate).toLocaleDateString()}
                         </p>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          <Badge variant={s.sheetActive ? 'default' : 'secondary'}>{s.sheetActive ? 'Sheet active' : 'Sheet inactive'}</Badge>
-                          <Badge variant={s.answersActive ? 'default' : 'secondary'}>{s.answersActive ? 'Answers active' : 'Answers inactive'}</Badge>
+                        <div className="flex flex-wrap items-center gap-4 mt-2">
+                          <div className="flex items-center gap-2">
+                            {toggleLoading[s._id] === 'sheet' ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : (
+                              <Switch
+                                id={`sheet-${s._id}`}
+                                checked={!!s.sheetActive}
+                                onCheckedChange={(checked) => handleToggle(s._id, 'sheetActive', !!checked)}
+                                disabled={!!toggleLoading[s._id]}
+                              />
+                            )}
+                            <Label htmlFor={`sheet-${s._id}`} className="text-sm font-normal cursor-pointer">
+                              Question paper {s.sheetActive ? 'active' : 'inactive'}
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {toggleLoading[s._id] === 'answers' ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : (
+                              <Switch
+                                id={`answers-${s._id}`}
+                                checked={!!s.answersActive}
+                                onCheckedChange={(checked) => handleToggle(s._id, 'answersActive', !!checked)}
+                                disabled={!!toggleLoading[s._id] || !s.answerPdfUrl}
+                              />
+                            )}
+                            <Label htmlFor={`answers-${s._id}`} className="text-sm font-normal cursor-pointer">
+                              Answer sheet {s.answersActive ? 'active' : 'inactive'}
+                            </Label>
+                          </div>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
@@ -442,7 +505,21 @@ export const AdminPracticeSeries: React.FC = () => {
               <CardTitle>Enrolled Students & Marksheets</CardTitle>
               <CardDescription>All students who have enrolled for Practice Series, along with their marksheet and access status.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, email, contact, city, class..."
+                    value={enrollmentSearch}
+                    onChange={(e) => setEnrollmentSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {filteredEnrollments.length} of {enrollments.length} student{enrollments.length !== 1 ? 's' : ''}
+                </p>
+              </div>
               {enrollmentsLoading ? (
                 <div className="flex justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin" />
@@ -451,6 +528,11 @@ export const AdminPracticeSeries: React.FC = () => {
                 <div className="text-center py-12 text-muted-foreground">
                   <User className="h-12 w-12 mx-auto mb-3 opacity-50" />
                   <p>No students have enrolled yet.</p>
+                </div>
+              ) : filteredEnrollments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No students match your search.</p>
+                  <Button variant="ghost" size="sm" className="mt-2" onClick={() => setEnrollmentSearch('')}>Clear search</Button>
                 </div>
               ) : (
                 <Table>
@@ -467,7 +549,7 @@ export const AdminPracticeSeries: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {enrollments.map((p) => (
+                    {filteredEnrollments.map((p) => (
                       <TableRow key={p._id}>
                         <TableCell>
                           <span className="font-medium">{p.user?.name || p.fullName || '—'}</span>
@@ -517,6 +599,14 @@ export const AdminPracticeSeries: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex flex-wrap items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setSelectedEnrollment(p)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View details
+                            </Button>
                             {p.marksheetUrl && (
                               <Button
                                 size="sm"
@@ -528,15 +618,16 @@ export const AdminPracticeSeries: React.FC = () => {
                                 <span className="ml-1">Notify</span>
                               </Button>
                             )}
-                            {p.marksheetStatus === 'approved' && (
+                            {(p.marksheetStatus === 'approved' || (Array.isArray(p.accessibleSubjects) && p.accessibleSubjects.includes('All'))) && (
                               <Button
                                 size="sm"
                                 variant="destructive"
-                                onClick={() => handleDelete(p._id)}
+                                onClick={() => handleRemoveFreeAccess(p._id)}
                                 disabled={!!deleteLoading[p._id]}
+                                title="Revoke free access anytime. Student will lose access to test sheets."
                               >
                                 {deleteLoading[p._id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                                <span className="ml-1">Delete</span>
+                                <span className="ml-1">Remove free access</span>
                               </Button>
                             )}
                             {p.marksheetStatus === 'pending' && (
@@ -577,6 +668,63 @@ export const AdminPracticeSeries: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          <Dialog open={!!selectedEnrollment} onOpenChange={(open) => !open && setSelectedEnrollment(null)}>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Student details</DialogTitle>
+              </DialogHeader>
+              {selectedEnrollment && (
+                <div className="space-y-4 text-sm">
+                  <div>
+                    <h4 className="font-medium text-muted-foreground mb-2">Profile</h4>
+                    <dl className="grid grid-cols-1 gap-1.5">
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Name</dt><dd className="font-medium">{selectedEnrollment.user?.name || selectedEnrollment.fullName || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Email</dt><dd><a href={`mailto:${selectedEnrollment.user?.email || selectedEnrollment.emailId}`} className="text-primary hover:underline">{selectedEnrollment.user?.email || selectedEnrollment.emailId || '—'}</a></dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Contact</dt><dd>{selectedEnrollment.contactNumber || selectedEnrollment.user?.mobile || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Class</dt><dd>{selectedEnrollment.classGrade || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Board</dt><dd>{selectedEnrollment.educationBoard || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Stream</dt><dd>{selectedEnrollment.streamOpted || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Exam prep</dt><dd>{selectedEnrollment.courseExamPrep || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">School / College</dt><dd className="truncate" title={selectedEnrollment.schoolCollegeName}>{selectedEnrollment.schoolCollegeName || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">City</dt><dd>{selectedEnrollment.city || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Pincode</dt><dd>{selectedEnrollment.pincode || '—'}</dd></div>
+                      <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Address</dt><dd className="text-right truncate max-w-[200px]" title={selectedEnrollment.residentialAddress}>{selectedEnrollment.residentialAddress || '—'}</dd></div>
+                    </dl>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-muted-foreground mb-2">Marksheet & access</h4>
+                    <dl className="grid grid-cols-1 gap-1.5">
+                      <div className="flex justify-between gap-2 items-center"><dt className="text-muted-foreground">Marksheet status</dt><dd>{selectedEnrollment.marksheetStatus ? getStatusBadge(selectedEnrollment.marksheetStatus) : <Badge variant="outline">Not uploaded</Badge>}</dd></div>
+                      {selectedEnrollment.lastExamPercentage != null && (
+                        <div className="flex justify-between gap-2"><dt className="text-muted-foreground">Last year %</dt><dd className="font-medium">{selectedEnrollment.lastExamPercentage}%</dd></div>
+                      )}
+                      {selectedEnrollment.marksheetRejectionReason && (
+                        <div className="col-span-2"><dt className="text-muted-foreground mb-1 block">Rejection reason</dt><dd className="text-muted-foreground">{selectedEnrollment.marksheetRejectionReason}</dd></div>
+                      )}
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-muted-foreground">Accessible subjects</dt>
+                        <dd className="font-medium">{Array.isArray(selectedEnrollment.accessibleSubjects) ? selectedEnrollment.accessibleSubjects.length : 0} subject{(Array.isArray(selectedEnrollment.accessibleSubjects) ? selectedEnrollment.accessibleSubjects.length : 0) !== 1 ? 's' : ''}</dd>
+                      </div>
+                      {Array.isArray(selectedEnrollment.accessibleSubjects) && selectedEnrollment.accessibleSubjects.length > 0 && (
+                        <div className="col-span-2">
+                          <ul className="list-disc list-inside text-muted-foreground space-y-0.5">
+                            {selectedEnrollment.accessibleSubjects.map((sub: string, i: number) => (
+                              <li key={i}>{sub}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                  <div className="text-xs text-muted-foreground border-t pt-2">
+                    Enrolled {selectedEnrollment.createdAt ? new Date(selectedEnrollment.createdAt).toLocaleString() : '—'}
+                    {selectedEnrollment.updatedAt && ` · Updated ${new Date(selectedEnrollment.updatedAt).toLocaleString()}`}
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </TabsContent>
       </Tabs>
     </div>

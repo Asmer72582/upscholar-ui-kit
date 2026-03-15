@@ -6,15 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Download, Upload, Loader2, Mail, Smartphone, Search, LayoutGrid, List, ChevronLeft, ChevronRight, X, User, CheckCircle } from 'lucide-react';
+import { FileText, Download, Upload, Loader2, Mail, Smartphone, Search, LayoutGrid, List, ChevronLeft, ChevronRight, X, User, CheckCircle, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { practiceSeriesService } from '@/services/practiceSeriesService';
 import { useAuth } from '@/contexts/AuthContext';
 
 const CLASS_OPTIONS = ['8th', '9th', '10th', '11th', '12th', 'Other'];
 const BOARD_OPTIONS = ['SSC', 'CBSE', 'ICSE', 'Other'];
-const STREAM_OPTIONS = ['Science', 'Commerce'];
+const STREAM_OPTIONS = ['Science', 'Commerce', 'Not Applicable'];
 const EXAM_OPTIONS = ['JEE', 'NEET', 'Other'];
 const GENDER_OPTIONS = ['Male', 'Female', 'Other'];
 
@@ -177,15 +178,22 @@ export const PracticeSeries: React.FC = () => {
   };
 
   useEffect(() => {
-    loadSheets(1, false);
     loadFilterOptions();
   }, []);
 
-  const applyFilters = () => {
-    setSearchQuery(searchInput);
-    setPage(1);
-    loadSheets(1, true, { search: searchInput });
-  };
+  // Auto-run search when filters (subject, category, search, sort) change
+  useEffect(() => {
+    loadSheets(1, true);
+  }, [subjectFilter, categoryFilter, searchQuery, sortBy]);
+
+  // Debounce search input into searchQuery so typing triggers auto-search
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const clearFilters = () => {
     setSubjectFilter('');
@@ -194,13 +202,6 @@ export const PracticeSeries: React.FC = () => {
     setSearchInput('');
     setSortBy('newest');
     setPage(1);
-    setLoading(true);
-    practiceSeriesService.getSheets({ page: 1, limit: 12, sort: 'newest' }).then((res) => {
-      setSheets(res.sheets || []);
-      setTotal(res.total ?? 0);
-      setTotalPages(res.totalPages ?? 0);
-      setPage(1);
-    }).catch(() => setSheets([])).finally(() => setLoading(false));
   };
 
   const goToPage = (p: number) => {
@@ -672,6 +673,15 @@ export const PracticeSeries: React.FC = () => {
         </TabsList>
 
         <TabsContent value="sheets" className="space-y-4">
+          {marksheetInfo.marksheetStatus === 'removed' && (
+            <Alert variant="destructive" className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Free access revoked</AlertTitle>
+              <AlertDescription>
+                Your free access has been revoked by admin. You can no longer view test sheets. Upload a new marksheet for review (Marksheet tab) or pay per subject to access sheets.
+              </AlertDescription>
+            </Alert>
+          )}
           {!showSheetsAndFilters ? (
             <Card>
               <CardContent className="py-6 text-center">
@@ -711,7 +721,7 @@ export const PracticeSeries: React.FC = () => {
                     placeholder="Search"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+                    onKeyDown={(e) => e.key === 'Enter' && (setSearchQuery(searchInput), setPage(1))}
                     className="pl-8 h-9 text-sm"
                   />
                 </div>
@@ -729,7 +739,7 @@ export const PracticeSeries: React.FC = () => {
                     {filterOptions.categories.map((cat) => <SelectItem key={cat} value={cat}>{cat || '—'}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Select value={sortBy} onValueChange={(v: 'newest' | 'oldest' | 'subject' | 'subject-desc') => { setSortBy(v); setPage(1); loadSheets(1, true, { sort: v }); }}>
+                <Select value={sortBy} onValueChange={(v: 'newest' | 'oldest' | 'subject' | 'subject-desc') => { setSortBy(v); setPage(1); }}>
                   <SelectTrigger className="w-[120px] h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="newest">Newest</SelectItem>
@@ -738,9 +748,6 @@ export const PracticeSeries: React.FC = () => {
                     <SelectItem value="subject-desc">Subject Z–A</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button size="sm" variant="ghost" className="h-9 w-9 p-0" onClick={applyFilters} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                </Button>
                 <div className="flex rounded-md border overflow-hidden">
                   <Button type="button" variant={layout === 'grid' ? 'secondary' : 'ghost'} size="sm" className="h-9 w-9 rounded-r-none p-0" onClick={() => setLayout('grid')}>
                     <LayoutGrid className="h-4 w-4" />
@@ -878,6 +885,15 @@ export const PracticeSeries: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {marksheetInfo.marksheetStatus === 'removed' && (
+                <Alert variant="destructive" className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Free access revoked by admin</AlertTitle>
+                  <AlertDescription>
+                    Your free access has been revoked. You cannot view test sheets until you upload a new marksheet (below) for review or pay per subject on the Sheets tab.
+                  </AlertDescription>
+                </Alert>
+              )}
               {hasMarksheetUploaded ? (
                 <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">

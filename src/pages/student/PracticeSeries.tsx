@@ -610,7 +610,7 @@ export const PracticeSeries: React.FC = () => {
       <div className="flex items-start justify-between gap-2">
         <div>
           <h1 className="text-xl font-bold tracking-tight">Practice Series</h1>
-          <p className="text-sm text-muted-foreground">Sheets, marksheet for free access ({freeAccessMarks}%+), or pay per subject.</p>
+          <p className="text-sm text-muted-foreground">Unlock premium practice sheets: Upload an {freeAccessMarks}%+ marksheet for merit-based free access or pay per subject.</p>
         </div>
         <Button variant="outline" size="sm" className="shrink-0 gap-1.5" onClick={() => setProfileOpen(true)}>
           <User className="h-4 w-4" /> Profile

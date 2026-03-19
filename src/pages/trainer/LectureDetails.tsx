@@ -490,10 +490,6 @@ export const TrainerLectureDetails: React.FC = () => {
                 <CardTitle>Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <Button className="w-full" onClick={() => window.open(lecture.meetingLink || '#', '_blank')}>
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Open Meeting Link
-                </Button>
                 <Button variant="outline" className="w-full" onClick={() => navigate(`/trainer/lectures/${lecture.id}/edit`)}>
                   <Settings className="w-4 h-4 mr-2" />
                   Edit Settings

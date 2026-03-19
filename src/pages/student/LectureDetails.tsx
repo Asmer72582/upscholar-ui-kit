@@ -485,9 +485,9 @@ export const LectureDetails: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <p><strong className="text-foreground">View</strong> = You are on the lecture details page. Here you can read the description, see the trainer, and choose how to participate.</p>
-                    <p><strong className="text-foreground">Enroll</strong> = Pay with Upcoins to secure your spot. After enrolling, you can join the live lecture when it starts (full participant). Complete enrollment before the lecture begins.</p>
-                    <p><strong className="text-foreground">Watch as spectator</strong> = When the lecture is live, you can watch without enrolling (view-only; may require a small fee). No mic or camera access.</p>
+                    <p><strong className="text-foreground">View:</strong> Open lecture details and check trainer, schedule, and options.</p>
+                    <p><strong className="text-foreground">Enroll:</strong> Pay Upcoins to reserve your seat and join live with full access.</p>
+                    <p><strong className="text-foreground">Watch as spectator:</strong> Live view-only access (may be paid), no mic/camera/chat.</p>
                   </>
                 )}
               </CardContent>

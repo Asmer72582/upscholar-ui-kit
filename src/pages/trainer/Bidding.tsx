@@ -36,6 +36,17 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { biddingService, type Ticket, type Proposal, type CreateProposalData } from '@/services/biddingService';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { localDatePlusDaysYMD, formatSessionLabelIST, toTime24From12h } from '@/lib/biddingTime';
+
+const HOURS_12 = Array.from({ length: 12 }, (_, i) => String(i + 1));
+const MINUTES_00_59 = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0'));
 
 const BIDDING_SUBJECT_OPTIONS = [
   'Mathematics', 'Physics', 'Chemistry', 'Biology', 'Science', 'English', 'Hindi',
@@ -56,12 +67,16 @@ export const TrainerBidding: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [detailsTicket, setDetailsTicket] = useState<Ticket | null>(null);
   const [submitOpen, setSubmitOpen] = useState(false);
-  const [proposalForm, setProposalForm] = useState<CreateProposalData>({
+  const [proposalForm, setProposalForm] = useState<Omit<CreateProposalData, 'time'>>({
     date: '',
-    time: '',
     duration: 60,
     price: 0,
     message: '',
+  });
+  const [sessionClock, setSessionClock] = useState<{ hour: string; minute: string; ampm: 'AM' | 'PM' }>({
+    hour: '10',
+    minute: '00',
+    ampm: 'AM',
   });
   const [submitting, setSubmitting] = useState(false);
   const [creatingLectureTicketId, setCreatingLectureTicketId] = useState<string | null>(null);
@@ -106,15 +121,13 @@ export const TrainerBidding: React.FC = () => {
   const openSubmitProposal = (t: Ticket) => {
     setDetailsTicket(null);
     setSelectedTicket(t);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
     setProposalForm({
-      date: tomorrow.toISOString().slice(0, 10),
-      time: '10:00',
+      date: localDatePlusDaysYMD(1),
       duration: 60,
       price: 100,
       message: '',
     });
+    setSessionClock({ hour: '10', minute: '00', ampm: 'AM' });
     setSubmitOpen(true);
   };
 
@@ -125,15 +138,16 @@ export const TrainerBidding: React.FC = () => {
   const submitProposal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTicket) return;
-    if (!proposalForm.date || !proposalForm.time || proposalForm.duration < 15 || proposalForm.price < 0) {
-      toast.error('Please fill date, time, duration (min 15) and price.');
+    const time24 = toTime24From12h(sessionClock.hour, sessionClock.minute, sessionClock.ampm);
+    if (!proposalForm.date || !time24 || proposalForm.duration < 15 || proposalForm.price < 0) {
+      toast.error('Please fill date, valid time (IST), duration (min 15) and price.');
       return;
     }
     setSubmitting(true);
     try {
       await biddingService.createProposal(selectedTicket._id, {
         date: proposalForm.date,
-        time: proposalForm.time,
+        time: time24,
         duration: proposalForm.duration,
         price: proposalForm.price,
         message: proposalForm.message || undefined,
@@ -344,7 +358,7 @@ export const TrainerBidding: React.FC = () => {
                         </>
                       )}
                       <div className="mt-2 flex flex-wrap gap-4 text-sm">
-                        <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {new Date(p.date).toLocaleDateString()} · {p.time}</span>
+                        <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {formatSessionLabelIST(p.date, p.time)}</span>
                         <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {p.duration} min</span>
                         <span className="flex items-center gap-1"><Coins className="h-4 w-4" /> {p.price} UpCoins</span>
                       </div>
@@ -568,9 +582,12 @@ export const TrainerBidding: React.FC = () => {
             </div>
           )}
           <form onSubmit={submitProposal} className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <p className="text-xs text-muted-foreground -mt-2">
+              Date and time are in <strong>India Standard Time (IST)</strong> — same moment for every device (Windows, Mac, phone).
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Date *</Label>
+                <Label>Session date *</Label>
                 <Input
                   type="date"
                   value={proposalForm.date}
@@ -579,13 +596,39 @@ export const TrainerBidding: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Time *</Label>
-                <Input
-                  type="time"
-                  value={proposalForm.time}
-                  onChange={(e) => setProposalForm((f) => ({ ...f, time: e.target.value }))}
-                  required
-                />
+                <Label>Time * <span className="text-muted-foreground font-normal">(12-hour, IST)</span></Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Select value={sessionClock.hour} onValueChange={(v) => setSessionClock((c) => ({ ...c, hour: v }))}>
+                    <SelectTrigger className="w-[76px]">
+                      <SelectValue placeholder="Hr" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-48">
+                      {HOURS_12.map((h) => (
+                        <SelectItem key={h} value={h}>{h}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-muted-foreground">:</span>
+                  <Select value={sessionClock.minute} onValueChange={(v) => setSessionClock((c) => ({ ...c, minute: v }))}>
+                    <SelectTrigger className="w-[76px]">
+                      <SelectValue placeholder="Min" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-56">
+                      {MINUTES_00_59.map((m) => (
+                        <SelectItem key={m} value={m}>{m}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={sessionClock.ampm} onValueChange={(v) => setSessionClock((c) => ({ ...c, ampm: v as 'AM' | 'PM' }))}>
+                    <SelectTrigger className="w-[88px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AM">AM</SelectItem>
+                      <SelectItem value="PM">PM</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">

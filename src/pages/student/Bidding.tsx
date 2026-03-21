@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { biddingService, type Ticket, type Proposal, type CreateTicketData } from '@/services/biddingService';
 import { toast } from 'sonner';
+import { formatSessionLabelIST } from '@/lib/biddingTime';
 
 const GRADE_OPTIONS = ['8', '9', '10', '11', '12'];
 const BOARD_OPTIONS = ['CBSE', 'ICSE', 'SSC', 'State Board', 'Other'];
@@ -615,7 +616,7 @@ export const StudentBidding: React.FC = () => {
                               <Badge variant={isAccepted ? 'default' : isPending ? 'secondary' : 'outline'}>{p.status}</Badge>
                             </div>
                             <div className="mt-2 flex flex-wrap gap-4 text-sm">
-                              <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {new Date(p.date).toLocaleDateString()} · {p.time}</span>
+                              <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {formatSessionLabelIST(p.date, p.time)}</span>
                               <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {p.duration} min</span>
                               <span className="flex items-center gap-1"><Coins className="h-4 w-4" /> {p.price} UpCoins</span>
                             </div>
@@ -731,7 +732,7 @@ export const StudentBidding: React.FC = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                     <span className="flex items-center gap-2"><Lock className="h-4 w-4" /> Price: {profileModalProposal.price} UC</span>
                     <span className="flex items-center gap-2"><Clock className="h-4 w-4" /> Duration: {profileModalProposal.duration} Minutes</span>
-                    <span className="flex items-center gap-2 sm:col-span-2"><Calendar className="h-4 w-4" /> Available: {new Date(profileModalProposal.date).toLocaleDateString()}, {profileModalProposal.time}</span>
+                    <span className="flex items-center gap-2 sm:col-span-2"><Calendar className="h-4 w-4" /> Available: {formatSessionLabelIST(profileModalProposal.date, profileModalProposal.time)}</span>
                     <span className="flex items-center gap-2 sm:col-span-2"><Video className="h-4 w-4" /> Live Video · Chat · Whiteboard</span>
                   </div>
                 </div>

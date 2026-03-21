@@ -577,18 +577,43 @@ class LectureService {
       duration: lecture.duration,
       scheduledAt: lecture.scheduledAt,
       maxStudents: lecture.maxStudents,
-      enrolledStudents: lecture.enrolledStudents?.map((enrollment) => ({
-        student: {
-          id: enrollment.student._id,
-          firstname: enrollment.student.firstname,
-          lastname: enrollment.student.lastname,
-          name: enrollment.student.name,
-          email: enrollment.student.email,
-          avatar: enrollment.student.avatar,
-        },
-        enrolledAt: enrollment.enrolledAt,
-        attended: enrollment.attended,
-      })) || [],
+      enrolledStudents: lecture.enrolledStudents?.map((enrollment) => {
+        const raw = enrollment.student as unknown;
+        // Public list API often returns unpopulated student as a string ObjectId
+        if (typeof raw === 'string') {
+          return {
+            student: {
+              id: raw,
+              firstname: '',
+              lastname: '',
+              email: '',
+              avatar: undefined,
+            },
+            enrolledAt: enrollment.enrolledAt,
+            attended: enrollment.attended,
+          };
+        }
+        const st = raw as {
+          _id: string;
+          firstname?: string;
+          lastname?: string;
+          name?: string;
+          email?: string;
+          avatar?: string;
+        };
+        return {
+          student: {
+            id: st._id,
+            firstname: st.firstname || '',
+            lastname: st.lastname || '',
+            name: st.name,
+            email: st.email || '',
+            avatar: st.avatar,
+          },
+          enrolledAt: enrollment.enrolledAt,
+          attended: enrollment.attended,
+        };
+      }) || [],
       status: lecture.status as 'scheduled' | 'live' | 'completed' | 'cancelled' | 'pending' | 'missed',
       rejectionReason: lecture.rejectionReason,
       rejectedAt: lecture.rejectedAt,

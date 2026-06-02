@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Users, 
-  BookOpen, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Users,
+  BookOpen,
+  DollarSign,
+  TrendingUp,
   AlertTriangle,
   CheckCircle,
   BarChart3,
@@ -179,7 +179,7 @@ export const AdminDashboard: React.FC = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
+
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
@@ -208,17 +208,12 @@ export const AdminDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="space-y-8">
-        {/* Hero Skeleton */}
         <div className="h-48 bg-gradient-to-r from-slate-500/20 to-gray-500/20 rounded-3xl animate-pulse" />
-        
-        {/* Stats Skeleton */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-32 bg-muted rounded-2xl animate-pulse" />
           ))}
         </div>
-        
-        {/* Content Skeleton */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="h-80 bg-muted rounded-2xl animate-pulse" />
@@ -252,10 +247,9 @@ export const AdminDashboard: React.FC = () => {
     <div className="space-y-8">
       {/* Hero Welcome Section */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-gray-800 to-zinc-900 p-8 text-white">
-        {/* Decorative Elements */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-        
+
         <div className="relative z-10">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
@@ -275,10 +269,10 @@ export const AdminDashboard: React.FC = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex flex-wrap gap-3">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="border-white/20 text-white hover:bg-white/10"
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -286,7 +280,7 @@ export const AdminDashboard: React.FC = () => {
                 <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Button 
+              <Button
                 className="bg-white text-gray-900 hover:bg-white/90 font-semibold"
                 onClick={() => navigate('/admin/settings')}
               >
@@ -296,7 +290,6 @@ export const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Quick Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/10">
               <div className="flex items-center gap-3">
@@ -317,7 +310,6 @@ export const AdminDashboard: React.FC = () => {
                 <div>
                   <p className="text-2xl font-bold">{stats.lectures.total + (stats.lectures.missed ?? 0)}</p>
                   <p className="text-white/70 text-sm">Total Lectures</p>
-                  <p className="text-white/50 text-xs mt-0.5">All statuses · +{stats.lectures.newThisMonth} this month</p>
                 </div>
               </div>
             </div>
@@ -328,7 +320,7 @@ export const AdminDashboard: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.revenue.total.toLocaleString()}</p>
-                  <p className="text-white/70 text-sm">Total Revenue (UC)</p>
+                  <p className="text-white/70 text-sm">Total Revenue</p>
                 </div>
               </div>
             </div>
@@ -363,7 +355,7 @@ export const AdminDashboard: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <Button 
+              <Button
                 className="bg-orange-500 hover:bg-orange-600 text-white"
                 onClick={() => navigate('/admin/manage-users')}
               >
@@ -374,248 +366,108 @@ export const AdminDashboard: React.FC = () => {
         </Card>
       )}
 
-      {/* Main Stats Cards */}
+      {/* Main Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700">Total Users</CardTitle>
-            <div className="p-2 bg-blue-500 rounded-lg">
-              <Users className="h-4 w-4 text-white" />
-            </div>
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-600">{stats.users.total.toLocaleString()}</div>
-            <div className="flex items-center mt-2 text-sm">
-              {stats.users.growth >= 0 ? (
-                <span className="text-green-600 flex items-center">
-                  <ArrowUpRight className="h-4 w-4 mr-1" />
-                  +{stats.users.growth}%
-                </span>
-              ) : (
-                <span className="text-red-600 flex items-center">
-                  <ArrowDownRight className="h-4 w-4 mr-1" />
-                  {stats.users.growth}%
-                </span>
-              )}
-              <span className="text-muted-foreground ml-2">from last month</span>
-            </div>
+            <div className="text-2xl font-bold">{stats.users.total.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              +{stats.users.newThisMonth} new this month
+              +{stats.users.newThisMonth} this month
             </p>
           </CardContent>
         </Card>
-
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700">Active Lectures</CardTitle>
-            <div className="p-2 bg-green-500 rounded-lg">
-              <BookOpen className="h-4 w-4 text-white" />
-            </div>
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Lectures</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">{stats.lectures.active}</div>
+            <div className="text-2xl font-bold">{stats.lectures.active}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Scheduled + live (upcoming or ongoing)
-            </p>
-            <div className="flex items-center mt-2 text-sm">
-              {stats.lectures.growth >= 0 ? (
-                <span className="text-green-600 flex items-center">
-                  <ArrowUpRight className="h-4 w-4 mr-1" />
-                  +{stats.lectures.growth}%
-                </span>
-              ) : (
-                <span className="text-red-600 flex items-center">
-                  <ArrowDownRight className="h-4 w-4 mr-1" />
-                  {stats.lectures.growth}%
-                </span>
-              )}
-              <span className="text-muted-foreground ml-2">new vs last month</span>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.lectures.pending ?? 0} pending approval · {stats.lectures.completed} completed
+              {stats.lectures.scheduled} scheduled
             </p>
           </CardContent>
         </Card>
-
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-950/30 dark:to-fuchsia-950/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-700">Revenue (UC)</CardTitle>
-            <div className="p-2 bg-purple-500 rounded-lg">
-              <Coins className="h-4 w-4 text-white" />
-            </div>
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-600">{stats.revenue.total.toLocaleString()}</div>
-            <div className="flex items-center mt-2 text-sm">
-              {stats.revenue.growth >= 0 ? (
-                <span className="text-green-600 flex items-center">
-                  <ArrowUpRight className="h-4 w-4 mr-1" />
-                  +{stats.revenue.growth}%
-                </span>
-              ) : (
-                <span className="text-red-600 flex items-center">
-                  <ArrowDownRight className="h-4 w-4 mr-1" />
-                  {stats.revenue.growth}%
-                </span>
-              )}
-              <span className="text-muted-foreground ml-2">from last month</span>
-            </div>
+            <div className="text-2xl font-bold">{stats.revenue.thisMonth.toLocaleString()} UC</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {stats.revenue.thisMonth.toLocaleString()} UC this month
+              {stats.revenue.growth}% vs last month
             </p>
           </CardContent>
         </Card>
-
-        <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-700">Pending</CardTitle>
-            <div className="p-2 bg-orange-500 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-white" />
-            </div>
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">System Health</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-600">{totalPendingApprovals}</div>
-            <div className="mt-2 text-sm text-muted-foreground">
-              <p>{stats.users.pendingTrainers} trainers</p>
-              <p>{stats.lectures.pending || 0} lectures</p>
-            </div>
+            <div className="text-2xl font-bold text-green-600">Online</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              99.9% uptime
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Commission Income – separate section */}
+      {/* Commission Income Section */}
       {commission && (
-        <Card className="border-0 shadow-lg mt-6 overflow-hidden">
-          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-b">
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 border-b">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="flex items-center gap-2 text-xl text-amber-800 dark:text-amber-200">
+                <CardTitle className="flex items-center gap-2 text-xl text-amber-800">
                   <Receipt className="w-5 h-5" />
                   Commission Income
                 </CardTitle>
-                <CardDescription>
-                  Amounts below are admin share (commission received), not full payment
-                </CardDescription>
+                <CardDescription>Administrative earnings from platform transactions</CardDescription>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
-                  {(commission.total ?? 0).toLocaleString()} UC
+                <p className="text-2xl font-bold text-amber-700">
+                  {(commission.thisMonth ?? 0).toLocaleString()} UC
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  Admin earnings · {(commission.thisMonth ?? 0).toLocaleString()} UC this month
-                </p>
-              </div>
-            </div>
-            {/* Direct counts: Total revenue, Admin earnings, Trainer earnings */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-amber-200/50 dark:border-amber-800/50">
-              <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Total revenue</p>
-                <p className="text-lg font-bold text-amber-900 dark:text-amber-100">
-                  {(commission.totalRevenue ?? 0).toLocaleString()} UC
-                </p>
-                <p className="text-xs text-muted-foreground">Student payments (lectures + doubt)</p>
-              </div>
-              <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Admin earnings</p>
-                <p className="text-lg font-bold text-amber-700 dark:text-amber-300">
-                  {(commission.total ?? 0).toLocaleString()} UC
-                </p>
-                <p className="text-xs text-muted-foreground">Commission (20%) received</p>
-              </div>
-              <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Trainer earnings</p>
-                <p className="text-lg font-bold text-green-700 dark:text-green-300">
-                  {(commission.totalTrainerEarnings ?? 0).toLocaleString()} UC
-                </p>
-                <p className="text-xs text-muted-foreground">80% paid to trainers</p>
-              </div>
-              <div className="rounded-lg bg-white/60 dark:bg-black/20 p-3">
-                <p className="text-xs text-muted-foreground uppercase tracking-wide">Transaction count</p>
-                <p className="text-lg font-bold text-amber-900 dark:text-amber-100">
-                  {commission.transactionCount ?? (commission.transactions?.length ?? 0)}
-                </p>
-                <p className="text-xs text-muted-foreground">Commission entries</p>
-              </div>
-            </div>
-            <div className="flex gap-6 mt-3 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-blue-600" />
-                <span>From lectures: {(commission.fromLectures ?? 0).toLocaleString()} UC</span>
-                <span>({(commission.thisMonthFromLectures ?? 0)} this month)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-green-600" />
-                <span>From doubt sessions: {(commission.fromBidding ?? 0).toLocaleString()} UC</span>
-                <span>({(commission.thisMonthFromBidding ?? 0)} this month)</span>
+                <p className="text-sm text-muted-foreground">This Month</p>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <Collapsible open={commissionTableOpen} onOpenChange={setCommissionTableOpen}>
               <CollapsibleTrigger asChild>
-                <button
-                  type="button"
-                  className="w-full px-6 py-3 border-b bg-muted/30 flex items-center justify-between gap-2 hover:bg-muted/50 transition-colors text-left"
-                >
+                <button className="w-full px-6 py-3 border-b bg-muted/30 flex items-center justify-between hover:bg-muted/50 transition-colors">
                   <span className="font-medium flex items-center gap-2">
                     <List className="w-4 h-4" />
-                    Commission transactions (amount received by admin)
-                    {(commission.transactionCount ?? (commission.transactions?.length ?? 0)) > 0 && (
-                      <Badge variant="secondary">{commission.transactionCount ?? (commission.transactions?.length ?? 0)}</Badge>
-                    )}
+                    Transaction Details
                   </span>
-                  {commissionTableOpen ? (
-                    <ChevronUp className="w-4 h-4 shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 shrink-0" />
-                  )}
+                  {commissionTableOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent>
-                {(commission.transactions ?? []).length === 0 ? (
-                  <div className="p-8 text-center text-muted-foreground">
-                    No commission transactions yet.
-                  </div>
-                ) : (
-                  <>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b bg-muted/20">
-                            <th className="text-left p-3 font-medium">Date</th>
-                            <th className="text-left p-3 font-medium">Source</th>
-                            <th className="text-left p-3 font-medium">Description</th>
-                            <th className="text-right p-3 font-medium">Commission received (UC)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(commission.transactions ?? []).slice(0, 50).map((tx, i) => (
-                            <tr key={tx.reference + tx.date + i} className="border-b hover:bg-muted/20">
-                              <td className="p-3 text-muted-foreground">
-                                {new Date(tx.date).toLocaleString(undefined, {
-                                  dateStyle: 'short',
-                                  timeStyle: 'short'
-                                })}
-                              </td>
-                              <td className="p-3">
-                                <Badge variant={tx.source === 'lecture' ? 'default' : 'secondary'}>
-                                  {tx.source === 'lecture' ? 'Lecture' : 'Doubt session'}
-                                </Badge>
-                              </td>
-                              <td className="p-3">{tx.description}</td>
-                              <td className="p-3 text-right font-medium">+{(tx.amount ?? 0).toLocaleString()}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    {(commission.transactions ?? []).length > 50 && (
-                      <p className="px-6 py-2 text-xs text-muted-foreground border-t">
-                        Showing latest 50 of {commission.transactionCount ?? commission.transactions?.length ?? 0} transactions.
-                      </p>
-                    )}
-                  </>
-                )}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/20">
+                        <th className="text-left p-3 font-medium">Date</th>
+                        <th className="text-left p-3 font-medium">Source</th>
+                        <th className="text-left p-3 font-medium">Description</th>
+                        <th className="text-right p-3 font-medium">Amount (UC)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {commission.transactions.slice(0, 10).map((tx, i) => (
+                        <tr key={tx.reference + i} className="border-b hover:bg-muted/10">
+                          <td className="p-3 text-muted-foreground">{new Date(tx.date).toLocaleDateString()}</td>
+                          <td className="p-3 capitalize">{tx.source}</td>
+                          <td className="p-3">{tx.description}</td>
+                          <td className="p-3 text-right font-medium text-green-600">+₹{tx.amount}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </CollapsibleContent>
             </Collapsible>
           </CardContent>
@@ -624,292 +476,132 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* User Distribution */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Users className="w-5 h-5 text-blue-600" />
               User Distribution
             </CardTitle>
-            <CardDescription>Platform user breakdown</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-3 gap-4">
-              <div className="text-center p-4 rounded-xl bg-blue-50 dark:bg-blue-950/30">
-                <GraduationCap className="w-8 h-8 text-blue-600 mx-auto mb-2" />
+              <div className="text-center p-4 rounded-xl bg-blue-50">
                 <p className="text-2xl font-bold text-blue-600">{stats.users.students}</p>
                 <p className="text-sm text-muted-foreground">Students</p>
               </div>
-              <div className="text-center p-4 rounded-xl bg-green-50 dark:bg-green-950/30">
-                <UserCheck className="w-8 h-8 text-green-600 mx-auto mb-2" />
+              <div className="text-center p-4 rounded-xl bg-green-50">
                 <p className="text-2xl font-bold text-green-600">{stats.users.trainers}</p>
                 <p className="text-sm text-muted-foreground">Trainers</p>
               </div>
-              <div className="text-center p-4 rounded-xl bg-orange-50 dark:bg-orange-950/30">
-                <Clock className="w-8 h-8 text-orange-600 mx-auto mb-2" />
+              <div className="text-center p-4 rounded-xl bg-orange-50">
                 <p className="text-2xl font-bold text-orange-600">{stats.users.pendingTrainers}</p>
                 <p className="text-sm text-muted-foreground">Pending</p>
               </div>
             </div>
-            
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Students</span>
                   <span className="font-medium">{((stats.users.students / stats.users.total) * 100).toFixed(1)}%</span>
                 </div>
-                <Progress value={(stats.users.students / stats.users.total) * 100} className="h-3" />
+                <Progress value={(stats.users.students / stats.users.total) * 100} className="h-2" />
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span>Trainers</span>
                   <span className="font-medium">{((stats.users.trainers / stats.users.total) * 100).toFixed(1)}%</span>
                 </div>
-                <Progress value={(stats.users.trainers / stats.users.total) * 100} className="h-3" />
+                <Progress value={(stats.users.trainers / stats.users.total) * 100} className="h-2" />
               </div>
             </div>
-            
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/admin/manage-users">
-                Manage Users <ChevronRight className="w-4 h-4 ml-2" />
-              </Link>
-            </Button>
           </CardContent>
         </Card>
 
-        {/* Lecture count breakdown */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <BookOpen className="w-5 h-5 text-green-600" />
-              Lecture counts
+              <Activity className="w-5 h-5 text-indigo-600" />
+              Recent Activity
             </CardTitle>
-            <CardDescription>All lectures by status</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Total</p>
-                <p className="text-xl font-bold">{stats.lectures.total + (stats.lectures.missed ?? 0)}</p>
-                <p className="text-xs text-muted-foreground">All lectures</p>
-              </div>
-              <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pending</p>
-                <p className="text-xl font-bold text-yellow-700 dark:text-yellow-400">{stats.lectures.pending ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Awaiting approval</p>
-              </div>
-              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Scheduled</p>
-                <p className="text-xl font-bold text-blue-700 dark:text-blue-400">{stats.lectures.scheduled}</p>
-                <p className="text-xs text-muted-foreground">Approved, not started</p>
-              </div>
-              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Live</p>
-                <p className="text-xl font-bold text-red-700 dark:text-red-400">{stats.lectures.live ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Ongoing now</p>
-              </div>
-              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Completed</p>
-                <p className="text-xl font-bold text-green-700 dark:text-green-400">{stats.lectures.completed}</p>
-                <p className="text-xs text-muted-foreground">Finished</p>
-              </div>
-              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Missed</p>
-                <p className="text-xl font-bold text-amber-700 dark:text-amber-400">{stats.lectures.missed ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Scheduled, never went live</p>
-              </div>
-              <div className="p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700">
-                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cancelled</p>
-                <p className="text-xl font-bold text-gray-700 dark:text-gray-300">{stats.lectures.cancelled ?? 0}</p>
-                <p className="text-xs text-muted-foreground">Cancelled by admin</p>
-              </div>
-            </div>
-            <div className="pt-2 border-t">
-              <Button asChild variant="outline" className="w-full">
-                <Link to="/admin/manage-lectures">
-                  Manage Lectures <ChevronRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Pending Approvals */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <AlertTriangle className="w-5 h-5 text-orange-600" />
-                  Pending Approvals
-                </CardTitle>
-                <CardDescription>Items requiring your review</CardDescription>
-              </div>
-              <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-200">
-                {pendingApprovals.length} items
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {pendingApprovals.length > 0 ? (
-              <>
-                {pendingApprovals.slice(0, 4).map((item) => (
-                  <div 
-                    key={item.id} 
-                    className="flex items-center justify-between p-4 rounded-xl border hover:border-orange-200 hover:bg-orange-50/50 transition-all cursor-pointer"
-                    onClick={() => navigate(item.type === 'Trainer' ? '/admin/manage-users' : '/admin/manage-lectures')}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        item.type === 'Trainer' ? 'bg-blue-100' : 'bg-green-100'
-                      }`}>
-                        {item.type === 'Trainer' ? (
-                          <UserCheck className="w-5 h-5 text-blue-600" />
-                        ) : (
-                          <BookOpen className="w-5 h-5 text-green-600" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">{item.item}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge variant="outline" className="mb-1">{item.type}</Badge>
-                      <p className="text-xs text-muted-foreground">{formatTimeAgo(item.createdAt)}</p>
-                    </div>
-                  </div>
-                ))}
-                <Button asChild variant="outline" className="w-full">
-                  <Link to="/admin/manage-users">
-                    View All Pending <ChevronRight className="w-4 h-4 ml-2" />
-                  </Link>
-                </Button>
-              </>
-            ) : (
-              <div className="text-center py-8">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <h3 className="font-medium mb-2">All Caught Up!</h3>
-                <p className="text-muted-foreground text-sm">
-                  No pending approvals at this time
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <Activity className="w-5 h-5 text-indigo-600" />
-                  Recent Activity
-                </CardTitle>
-                <CardDescription>Latest platform events</CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={refreshing}>
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {recentActivity.length > 0 ? (
-              recentActivity.slice(0, 5).map((activity) => {
+          <CardContent>
+            <div className="space-y-4">
+              {recentActivity.slice(0, 5).map((activity) => {
                 const Icon = getActivityIcon(activity.type);
                 const colorClass = getStatusColor(activity.status);
                 return (
-                  <div key={activity.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-muted/50 transition-colors">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClass}`}>
-                      <Icon className="w-5 h-5" />
+                  <div key={activity.id} className="flex items-start gap-3">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colorClass}`}>
+                      <Icon className="w-4 h-4" />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div>
                       <p className="text-sm font-medium">{activity.message}</p>
                       <p className="text-xs text-muted-foreground">{formatTimeAgo(activity.time)}</p>
                     </div>
                   </div>
                 );
-              })
-            ) : (
-              <div className="text-center py-8">
-                <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-muted-foreground text-sm">No recent activity</p>
-              </div>
-            )}
+              })}
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* System Health & Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* System Health */}
         <Card className="border-0 shadow-lg lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Server className="w-5 h-5 text-green-600" />
-              System Health
+              Server Status
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium">Server Status</span>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-sm font-medium">Main API</span>
               </div>
-              <Badge className="bg-green-500">Online</Badge>
+              <Badge className="bg-green-500">Operational</Badge>
             </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium">Database</span>
-              </div>
-              <Badge className="bg-green-500">Healthy</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-blue-50">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium">API Response</span>
+                <span className="text-sm font-medium">Response</span>
               </div>
-              <Badge variant="outline">~125ms</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium">Uptime</span>
-              </div>
-              <Badge variant="outline">99.9%</Badge>
+              <span className="text-sm font-bold">125ms</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
         <Card className="border-0 shadow-lg lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-xl">Platform Management</CardTitle>
-            <CardDescription>Quick access to administrative functions</CardDescription>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-blue-300 hover:bg-blue-50">
+              <Button asChild variant="outline" className="h-20 flex-col gap-2">
                 <Link to="/admin/manage-users">
-                  <Users className="w-8 h-8 text-blue-600" />
-                  <span className="text-sm font-medium">Manage Users</span>
+                  <Users className="w-6 h-6 text-blue-600" />
+                  <span>Users</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-green-300 hover:bg-green-50">
+              <Button asChild variant="outline" className="h-20 flex-col gap-2">
                 <Link to="/admin/manage-lectures">
-                  <BookOpen className="w-8 h-8 text-green-600" />
-                  <span className="text-sm font-medium">Manage Lectures</span>
+                  <BookOpen className="w-6 h-6 text-green-600" />
+                  <span>Lectures</span>
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-24 flex-col gap-2 hover:border-purple-300 hover:bg-purple-50">
+              <Button asChild variant="outline" className="h-20 flex-col gap-2">
                 <Link to="/admin/analytics">
-                  <BarChart3 className="w-8 h-8 text-purple-600" />
-                  <span className="text-sm font-medium">Analytics</span>
+                  <BarChart3 className="w-6 h-6 text-purple-600" />
+                  <span>Analytics</span>
                 </Link>
               </Button>
-              
+              <Button asChild variant="outline" className="h-20 flex-col gap-2">
+                <Link to="/admin/settings">
+                  <Settings className="w-6 h-6 text-slate-600" />
+                  <span>Settings</span>
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>

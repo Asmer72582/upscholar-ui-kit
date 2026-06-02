@@ -26,13 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { paymentService, UpCoinPackage } from '@/services/paymentService';
 import { useAuth } from '@/contexts/AuthContext';
 
-declare global {
-  interface Window {
-    Razorpay: new (options: Record<string, unknown>) => {
-      open: () => void;
-    };
-  }
-}
+
 
 export const BuyUpCoins: React.FC = () => {
   const { user, loading: authLoading, refreshUser } = useAuth();

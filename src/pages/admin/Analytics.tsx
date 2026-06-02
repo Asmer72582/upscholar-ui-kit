@@ -42,7 +42,7 @@ export const Analytics: React.FC = () => {
     };
 
     fetchData();
-  }, []);
+  }, [selectedPeriod]);
 
   if (loading) {
     return (

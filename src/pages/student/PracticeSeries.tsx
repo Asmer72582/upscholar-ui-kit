@@ -28,17 +28,7 @@ function ProfileRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-declare global {
-  interface Window {
-    Razorpay: new (options: {
-      key: string;
-      amount: number;
-      currency: string;
-      order_id: string;
-      handler: (res: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => void;
-    }) => { open: () => void };
-  }
-}
+
 
 export const PracticeSeries: React.FC = () => {
   const { user } = useAuth();
@@ -158,9 +148,10 @@ export const PracticeSeries: React.FC = () => {
       if (Array.isArray(res.accessibleSubjects)) setAccessibleSubjects(res.accessibleSubjects);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Failed to load sheets';
-      toast.error(msg);
       if (msg.includes('profile required') || msg.includes('Complete registration first')) {
         setNeedsEnrollment(true);
+      } else {
+        toast.error(msg);
       }
       setSheets([]);
     } finally {
@@ -329,10 +320,56 @@ export const PracticeSeries: React.FC = () => {
   const contactNumber = enrollForm.contactNumber || (user as { mobile?: string })?.mobile || '';
 
   const handleSendOtp = async () => {
-    if (!contactNumber || contactNumber.length < 4) {
-      toast.error('Please enter a valid contact number (at least 4 digits)');
+    // Comprehensive validation before sending OTP
+    if (!contactNumber || contactNumber.length < 10) {
+      toast.error('Please enter a valid 10-digit contact number');
       return;
     }
+    if (!enrollForm.dateOfBirth) {
+      toast.error('Please select your date of birth');
+      return;
+    }
+    if (!enrollForm.gender) {
+      toast.error('Please select your gender');
+      return;
+    }
+    if (!enrollForm.classGrade) {
+      toast.error('Please select your class/grade');
+      return;
+    }
+    if (!enrollForm.city) {
+      toast.error('Please enter your city');
+      return;
+    }
+    if (!enrollForm.pincode || !/^\d{6}$/.test(enrollForm.pincode)) {
+      toast.error('Pincode must be 6 digits');
+      return;
+    }
+    if (!enrollForm.educationBoard) {
+      toast.error('Please select your education board');
+      return;
+    }
+    if (!enrollForm.streamOpted) {
+      toast.error('Please select your stream');
+      return;
+    }
+    if (!enrollForm.courseExamPrep) {
+      toast.error('Please select your course/exam prep');
+      return;
+    }
+    if (!enrollForm.schoolCollegeName) {
+      toast.error('Please enter your school/college name');
+      return;
+    }
+    if (!enrollForm.residentialAddress) {
+      toast.error('Please enter your residential address');
+      return;
+    }
+    if (!enrollMarksheetFile) {
+      toast.error('Please upload your marksheet');
+      return;
+    }
+
     setSendingOtp(true);
     try {
       await practiceSeriesService.sendOtp(contactNumber);
@@ -634,12 +671,12 @@ export const PracticeSeries: React.FC = () => {
                   <span className="flex items-center gap-1.5">
                     <Mail className="h-4 w-4 text-muted-foreground" />
                     {profileData.emailId}
-                    {profileData.emailOtpVerified ? <CheckCircle className="h-4 w-4 text-green-600" title="Verified" /> : null}
+                    {profileData.emailOtpVerified ? <span title="Verified"><CheckCircle className="h-4 w-4 text-green-600" /></span> : null}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Smartphone className="h-4 w-4 text-muted-foreground" />
                     {profileData.contactNumber}
-                    {profileData.phoneOtpVerified ? <CheckCircle className="h-4 w-4 text-green-600" title="Verified" /> : null}
+                    {profileData.phoneOtpVerified ? <span title="Verified"><CheckCircle className="h-4 w-4 text-green-600" /></span> : null}
                   </span>
                 </div>
               </div>

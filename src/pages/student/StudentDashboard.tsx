@@ -91,13 +91,37 @@ export const StudentDashboard: React.FC = () => {
 
       // Filter lectures by status
       const now = new Date();
-      const upcoming = myLectures
+      const enrolledUpcoming = myLectures
         .filter(
           (lecture) =>
             new Date(lecture.scheduledAt) > now &&
             lecture.status === "scheduled"
         )
         .slice(0, 4);
+
+      // If the student has fewer than 4 upcoming enrolled lectures, fill the list from the public
+      // catalog so the dashboard never looks empty. Catalog items the student is already enrolled in
+      // are de-duplicated.
+      let upcoming = enrolledUpcoming;
+      if (upcoming.length < 4) {
+        try {
+          const publicData = await lectureService.getAllLectures({
+            sortBy: "scheduledAt",
+            sortOrder: "asc",
+            limit: 12,
+          });
+          const enrolledIds = new Set(myLectures.map((l) => l.id));
+          const publicUpcoming = (publicData.lectures || []).filter(
+            (l) =>
+              new Date(l.scheduledAt) > now &&
+              l.status === "scheduled" &&
+              !enrolledIds.has(l.id)
+          );
+          upcoming = [...enrolledUpcoming, ...publicUpcoming].slice(0, 4);
+        } catch (e) {
+          console.error("Failed to load public upcoming lectures:", e);
+        }
+      }
 
       const live = myLectures.filter((lecture) => lecture.status === "live");
       const completed = myLectures.filter((lecture) => lecture.status === "completed");
@@ -116,7 +140,7 @@ export const StudentDashboard: React.FC = () => {
       setStats({
         enrolledLectures: myLectures.length,
         completedLectures: completed.length,
-        upcomingLectures: upcoming.length,
+        upcomingLectures: enrolledUpcoming.length,
         liveLectures: live.length,
         learningStreak: Math.floor(Math.random() * 15) + 1,
         totalSpent: balance.totalSpent || 0,

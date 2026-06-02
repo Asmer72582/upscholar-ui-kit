@@ -204,29 +204,21 @@ class AdminService {
     }
   }
 
-  async getUserStats(): Promise<UserStats> {
+  async getUserStats(period?: string): Promise<UserStats> {
     try {
-      const users = await this.getAllUsers();
+      const response = await fetch(`${API_URL}/admin/stats/users${period ? `?period=${period}` : ''}`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
 
-      const stats: UserStats = {
-        total: users.length,
-        students: users.filter((u) => u.role === "student").length,
-        trainers: users.filter((u) => u.role === "trainer").length,
-        admins: users.filter((u) => u.role === "admin").length,
-        // Active users: approved or active status, excluding suspended
-        active: users.filter((u) => 
-          (u.status === "approved" || u.status === "active") && 
-          u.status !== "suspended" &&
-          u.status !== "rejected"
-        ).length,
-        pending: users.filter((u) => u.status === "pending").length,
-        // Suspended users: only those explicitly marked as suspended
-        suspended: users.filter((u) => u.status === "suspended").length,
-      };
+      if (!response.ok) {
+        throw new Error("Failed to fetch user stats");
+      }
 
-      return stats;
+      return await response.json();
     } catch (error) {
-      console.error("Error calculating user stats:", error);
+      console.error("Error fetching user stats:", error);
       // Return default stats if there's an error
       return {
         total: 0,
@@ -274,7 +266,7 @@ class AdminService {
     }
   }
 
-  async getDashboardStats(): Promise<{
+  async getDashboardStats(period?: string): Promise<{
     users: {
       total: number;
       students: number;
@@ -306,7 +298,7 @@ class AdminService {
   }> {
     try {
       const response = await fetch(
-        `${API_URL}/admin/stats/overview`,
+        `${API_URL}/admin/stats/overview${period ? `?period=${period}` : ''}`,
         {
           method: "GET",
           headers: getAuthHeaders(),
@@ -504,7 +496,7 @@ class AdminService {
     }
   }
 
-  async getLectureStats(): Promise<{
+  async getLectureStats(period?: string): Promise<{
     total: number;
     pending: number;
     approved: number;
@@ -516,21 +508,17 @@ class AdminService {
     missed: number;
   }> {
     try {
-      const lectures = await this.getAllLectures();
-      
-      const stats = {
-        total: lectures.length,
-        pending: lectures.filter((l: any) => l.status === 'pending').length,
-        approved: lectures.filter((l: any) => l.status === 'approved' || l.status === 'scheduled').length,
-        completed: lectures.filter((l: any) => l.status === 'completed').length,
-        rejected: lectures.filter((l: any) => l.status === 'cancelled' && l.rejectionReason).length,
-        scheduled: lectures.filter((l: any) => l.status === 'scheduled').length,
-        live: lectures.filter((l: any) => l.status === 'live').length,
-        cancelled: lectures.filter((l: any) => l.status === 'cancelled').length,
-        missed: lectures.filter((l: any) => l.status === 'missed').length,
-      };
-      
-      return stats;
+      const response = await fetch(`${API_URL}/admin/stats/lectures${period ? `?period=${period}` : ''}`, {
+        method: "GET",
+        headers: getAuthHeaders(),
+        ...fetchConfig,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch lecture stats");
+      }
+
+      return await response.json();
     } catch (error) {
       console.error("Error fetching lecture stats:", error);
       throw error;

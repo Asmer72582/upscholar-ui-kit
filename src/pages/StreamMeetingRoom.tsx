@@ -47,11 +47,19 @@ const MeetingUI: React.FC<{
   isSpectator?: boolean;
 }> = ({ onLeave, lectureId, userName, userId, isSpectator = false }) => {
   const call = useCall();
-  const { useCallCallingState, useParticipantCount, useLocalParticipant, useRemoteParticipants } = useCallStateHooks();
+  const { useCallCallingState, useParticipantCount, useLocalParticipant, useRemoteParticipants, useParticipants } = useCallStateHooks();
   const callingState = useCallCallingState();
   const participantCount = useParticipantCount();
   const localParticipant = useLocalParticipant();
   const remoteParticipants = useRemoteParticipants();
+  const allParticipants = useParticipants();
+
+  const visibleParticipants = allParticipants.filter((p: any) => {
+    const participantIsSpectator = p.custom?.isSpectator === true;
+    if (participantIsSpectator) return false;
+    if (p.isLocalParticipant && isSpectator) return false;
+    return true;
+  });
   
   const [showChat, setShowChat] = useState(true);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -178,10 +186,23 @@ const MeetingUI: React.FC<{
 
       <div className="flex h-[calc(100vh-140px)]">
         {/* Main video area */}
-        <div className={`${!isSpectator && showChat ? 'flex-1' : 'w-full'} p-4 transition-all duration-300`}>
-          <StreamTheme>
-            <SpeakerLayout participantsBarPosition="bottom" />
-          </StreamTheme>
+        <div className={`${!isSpectator && showChat ? 'flex-1' : 'w-full'} p-4 transition-all duration-300 bg-black`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 h-full content-start overflow-y-auto p-2">
+            {visibleParticipants.map((participant) => (
+              <div key={participant.sessionId} className="relative aspect-video bg-gray-900 rounded-xl overflow-hidden border border-gray-800 shadow-lg group">
+                <ParticipantView participant={participant} />
+                <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between">
+                  <span className="text-sm font-medium truncate">{participant.name || 'Participant'}</span>
+                  {!participant.videoStream && <div className="text-[10px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded">Camera Off</div>}
+                </div>
+              </div>
+            ))}
+            {visibleParticipants.length === 0 && (
+              <div className="col-span-full h-full flex items-center justify-center text-gray-500 italic">
+                Waiting for participants...
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Chat sidebar - hidden for spectators */}
@@ -343,7 +364,12 @@ export const StreamMeetingRoom: React.FC = () => {
         });
 
         const videoCall = videoClient.call('default', lectureId);
-        await videoCall.join({ create: true });
+        await videoCall.join({ 
+          create: !isSpectator,
+          data: {
+            custom: { isSpectator: !!isSpectator }
+          }
+        });
 
         if (cancelled) {
           videoCall.leave().catch(console.error);

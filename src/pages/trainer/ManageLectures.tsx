@@ -423,8 +423,8 @@ export const ManageLectures: React.FC = () => {
         )}
 
         {/* Stats Overview */}
-        <p className="text-xs text-muted-foreground mb-2">Total = all your lectures · Pending = awaiting admin approval · Approved = scheduled · Completed = finished</p>
-        <div className="grid md:grid-cols-7 gap-4">
+        <p className="text-xs text-muted-foreground mb-2">Total = all your lectures · Pending = awaiting admin approval · Approved = scheduled · Completed = finished · Missed = scheduled but not started in time</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
               <Calendar className="w-6 h-6 mx-auto mb-2 text-primary" />
@@ -451,6 +451,13 @@ export const ManageLectures: React.FC = () => {
               <Play className="w-6 h-6 mx-auto mb-2 text-blue-600" />
               <p className="text-2xl font-bold">{stats.completedLectures}</p>
               <p className="text-xs text-muted-foreground">Completed</p>
+            </CardContent>
+          </Card>
+          <Card className={stats.missedLectures > 0 ? 'border-amber-300 bg-amber-50' : ''}>
+            <CardContent className="p-4 text-center">
+              <Clock className="w-6 h-6 mx-auto mb-2 text-amber-600" />
+              <p className="text-2xl font-bold text-amber-700">{stats.missedLectures}</p>
+              <p className="text-xs text-muted-foreground">Missed</p>
             </CardContent>
           </Card>
           <Card>

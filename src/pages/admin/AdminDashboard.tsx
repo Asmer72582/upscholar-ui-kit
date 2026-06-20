@@ -9,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Users,
   BookOpen,
-  DollarSign,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
@@ -191,7 +190,7 @@ export const AdminDashboard: React.FC = () => {
       case 'user': return Users;
       case 'lecture': return BookOpen;
       case 'approval': return AlertTriangle;
-      case 'payment': return DollarSign;
+      case 'payment': return Coins;
       default: return Activity;
     }
   };
@@ -319,7 +318,7 @@ export const AdminDashboard: React.FC = () => {
                   <Coins className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{stats.revenue.total.toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{stats.revenue.total.toLocaleString()} UC</p>
                   <p className="text-white/70 text-sm">Total Revenue</p>
                 </div>
               </div>
@@ -462,7 +461,7 @@ export const AdminDashboard: React.FC = () => {
                           <td className="p-3 text-muted-foreground">{new Date(tx.date).toLocaleDateString()}</td>
                           <td className="p-3 capitalize">{tx.source}</td>
                           <td className="p-3">{tx.description}</td>
-                          <td className="p-3 text-right font-medium text-green-600">+₹{tx.amount}</td>
+                          <td className="p-3 text-right font-medium text-green-600">+{tx.amount.toLocaleString()} UC</td>
                         </tr>
                       ))}
                     </tbody>

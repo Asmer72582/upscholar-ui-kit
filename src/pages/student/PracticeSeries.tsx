@@ -28,6 +28,23 @@ function ProfileRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatSheetDate(date?: string) {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString(undefined, { dateStyle: 'medium' });
+}
+
+function AnswerKeyReleaseNote({ sheet }: { sheet: { answerReleaseDate?: string; canViewAnswers?: boolean } }) {
+  if (!sheet.answerReleaseDate) return null;
+  const releaseDate = formatSheetDate(sheet.answerReleaseDate);
+  return (
+    <p className="text-xs text-muted-foreground">
+      {sheet.canViewAnswers
+        ? `Answer key released ${releaseDate}`
+        : `Answer key releases ${releaseDate}`}
+    </p>
+  );
+}
+
 
 
 export const PracticeSeries: React.FC = () => {
@@ -814,7 +831,8 @@ export const PracticeSeries: React.FC = () => {
                           {s.category && <Badge variant="outline" className="text-xs">{s.category}</Badge>}
                         </div>
                         <CardTitle className="text-sm leading-tight">{s.title}</CardTitle>
-                        <p className="text-xs text-muted-foreground">{new Date(s.uploadedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}</p>
+                        <p className="text-xs text-muted-foreground">Uploaded {formatSheetDate(s.uploadedAt)}</p>
+                        <AnswerKeyReleaseNote sheet={s} />
                       </CardHeader>
                       <CardContent className="pt-0 pb-4 px-4 mt-auto flex flex-wrap items-center gap-2">
                         {hasAccess && s.canViewSheet && s.pdfUrl && (
@@ -862,7 +880,8 @@ export const PracticeSeries: React.FC = () => {
                             {s.category && <Badge variant="outline" className="text-xs">{s.category}</Badge>}
                           </div>
                           <h3 className="font-medium text-sm truncate">{s.title}</h3>
-                          <p className="text-xs text-muted-foreground">{new Date(s.uploadedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}</p>
+                          <p className="text-xs text-muted-foreground">Uploaded {formatSheetDate(s.uploadedAt)}</p>
+                          <AnswerKeyReleaseNote sheet={s} />
                         </div>
                         <div className="flex gap-2 shrink-0">
                           {hasAccess && s.canViewSheet && s.pdfUrl && (

@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Users, DollarSign, BookOpen, TrendingUp, Video, Calendar, Target, Award, Activity, Server, Database, Zap, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Users, Coins, BookOpen, TrendingUp, Video, Calendar, Target, Award, Activity, Server, Database, Zap, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { adminService } from '@/services/adminService';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -17,6 +17,15 @@ export const Analytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const periodLabel = {
+    week: 'This Week',
+    month: 'This Month',
+    quarter: 'This Quarter',
+    year: 'This Year',
+  }[selectedPeriod] || 'This Month';
+
+  const formatUC = (amount: number) => `${(amount || 0).toLocaleString()} UC`;
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -25,9 +34,9 @@ export const Analytics: React.FC = () => {
 
         // Fetch all required data
         const [dashboardData, userData, lectureData] = await Promise.all([
-          adminService.getDashboardStats(),
-          adminService.getUserStats(),
-          adminService.getLectureStats()
+          adminService.getDashboardStats(selectedPeriod),
+          adminService.getUserStats(selectedPeriod),
+          adminService.getLectureStats(selectedPeriod)
         ]);
 
         setDashboardStats(dashboardData);
@@ -142,7 +151,7 @@ export const Analytics: React.FC = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Total Users</p>
                   <p className="text-2xl font-bold">{dashboardStats?.users?.total || 0}</p>
-                  <p className="text-xs text-green-600">+{dashboardStats?.users?.newThisMonth || 0} this month</p>
+                  <p className="text-xs text-green-600">+{dashboardStats?.users?.newThisMonth || 0} {periodLabel.toLowerCase()}</p>
                 </div>
                 <Users className="w-8 h-8 text-primary" />
               </div>
@@ -154,7 +163,7 @@ export const Analytics: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Revenue</p>
-                  <p className="text-2xl font-bold">₹{dashboardStats?.revenue?.total || 0}</p>
+                  <p className="text-2xl font-bold">{formatUC(dashboardStats?.revenue?.total || 0)}</p>
                   <p className={`text-xs ${dashboardStats?.revenue?.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {dashboardStats?.revenue?.growth >= 0 ? '+' : ''}{dashboardStats?.revenue?.growth || 0}% growth
                   </p>
@@ -427,7 +436,7 @@ export const Analytics: React.FC = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <DollarSign className="w-5 h-5 text-green-600" />
+                    <Coins className="w-5 h-5 text-green-600" />
                     Revenue Overview
                   </CardTitle>
                   <CardDescription>Platform revenue statistics</CardDescription>
@@ -436,12 +445,12 @@ export const Analytics: React.FC = () => {
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="text-center p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                        <p className="text-2xl font-bold text-green-600">₹{dashboardStats?.revenue?.total || 0}</p>
+                        <p className="text-2xl font-bold text-green-600">{formatUC(dashboardStats?.revenue?.total || 0)}</p>
                         <p className="text-sm text-muted-foreground">Total Revenue</p>
                       </div>
                       <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                        <p className="text-2xl font-bold text-blue-600">₹{dashboardStats?.revenue?.thisMonth || 0}</p>
-                        <p className="text-sm text-muted-foreground">This Month</p>
+                        <p className="text-2xl font-bold text-blue-600">{formatUC(dashboardStats?.revenue?.thisMonth || 0)}</p>
+                        <p className="text-sm text-muted-foreground">{periodLabel}</p>
                       </div>
                     </div>
                     
@@ -460,7 +469,7 @@ export const Analytics: React.FC = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-muted-foreground">Average per Lecture</span>
                         <span className="text-sm font-semibold">
-                          ₹{lectureStats?.total > 0 ? Math.round((dashboardStats?.revenue?.total || 0) / lectureStats.total) : 0}
+                          {formatUC(lectureStats?.total > 0 ? Math.round((dashboardStats?.revenue?.total || 0) / lectureStats.total) : 0)}
                         </span>
                       </div>
                     </div>
@@ -480,21 +489,21 @@ export const Analytics: React.FC = () => {
                   <div className="space-y-4">
                     <div className="p-4 bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/30 dark:to-blue-950/30 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Current Month</span>
+                        <span className="text-sm font-medium">{periodLabel}</span>
                         <TrendingUp className="w-4 h-4 text-green-600" />
                       </div>
-                      <p className="text-2xl font-bold text-green-600">₹{dashboardStats?.revenue?.thisMonth || 0}</p>
+                      <p className="text-2xl font-bold text-green-600">{formatUC(dashboardStats?.revenue?.thisMonth || 0)}</p>
                     </div>
                     
                     <div className="space-y-3">
                       <div className="flex justify-between items-center p-2 bg-muted rounded">
                         <span className="text-sm">Total Platform Revenue</span>
-                        <span className="text-sm font-semibold">₹{dashboardStats?.revenue?.total || 0}</span>
+                        <span className="text-sm font-semibold">{formatUC(dashboardStats?.revenue?.total || 0)}</span>
                       </div>
                       <div className="flex justify-between items-center p-2 bg-muted rounded">
                         <span className="text-sm">Revenue from Completed Lectures</span>
                         <span className="text-sm font-semibold">
-                          ₹{lectureStats?.completed > 0 ? Math.round((dashboardStats?.revenue?.total || 0) * 0.8) : 0}
+                          {formatUC(lectureStats?.completed > 0 ? Math.round((dashboardStats?.revenue?.total || 0) * 0.8) : 0)}
                         </span>
                       </div>
                     </div>

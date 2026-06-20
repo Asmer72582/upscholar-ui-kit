@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -55,11 +55,15 @@ interface EarningsData {
 
 export const TrainerWalletEarnings: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const resolveTab = () =>
+    searchParams.get('tab') || (location.pathname.endsWith('/earnings') ? 'earnings' : 'overview');
   const [balance, setBalance] = useState<WalletBalance | null>(null);
   const [earnings, setEarnings] = useState<EarningsData | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTab, setSelectedTab] = useState('overview');
+  const [selectedTab, setSelectedTab] = useState(resolveTab);
   const [showWithdrawDialog, setShowWithdrawDialog] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   
@@ -76,6 +80,10 @@ export const TrainerWalletEarnings: React.FC = () => {
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  useEffect(() => {
+    setSelectedTab(resolveTab());
+  }, [searchParams, location.pathname]);
 
   const fetchAllData = async () => {
     try {

@@ -239,8 +239,9 @@ export const ManageLectures: React.FC = () => {
     const missedLectures = lectures.filter(l => l.status === 'missed').length;
     const totalStudents = lectures.reduce((sum, l) => sum + l.enrolledCount, 0);
     const totalEarnings = lectures.reduce((sum, l) => sum + l.totalEarnings, 0);
-    const averageRating = lectures.length > 0 
-      ? lectures.reduce((sum, l) => sum + l.averageRating, 0) / lectures.length 
+    const ratedLectures = lectures.filter(l => l.averageRating > 0);
+    const averageRating = ratedLectures.length > 0
+      ? ratedLectures.reduce((sum, l) => sum + l.averageRating, 0) / ratedLectures.length
       : 0;
 
     return {

@@ -510,7 +510,7 @@ export const TrainerDashboard: React.FC = () => {
                   </div>
                 ))}
                 <Button asChild variant="outline" className="w-full">
-                  <Link to="/trainer/earnings">
+                  <Link to="/trainer/wallet?tab=earnings">
                     View All Earnings
                     <ChevronRight className="w-4 h-4 ml-2" />
                   </Link>

@@ -47,7 +47,7 @@ export const DashboardSidebar: React.FC = () => {
           { title: 'Create Course', href: '/trainer/create-course', icon: BookOpen },
           { title: 'Manage Courses', href: '/trainer/manage-courses', icon: ClipboardList },
           { title: 'Students', href: '/trainer/students', icon: Users },
-          { title: 'Earnings', href: '/trainer/earnings', icon: CreditCard },
+          { title: 'Wallet & Earnings', href: '/trainer/wallet', icon: CreditCard },
         ];
       case 'admin':
         return [

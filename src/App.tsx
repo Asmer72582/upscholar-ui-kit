@@ -100,6 +100,7 @@ const App = () => (
               <Route path="students" element={<Students />} />
               <Route path="bidding" element={<TrainerBidding />} />
               <Route path="wallet" element={<TrainerWalletEarnings />} />
+              <Route path="earnings" element={<TrainerWalletEarnings />} />
               <Route path="settings" element={<TrainerSettings />} />
               <Route path="support" element={<Support />} />
             </Route>

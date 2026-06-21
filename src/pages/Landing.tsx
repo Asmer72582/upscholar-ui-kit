@@ -5,23 +5,39 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  Video,
   MapPin,
   ArrowRight,
   Phone,
   Mail,
   Clock,
-  BookOpen,
   Building2,
-  CheckCircle,
-  MessageCircle,
-  Facebook,
-  Twitter,
   Instagram,
-  Linkedin,
-  Globe,
-  Star
 } from 'lucide-react';
+
+const BRAND = '#63559e';
+
+const SOCIAL_LINKS = {
+  instagram: 'https://www.instagram.com/upscholar.india?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==',
+};
+
+const VIRTUAL_CLASSROOM_IMAGE = encodeURI('/up scholar  542 x  256-01.jpg');
+const OFFLINE_CENTRE_IMAGE = encodeURI('/up scholar  542 x  256-02.jpg');
+
+const virtualClassroomFeatures = [
+  'Live Interactive Video Classes',
+  '1-to-1 Doubt Sessions with Trainers',
+  'Choose Your Preferred Trainer & Slot',
+  'Exam-Ready Online Practice Series',
+  '1000 Free Up-Coins on Signup',
+];
+
+const offlineCentreFeatures = [
+  'Real Classroom Learning Environment',
+  'Face-to-Face Interaction with Trainers',
+  'Small Batch Size for Personal Attention',
+  'Dedicated Doubt-Clearing Support',
+  'Modern Classroom Facilities',
+];
 
 // Offline Centre Details
 const offlineCentres = [
@@ -33,7 +49,7 @@ const offlineCentres = [
     timings: 'Mon-Sat: 8:00 AM - 8:00 PM',
     features: ['AC Classrooms', 'Computer Lab', 'Library', 'Doubt Sessions'],
     subjects: ['Mathematics', 'Science', 'English', 'Competitive Exams'],
-    image: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=600&h=400&fit=crop'
+    image: OFFLINE_CENTRE_IMAGE
   },
   {
     name: 'Upscholar Academy - Delhi',
@@ -69,8 +85,6 @@ export const Landing: React.FC = () => {
     }
   }, [user, loading, navigate]);
 
-  const BRAND = '#63559e';
-
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-slate-900" style={{ fontFamily: "'Montserrat', 'Gotham', sans-serif" }}>
       {/* Header */}
@@ -95,7 +109,7 @@ export const Landing: React.FC = () => {
         {!showOfflineCentres ? (
           <>
             {/* Hero Section */}
-            <section className="relative pb-32 pt-16 overflow-hidden">
+            <section className="relative pb-20 pt-16 overflow-hidden">
                {/* Background: use image from public if available */}
                <div className="absolute inset-0 z-0 select-none pointer-events-none">
                  <div 
@@ -139,23 +153,18 @@ export const Landing: React.FC = () => {
                     <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(8,112,184,0.07)] overflow-hidden border border-gray-100 flex flex-col group hover:-translate-y-2 transition-all duration-300">
                       <div className="h-64 overflow-hidden relative">
                          <img 
-                           src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=800&q=80" 
-                           alt="Virtual Classroom" 
+                           src={VIRTUAL_CLASSROOM_IMAGE} 
+                           alt="Upscholar virtual classroom with interactive online learning"
                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
                          />
                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
                       <div className="p-8 lg:p-10 text-left flex-1 flex flex-col">
-                         <h3 className="text-[1.75rem] font-bold tracking-tight text-gray-900 mb-1">Virtual Classroom</h3>
-                         <p className="text-sm text-gray-500 mb-8 font-medium">Live Interactive Classes From Expert Trainers</p>
+                         <h3 className="text-[1.75rem] font-bold tracking-tight mb-1" style={{ color: BRAND }}>Virtual Classroom</h3>
+                         <p className="text-base font-bold text-gray-900 mb-8">Interactive Classes & Expert Mentorship at Your Fingertips</p>
                          
                          <ul className="space-y-4 mb-10 flex-1">
-                            {[
-                              'Live Interactive Video Classes', 
-                              'Learn From Anywhere, Anytime', 
-                              '1000 Free UpCoins On Signup!', 
-                              'Expert Trainers & Doubt Sessions'
-                            ].map((item, i) => (
+                            {virtualClassroomFeatures.map((item, i) => (
                               <li key={i} className="flex items-start gap-3 text-gray-700 font-medium text-[0.95rem]">
                                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center mt-0.5">
                                   <span className="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
@@ -170,32 +179,27 @@ export const Landing: React.FC = () => {
                            className="w-full text-white rounded-xl py-7 text-lg font-semibold shadow-lg transition-all active:scale-[0.98]"
                            style={{ backgroundColor: BRAND }}
                          >
-                           Start Learning Online <span className="ml-2">»</span>
+                           ▶ Start Learning Online
                          </Button>
                       </div>
                     </div>
 
-                    {/* Offline Centres Card */}
+                    {/* Offline Centre Card */}
                     <div className="bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(8,112,184,0.07)] overflow-hidden border border-gray-100 flex flex-col group hover:-translate-y-2 transition-all duration-300">
                       <div className="h-64 overflow-hidden relative">
                          <img 
-                           src="https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&q=80" 
-                           alt="Offline Centres" 
+                           src={OFFLINE_CENTRE_IMAGE} 
+                           alt="Upscholar offline centre classroom"
                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" 
                          />
                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
                       </div>
                       <div className="p-8 lg:p-10 text-left flex-1 flex flex-col">
-                         <h3 className="text-[1.75rem] font-bold tracking-tight text-gray-900 mb-1">Offline Centres</h3>
-                         <p className="text-sm text-gray-500 mb-8 font-medium">Physical Coaching Centres Across India</p>
+                         <h3 className="text-[1.75rem] font-bold tracking-tight mb-1" style={{ color: BRAND }}>Offline Centre</h3>
+                         <p className="text-base font-bold text-gray-900 mb-8">Classroom Coaching at Our Physical Centre</p>
                          
                          <ul className="space-y-4 mb-10 flex-1">
-                            {[
-                              'Physical classroom experience', 
-                              'Face-to-face interaction with teachers', 
-                              'Modern facilities & labs', 
-                              'Multiple locations across India'
-                            ].map((item, i) => (
+                            {offlineCentreFeatures.map((item, i) => (
                               <li key={i} className="flex items-start gap-3 text-gray-700 font-medium text-[0.95rem]">
                                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gray-100 flex items-center justify-center mt-0.5">
                                   <span className="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
@@ -210,34 +214,10 @@ export const Landing: React.FC = () => {
                            className="w-full text-white rounded-xl py-7 text-lg font-semibold shadow-lg transition-all active:scale-[0.98]"
                            style={{ backgroundColor: BRAND }}
                          >
-                           View Our Centres <span className="ml-2">»</span>
+                           ▶ View Our Centre
                          </Button>
                       </div>
                     </div>
-                  </div>
-               </div>
-            </section>
-
-            {/* Stats Section — only "Expert Trainers" card is purple per reference */}
-            <section className="py-20 bg-white relative z-10">
-               <div className="container mx-auto px-4 max-w-7xl">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8">
-                     <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] text-center border border-gray-50 flex flex-col items-center justify-center min-h-[180px] hover:shadow-lg transition-shadow">
-                        <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">15,000+</div>
-                        <div className="text-gray-500 font-medium text-lg">Students</div>
-                     </div>
-                     <div className="p-8 rounded-[2rem] shadow-lg text-center flex flex-col items-center justify-center min-h-[180px] text-white" style={{ backgroundColor: BRAND }}>
-                        <div className="text-4xl md:text-5xl font-bold mb-2">500+</div>
-                        <div className="text-white/90 font-medium text-lg">Expert Trainers</div>
-                     </div>
-                     <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] text-center border border-gray-50 flex flex-col items-center justify-center min-h-[180px] hover:shadow-lg transition-shadow">
-                        <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">50+</div>
-                        <div className="text-gray-500 font-medium text-lg">Subjects</div>
-                     </div>
-                     <div className="bg-white p-8 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.06)] text-center border border-gray-50 flex flex-col items-center justify-center min-h-[180px] hover:shadow-lg transition-shadow">
-                        <div className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">4.9/5</div>
-                        <div className="text-gray-500 font-medium text-lg">Rating</div>
-                     </div>
                   </div>
                </div>
             </section>
@@ -362,8 +342,12 @@ export const Landing: React.FC = () => {
                  <Mail className="w-5 h-5" /> Email & Web
                </h4>
                <ul className="space-y-3 text-[15px] text-gray-600">
-                  <li>info@upscholar.in</li>
-                  <li>www.upscholar.in</li>
+                  <li>
+                    <a href="mailto:info@upscholar.in" className="hover:opacity-80">info@upscholar.in</a>
+                  </li>
+                  <li>
+                    <a href="https://www.upscholar.in" target="_blank" rel="noopener noreferrer" className="hover:opacity-80">www.upscholar.in</a>
+                  </li>
                </ul>
             </div>
             <div>
@@ -382,14 +366,15 @@ export const Landing: React.FC = () => {
             <div className="flex items-center gap-6">
               <span className="text-sm font-semibold text-gray-700">Follow Us On</span>
               <div className="flex gap-3">
-                 <a href="#" className="w-9 h-9 rounded-full text-white flex items-center justify-center hover:opacity-90 transition-opacity" style={{ backgroundColor: BRAND }}>
+                 <a
+                   href={SOCIAL_LINKS.instagram}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   aria-label="Follow Upscholar on Instagram"
+                   className="w-9 h-9 rounded-full text-white flex items-center justify-center hover:opacity-90 transition-opacity"
+                   style={{ backgroundColor: BRAND }}
+                 >
                     <Instagram className="w-4 h-4" />
-                 </a>
-                 <a href="#" className="w-9 h-9 rounded-full text-white flex items-center justify-center hover:opacity-90 transition-opacity" style={{ backgroundColor: BRAND }}>
-                    <Facebook className="w-4 h-4" />
-                 </a>
-                 <a href="#" className="w-9 h-9 rounded-full text-white flex items-center justify-center hover:opacity-90 transition-opacity" style={{ backgroundColor: BRAND }}>
-                    <Linkedin className="w-4 h-4" />
                  </a>
               </div>
             </div>
